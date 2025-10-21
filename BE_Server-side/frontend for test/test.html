@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Diễn đàn YOOLIFETEST</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #e0e0e0;
+      height: 100vh;
+      margin: 0;
+      font-family: "Segoe UI", sans-serif;
+    }
+
+    /* Khung điện thoại */
+    .phone {
+      width: 320px;
+      height: 640px;
+      background: linear-gradient(135deg, #f9f9fb, #eef2f7);
+      border-radius: 30px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      border: 8px solid #111;
+      position: relative;
+    }
+
+    /* Header */
+    header {
+      background: linear-gradient(135deg, #4facfe, #00f2fe);
+      color: white;
+      padding: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    header h1 {
+      font-size: 14px;
+      margin: 0;
+    }
+    .user {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+    }
+    .user img {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 2px solid white;
+    }
+
+    /* Menu grid */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      padding: 12px;
+    }
+    .card {
+      background: rgba(255,255,255,0.85);
+      border-radius: 12px;
+      padding: 10px 6px;
+      text-align: center;
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      transition: transform 0.25s, background 0.25s;
+    }
+    .card i {
+      font-size: 18px;
+      margin-bottom: 4px;
+      color: #4facfe;
+      transition: transform 0.25s;
+    }
+    .card:hover {
+      transform: translateY(-3px);
+      background: rgba(227,242,253,0.9);
+    }
+    .card:hover i {
+      transform: scale(1.2);
+    }
+
+    /* Ripple effect */
+    .ripple {
+      position: absolute;
+      border-radius: 50%;
+      transform: scale(0);
+      animation: ripple 0.6s linear;
+      background-color: rgba(0,0,0,0.2);
+      pointer-events: none;
+    }
+    @keyframes ripple {
+      to {
+        transform: scale(4);
+        opacity: 0;
+      }
+    }
+
+    /* Tabs */
+    .tabs {
+      flex: 1;
+      margin: 10px;
+      background: rgba(255,255,255,0.8);
+      border-radius: 14px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      border: 1px solid #ddd;
+    }
+    .tab-header {
+      display: flex;
+    }
+    .tab-header button {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      background: #f0f0f0;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 12px;
+      transition: 0.3s;
+    }
+    .tab-header button.active {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+    }
+    .tab-content {
+      flex: 1;
+      padding: 14px;
+      font-size: 13px;
+      display: none;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 0.4s, transform 0.4s;
+    }
+    .tab-content.show {
+      display: block;
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Footer */
+    .footer {
+      background: rgba(255,255,255,0.9);
+      border-top: 1px solid #ddd;
+      display: flex;
+      justify-content: space-around;
+      padding: 10px 0;
+    }
+    .tool {
+      text-align: center;
+      font-size: 11px;
+      color: #444;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    .tool i {
+      font-size: 18px;
+      margin-bottom: 4px;
+      display: block;
+      color: #764ba2;
+    }
+    .tool:hover {
+      transform: scale(1.1);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="phone">
+    <header>
+      <h1>Diễn đàn YOOLIFETEST</h1>
+      <div class="user">
+        <span>Nguyễn Tuấn Đạt</span>
+        <img src="https://via.placeholder.com/28" alt="User">
+      </div>
+    </header>
+
+    <div class="grid">
+      <div class="card"><i class="fa-solid fa-poll"></i>Khảo sát</div>
+      <div class="card"><i class="fa-solid fa-bullhorn"></i>Phản ánh</div>
+      <div class="card"><i class="fa-solid fa-briefcase"></i>Hành chính</div>
+      <div class="card"><i class="fa-solid fa-file-invoice"></i>Hóa đơn</div>
+      <div class="card"><i class="fa-solid fa-concierge-bell"></i>Dịch vụ</div>
+      <div class="card"><i class="fa-solid fa-magnifying-glass"></i>Tra cứu</div>
+      <div class="card"><i class="fa-solid fa-circle-question"></i>Hỏi đáp</div>
+      <div class="card"><i class="fa-solid fa-comments"></i>Chat</div>
+    </div>
+
+    <div class="tabs">
+      <div class="tab-header">
+        <button class="active" onclick="showTab(1)">TAB 1</button>
+        <button onclick="showTab(2)">TAB 2</button>
+      </div>
+      <div class="tab-content show" id="tab1">📌 Đây là nội dung Tab 1 với hiệu ứng trượt mượt mà.</div>
+      <div class="tab-content" id="tab2">✨ Đây là nội dung Tab 2 với animation fade-in.</div>
+    </div>
+
+    <div class="footer">
+      <div class="tool"><i class="fa-solid fa-square-parking"></i>Bãi đỗ xe</div>
+      <div class="tool"><i class="fa-solid fa-box-archive"></i>Tủ đồ</div>
+    </div>
+  </div>
+
+  <script>
+    // Tab animation
+    function showTab(tab) {
+      document.querySelectorAll('.tab-content').forEach((content, i) => {
+        if (i === tab-1) {
+          content.classList.add('show');
+        } else {
+          content.classList.remove('show');
+        }
+      });
+      document.querySelectorAll('.tab-header button').forEach((btn, i) => {
+        btn.classList.toggle('active', i === tab-1);
+      });
+    }
+
+    // Ripple effect
+    document.querySelectorAll('.card, .tool').forEach(el => {
+      el.addEventListener('click', function(e) {
+        const ripple = document.createElement('span');
+        ripple.classList.add('ripple');
+        ripple.style.width = ripple.style.height = Math.max(el.offsetWidth, el.offsetHeight) + 'px';
+        ripple.style.left = e.offsetX - ripple.offsetWidth / 2 + 'px';
+        ripple.style.top = e.offsetY - ripple.offsetHeight / 2 + 'px';
+        el.appendChild(ripple);
+        setTimeout(() => ripple.remove(), 600);
+      });
+    });
+  </script>
+
+</body>
+</html>

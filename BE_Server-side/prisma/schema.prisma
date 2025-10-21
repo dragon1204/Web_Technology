@@ -1,0 +1,94 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model User {
+  id       Int      @id @default(autoincrement())
+  name     String?
+  email    String   @unique
+  password String   @default("")
+  role     Role     @default(USER)
+  gardens  Garden[]
+}
+
+model Vegetable {
+  id       Int                @id @default(autoincrement())
+  name     String
+  imported Int                @default(0)
+  sold     Int                @default(0)
+  price    Float              @default(0)
+  sales    Sale[]
+  gardens  vegetable_garden[]
+}
+
+model Garden {
+  id         Int                @id @default(autoincrement())
+  name       String
+  ownerId    Int
+  owner      User               @relation(fields: [ownerId], references: [id])
+  sales      Sale[]
+  sensors    Sensor[]
+  vegetables vegetable_garden[]
+}
+
+model vegetable_garden {
+  id          Int       @id @default(autoincrement())
+  vegetableId Int
+  quantity    Int // số lượng cây
+  gardenId    Int
+  vegetable   Vegetable @relation(fields: [vegetableId], references: [id], onDelete: Cascade)
+  garden      Garden    @relation(fields: [gardenId], references: [id], onDelete: Cascade)
+}
+
+model Sale {
+  id          Int       @id @default(autoincrement())
+  quantity    Int
+  total       Float
+  time        DateTime  @default(now())
+  gardenId    Int
+  vegetableId Int
+  priceAtSale Float
+  garden      Garden    @relation(fields: [gardenId], references: [id], onDelete: Cascade)
+  vegetable   Vegetable @relation(fields: [vegetableId], references: [id], onDelete: Cascade)
+}
+
+model SensorType {
+  id      Int      @id @default(autoincrement())
+  name    String // "temperature", "humidity"
+  unit    String // "°C", "%"
+  sensors Sensor[]
+}
+
+model Sensor {
+  id       Int          @id @default(autoincrement())
+  model    String
+  name     String // the unique name to manage, eg: "sensor-1"
+  typeId   Int
+  type     SensorType   @relation(fields: [typeId], references: [id], onDelete: Cascade)
+  gardenId Int
+  garden   Garden       @relation(fields: [gardenId], references: [id], onDelete: Cascade)
+  data     SensorData[]
+}
+
+model SensorData {
+  id       Int      @id @default(autoincrement())
+  sensorId Int
+  time     DateTime @default(now())
+  sensor   Sensor   @relation(fields: [sensorId], references: [id], onDelete: Cascade)
+}
