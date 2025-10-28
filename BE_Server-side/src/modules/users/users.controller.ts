@@ -1,11 +1,11 @@
 import { Controller, Get, Post, Delete, Put, Patch, Param, Body, UseGuards } from '@nestjs/common';
 import { UsersService } from '../users/users.service';
 import { Roles } from 'src/common/decorator/roles.decorator';
-import { RolesGuard } from 'src/auth/guard/roles.guards';
 import { Role } from '@prisma/client';
-import { AtGuard } from 'src/auth/guard/auth.guards';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { UserDto } from 'src/users/dto/user.dto';
+import { AtGuard } from '../auth/guard/auth.guards';
+import { RolesGuard } from '../auth/guard/roles.guards';
+import { UserDto } from './dto/user.dto';
 
 @ApiTags('Users Section')
 @Controller('users')

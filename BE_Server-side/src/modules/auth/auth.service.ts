@@ -1,12 +1,12 @@
 import { Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
-import { UsersService } from "src/users/users.service";
 import * as bcrypt from 'bcryptjs';
 import { Role } from "@prisma/client";
 import { LoginDto } from "./dto/login.dto";
 import { RegisterDto } from "./dto/register.dto";
 import { ConfigService } from "@nestjs/config";
 import { TokenDto } from "./dto/token.dto";
+import { UsersService } from "../users/users.service";
 
 
 @Injectable()

@@ -1,13 +1,13 @@
 import { MiddlewareConsumer, Module, NestModule} from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { UsersModule } from './users/users.module';
 import { PrismaService } from './prisma/prisma.service';
-import { AuthModule } from './auth/auth.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { EvnCheckMiddleware } from './common/midllewares/evn_check.midleware';
-import { GardenModule } from './garden/garden.module';
-import { VegetableModule } from './vegetable/vegetable.module';
-import { SensorModule } from './sensor/sensor.module';
+import { UsersModule } from './modules/users/users.module';
+import { AuthModule } from './modules/auth/auth.module';
+import { GardenModule } from './modules/garden/garden.module';
+import { VegetableModule } from './modules/vegetable/vegetable.module';
+import { SensorModule } from './modules/sensor/sensor.module';
 
 
 @Module({
