@@ -9,7 +9,7 @@ export class CreateUserDto {
 
   @IsString()
   @ApiProperty({ description: "the password of the user", example: "1234" })
-  password: string;
+  password?: string;
 
   @IsOptional()
   @IsString()

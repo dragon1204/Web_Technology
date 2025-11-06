@@ -119,4 +119,37 @@ export class AuthService {
             refresh_token: rt,
         }
     }
+    
+    async googleLogin(googleUser: any) {
+        // googleUser = { email, name, providerId }
+
+        const user = await this.usersService.findUserByEmail(googleUser.email);
+
+        let finalUser;
+
+        // Nếu user chưa có → tạo user mới (mật khẩu null vì login bằng Google)
+        if (!user) {
+            finalUser = await this.usersService.createUser({
+                email: googleUser.email,
+                name: googleUser.name,
+                password: undefined,
+                role: Role.USER,
+            });
+            console.log("✅ User created with Google:", finalUser.email);
+        } else {
+            finalUser = user;
+            console.log("✅ User already exists:", finalUser.email);
+        }
+
+        // Tạo payload JWT
+        const payload: TokenDto = {
+            id: finalUser.id,
+            name: finalUser.name,
+            email: finalUser.email,
+            role: finalUser.role,
+        };
+
+        // Generate access & refresh token
+        return this.getTokens(payload);
+    }
 }
