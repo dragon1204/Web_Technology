@@ -1,10 +1,12 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ValidationPipe } from '@nestjs/common';
+import { BadRequestException, ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import { AllExceptionsFilter } from './common/filters/all-exeption.filter';
 import { TransformResponseInterceptor } from './common/interceptor/transform-response.interceptor';
+import { ValidationError } from 'class-validator';
+import { extractErrorMessages } from './common/helper/extractErrorMessages';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -19,6 +21,19 @@ async function bootstrap() {
 
   // Global Response Interceptor
   app.useGlobalInterceptors(new TransformResponseInterceptor());
+
+  //Validate global
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      transform: true,
+      forbidNonWhitelisted: false,
+      exceptionFactory: async (errors: ValidationError[]) => {
+        const errorMessages = extractErrorMessages(errors);
+        return new BadRequestException(errorMessages.toString());
+      },
+    }),
+  );
 
   // Config
   const configService = app.get(ConfigService);
