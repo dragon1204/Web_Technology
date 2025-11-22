@@ -52,6 +52,15 @@ export class AuthController {
     @Get('google/redirect')
     @UseGuards(AuthGuard('google'))
     async googleAuthRedirect(@Req() req) {
-        return req.user; 
+        // Kiểm tra xem req.user có tồn tại không
+        if (!req.user) {
+            console.error("❌ req.user is undefined");
+            throw new Error('User information not found from Google OAuth');
+        }
+        
+        console.log("📥 Received user from Google OAuth:", JSON.stringify(req.user, null, 2));
+        
+        // Lưu thông tin user vào database và trả về tokens
+        return this.authService.googleLogin(req.user);
     }
 }
