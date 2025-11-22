@@ -8,7 +8,20 @@ export class UsersService {
     constructor(private prisma: PrismaService) {}
 
     async createUser(data: CreateUserDto) {
-        return await this.prisma.user.create({ data });
+        console.log("📝 UsersService.createUser called with:", JSON.stringify(data, null, 2));
+        try {
+            // Loại bỏ password nếu undefined để Prisma dùng default
+            const userData: any = { ...data };
+            if (userData.password === undefined) {
+                delete userData.password;
+            }
+            const result = await this.prisma.user.create({ data: userData });
+            console.log("✅ User created successfully:", result.email, "ID:", result.id);
+            return result;
+        } catch (error) {
+            console.error("❌ Error creating user:", error);
+            throw error;
+        }
     }
 
     async findAllUsers() {
@@ -24,11 +37,20 @@ export class UsersService {
     }
 
     async updateUser(id: number, data: UpdateUserDto) {
-        if (!this.checkId(id)) {
-            console.log("UserId ", id, "khong ton tai");
+        console.log("🔄 UsersService.updateUser called for ID:", id, "with data:", JSON.stringify(data, null, 2));
+        try {
+            const userExists = await this.checkId(id);
+            if (!userExists) {
+                console.log("❌ UserId ", id, "khong ton tai");
+                throw new Error(`User with ID ${id} not found`);
+            }
+            const result = await this.prisma.user.update({ where: { id }, data });
+            console.log("✅ User updated successfully:", result.email);
+            return result;
+        } catch (error) {
+            console.error("❌ Error updating user:", error);
+            throw error;
         }
-        else 
-            return this.prisma.user.update({ where: { id }, data });
     }
 
     async deleteUser(id: number) {
@@ -36,7 +58,7 @@ export class UsersService {
     }
 
     async checkId(id : number){
-        const user =  this.prisma.user.findUnique({where: { id }});
+        const user = await this.prisma.user.findUnique({where: { id }});
         if (!user)   return false;
         else return true;
     }

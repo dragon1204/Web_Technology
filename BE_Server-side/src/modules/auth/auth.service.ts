@@ -121,35 +121,67 @@ export class AuthService {
     }
     
     async googleLogin(googleUser: any) {
-        // googleUser = { email, name, providerId }
+        // googleUser = { email, name, providerId, provider, avatar }
+        console.log("🔍 Google login attempt for:", googleUser.email);
+        console.log("📦 Google user data:", JSON.stringify(googleUser, null, 2));
 
-        const user = await this.usersService.findUserByEmail(googleUser.email);
-
-        let finalUser;
-
-        // Nếu user chưa có → tạo user mới (mật khẩu null vì login bằng Google)
-        if (!user) {
-            finalUser = await this.usersService.createUser({
-                email: googleUser.email,
-                name: googleUser.name,
-                password: undefined,
-                role: Role.USER,
-            });
-            console.log("✅ User created with Google:", finalUser.email);
-        } else {
-            finalUser = user;
-            console.log("✅ User already exists:", finalUser.email);
+        if (!googleUser.email) {
+            throw new UnauthorizedException('Email is required from Google OAuth');
         }
 
-        // Tạo payload JWT
-        const payload: TokenDto = {
-            id: finalUser.id,
-            name: finalUser.name,
-            email: finalUser.email,
-            role: finalUser.role,
-        };
+        try {
+            const user = await this.usersService.findUserByEmail(googleUser.email);
+            console.log("🔍 Found existing user:", user ? "Yes" : "No");
 
-        // Generate access & refresh token
-        return this.getTokens(payload);
+            let finalUser;
+
+            // Nếu user chưa có → tạo user mới (không có mật khẩu vì login bằng Google)
+            if (!user) {
+                const userData: any = {
+                    email: googleUser.email,
+                    name: googleUser.name || null,
+                    role: Role.USER,
+                    provider: googleUser.provider || 'google',
+                    providerId: googleUser.providerId || null,
+                    avatar: googleUser.avatar || null,
+                };
+                
+                // Không truyền password field - Prisma sẽ dùng default ""
+                
+                console.log("📝 Creating new user with data:", JSON.stringify(userData, null, 2));
+                finalUser = await this.usersService.createUser(userData);
+                console.log("✅ User created with Google:", finalUser.email, "ID:", finalUser.id);
+            } else {
+                // Nếu user đã tồn tại, cập nhật thông tin OAuth nếu chưa có
+                if (!user.provider || !user.providerId) {
+                    console.log("🔄 Updating OAuth info for existing user");
+                    finalUser = await this.usersService.updateUser(user.id, {
+                        provider: googleUser.provider || 'google',
+                        providerId: googleUser.providerId || null,
+                        avatar: googleUser.avatar || user.avatar || null,
+                    });
+                    console.log("✅ User OAuth info updated:", finalUser.email);
+                } else {
+                    finalUser = user;
+                    console.log("✅ User already exists with OAuth:", finalUser.email);
+                }
+            }
+
+            // Tạo payload JWT
+            const payload: TokenDto = {
+                id: finalUser.id,
+                name: finalUser.name,
+                email: finalUser.email,
+                role: finalUser.role,
+            };
+
+            // Generate access & refresh token
+            const tokens = await this.getTokens(payload);
+            console.log("🎫 Tokens generated successfully for:", finalUser.email);
+            return tokens;
+        } catch (error) {
+            console.error("❌ Error in googleLogin:", error);
+            throw error;
+        }
     }
 }
