@@ -93,22 +93,22 @@ function Dashboard() {
           vegetableAPI.getAll(),
           vegetableAPI.getRevenue(),
         ]);
+      console.log("Revenue response:", revenueRes.data);
 
       setStats({
-        users: usersRes.data.length || 0,
-        gardens: gardensRes.data.length || 0,
-        vegetables: vegetablesRes.data.length || 0,
-        revenue: revenueRes.data.totalRevenue || 0,
+        users: usersRes.data?.length || 0,
+        gardens: gardensRes.data?.length || 0,
+        vegetables: vegetablesRes.data?.length || 0,
+        revenue: Number(revenueRes.data?.totalRevenue) || 0,
       });
 
-      // Prepare chart data
-      const vegData = vegetablesRes.data.slice(0, 5).map((v) => ({
+      const vegData = (vegetablesRes.data || []).slice(0, 5).map((v) => ({
         name: v.name || "Unknown",
         quantity: v.quantity || 0,
         price: v.price || 0,
       }));
 
-      const gardenData = gardensRes.data.slice(0, 5).map((g) => ({
+      const gardenData = (gardensRes.data || []).slice(0, 5).map((g) => ({
         name: g.name || "Garden",
         area: g.area || 0,
       }));
@@ -119,25 +119,16 @@ function Dashboard() {
       });
     } catch (error) {
       console.error("Error fetching data:", error);
+      setStats({
+        users: 0,
+        gardens: 0,
+        vegetables: 0,
+        revenue: 0,
+      });
     } finally {
       setLoading(false);
     }
   };
-
-  if (loading) {
-    return (
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          height: "50vh",
-        }}
-      >
-        <CircularProgress />
-      </Box>
-    );
-  }
 
   return (
     <Box>

@@ -33,8 +33,10 @@ function Login() {
       navigate("/dashboard");
     } catch (err) {
       setError(
-        err.response?.data?.message ||
-          "Login failed. Please check your credentials."
+        typeof err.response?.data?.message === "string"
+          ? err.response.data.message
+          : JSON.stringify(err.response?.data) ||
+              "Login failed. Please check your credentials."
       );
     } finally {
       setLoading(false);
