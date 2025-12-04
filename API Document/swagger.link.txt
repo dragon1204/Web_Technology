@@ -1,2 +1,0 @@
-
-https://petstore.swagger.io/?url=<https://github.com/dragon1204/Web_Technology/blob/main/API%20Document/openapi.yaml>
