@@ -44,11 +44,15 @@ async function bootstrap() {
     .setDescription('The API description')
     .setVersion('1.0')
     .addTag('User, Garden, Vegatable, Sale')
+    .addBearerAuth(  
+      { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
+      'access-token',
+    )
     .build();
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, documentFactory);
 
-  app.useGlobalPipes(new ValidationPipe({ transform: true })); // Ensures proper validation and transformation
+  app.useGlobalPipes(new ValidationPipe({ transform: true }));
   const port = configService.get<string>('PORT');
   await app.listen(port ?? 3000);
 }
