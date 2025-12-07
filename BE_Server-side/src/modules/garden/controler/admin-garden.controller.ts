@@ -18,7 +18,7 @@ export class AdminGardenController {
     @ApiOperation({ summary: "Used to create a garden" })
     @Post('')
     async createGarden(@Query() userId : number, @Body() dto: GardenDto){
-        return this.gardenService.create(userId, dto);
+        return this.gardenService.createGardenForUser(userId, dto);
     }
 
     @ApiOperation({ summary: "Used to get the list of the garden" })

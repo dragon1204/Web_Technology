@@ -1,39 +1,39 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { NewVegetableDto } from './dto/new-vegetable.dto';
 import { UpdatePriceDto } from './dto/update-price.dto';
 import { UpdateImportedDto } from './dto/update-imported.dto';
 import { UpdateSoldDto } from './dto/update-sold.dto';
+import { PBaseService } from 'src/base/services/base.service';
+import { Vegetable } from '@prisma/client';
 
 @Injectable()
-export class VegetableService {
-    constructor(private prisma: PrismaService) { }
+export class VegetableService extends PBaseService<Vegetable> {
+    constructor(private readonly prisma: PrismaService) {
+        super(prisma.vegetable);
+    }
 
     async create(payload: NewVegetableDto) {
-        await this.prisma.vegetable.create({
-            data: {
-                name: payload.name,
-                imported: payload.imported ?? 0,
-                sold: payload.sold ?? 0,
-                price: payload.price ?? 0
-            }
-        })
+        return await this.create({
+            name: payload.name,
+            imported: payload.imported ?? 0,
+            sold: payload.sold ?? 0,
+            price: payload.price ?? 0,
+        });
     }
 
     async findMany(skip?: number, take?: number) {
-        await this.prisma.vegetable.findMany({
+        return await this.model.findMany({
             skip: skip ?? 0,
             take: take ?? 10,
-            orderBy: {id: 'asc'}
-        })
+            orderBy: {id: 'asc'},
+        });
     }
 
     async updateImported(id: number, dto: UpdateImportedDto) {
-        const exist = await this.checkExist(id);
-        if (!exist)
-            throw new NotFoundException('không tồn tại id này');
+        await this.findById(id);
 
-        return await this.prisma.vegetable.update({
+        return await this.model.update({
             where: {
                 id: id,
             },
@@ -44,11 +44,9 @@ export class VegetableService {
     }
 
     async updateSold(id: number, dto: UpdateSoldDto) {
-        const exist = await this.checkExist(id);
-        if (!exist)
-            throw new NotFoundException('không tồn tại id này');
+        await this.findById(id);
 
-        return this.prisma.vegetable.update({
+        return this.model.update({
             where: {
                 id: id,
             },
@@ -60,11 +58,9 @@ export class VegetableService {
 
 
     async updatePrice(id: number, dto: UpdatePriceDto) {
-        const exist = await this.checkExist(id);
-        if (!exist)
-            throw new NotFoundException('không tồn tại id này');
+        await this.findById(id);
 
-        return await this.prisma.vegetable.update({
+        return await this.model.update({
             where: {
                 id: id,
             },
@@ -75,13 +71,6 @@ export class VegetableService {
     }
 
 
-
-    async checkExist(id: number) {
-        const isExist = await this.prisma.vegetable.findUnique({ where: { id: id } });
-        if (!isExist)
-            return false;
-        return true;
-    }
 
     private validateType(type: string) {
         if (!['day', 'week', 'month'].includes(type)) {
