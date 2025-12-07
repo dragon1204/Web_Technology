@@ -1,13 +1,16 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { GardenDto } from './dto/garden.dto';
-import { Role } from '@prisma/client';
+import { Garden, Role } from '@prisma/client';
+import { PBaseService } from 'src/base/services/base.service';
 
 @Injectable()
-export class GardenService {
-    constructor(private prisma: PrismaService){}
+export class GardenService extends PBaseService<Garden> {
+    constructor(private readonly prisma: PrismaService){
+        super(prisma.garden);
+    }
 
-    async create(userId : number, payload: GardenDto){
+    async createGardenForUser(userId : number, payload: GardenDto){
         return await this.prisma.garden.create({
             data: {
                 name: payload.name,
@@ -52,15 +55,7 @@ export class GardenService {
     }
 
     async showDetail(user : {id : number, role: string}, gardenId: number){
-        const garden = await this.prisma.garden.findUnique({
-            where:{
-                id : gardenId,
-            }
-        });
-
-        if(!garden) {
-            throw new NotFoundException('Garden not found');
-        }
+        const garden = await this.findById(gardenId);
 
         if(user.role === Role.ADMIN || garden.ownerId === user.id) {
             return garden;
@@ -71,15 +66,7 @@ export class GardenService {
     }
 
     async update(user ,gardenId: number, gardenDto: GardenDto){
-        const garden = await this.prisma.garden.findUnique({
-            where:{
-                id : gardenId,
-            }
-        });
-
-        if(!garden) {
-            throw new NotFoundException('Garden not found');
-        }
+        const garden = await this.findById(gardenId);
 
         if(user.role === Role.ADMIN || garden.ownerId === user.id) {
             return await this.prisma.garden.update({
@@ -95,25 +82,17 @@ export class GardenService {
     }
 
     async delete(gardenId : number){
-        const garden = await this.prisma.garden.findUnique({
-            where:{ id : gardenId}
-        })
-
-        if(!garden){
-            throw new NotFoundException('Garden not found');
-        }
-
+        await this.findById(gardenId);
         await this.prisma.garden.delete({where: {id : gardenId}});
     }
 
     async checkValidId(id : number){
-        const isValid = await this.prisma.garden.findUnique({
-            where:{
-                id : id,
-            }
-        })
-        if(!isValid)    return false;
-        else    return true;
+        try {
+            await this.findById(id);
+            return true;
+        } catch {
+            return false;
+        }
     }
 
 }
