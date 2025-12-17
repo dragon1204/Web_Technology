@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsOptional } from "class-validator";
+import { IsBoolean, IsOptional, IsString } from "class-validator";
 import { Role } from "@prisma/client";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
@@ -36,4 +36,19 @@ export class UpdateUserDto {
   @IsString()
   @ApiPropertyOptional({ description: "Avatar URL from OAuth", example: "https://..." })
   avatar?: string;
+
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional({ description: "Hashed refresh token (internal use)", example: "<hashed>" })
+  hashedRt?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional({ description: "TOTP secret for 2FA (internal use)", example: "NB2W45DFOIZA====" })
+  totpSecret?: string | null;
+
+  @IsOptional()
+  @IsBoolean()
+  @ApiPropertyOptional({ description: "Whether 2FA is enabled", example: false })
+  isTwoFactorEnabled?: boolean;
 }

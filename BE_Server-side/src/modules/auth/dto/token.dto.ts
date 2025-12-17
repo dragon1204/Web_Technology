@@ -1,5 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsNumber, IsOptional, IsString } from "class-validator";
+import { Role } from "@prisma/client";
+import { IsEnum, IsNumber, IsOptional, IsString } from "class-validator";
 
 export class TokenDto{ 
     @IsNumber()
@@ -16,5 +17,6 @@ export class TokenDto{
 
     @IsString()
     @ApiProperty({description:"role of user", example:"USER"})
-    role: string;
+    @IsEnum(Role)
+    role: Role;
 }
