@@ -12,7 +12,7 @@ export class RtStrategy extends PassportStrategy(Strategy, 'jwt-refresh') {
     ) {
         const rtSecret = configService.get<string>("REFRESH_SECRET");
         if (!rtSecret) {
-            throw new Error('JWT_SECRET environment variable is not defined');
+            throw new Error('REFRESH_SECRET environment variable is not defined');
         }
         super({
             jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),

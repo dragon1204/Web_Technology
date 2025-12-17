@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
+import { BadRequestException, Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import * as bcrypt from 'bcryptjs';
 import { Role } from "@prisma/client";
@@ -7,6 +7,7 @@ import { RegisterDto } from "./dto/register.dto";
 import { ConfigService } from "@nestjs/config";
 import { TokenDto } from "./dto/token.dto";
 import { UsersService } from "../users/users.service";
+import { authenticator } from "otplib";
 
 
 @Injectable()
@@ -45,6 +46,19 @@ export class AuthService {
         if( !isPasswordValid){
             throw new UnauthorizedException('Password is incorrect');
         }
+
+        if (user.isTwoFactorEnabled) {
+            if (!user.totpSecret) {
+                throw new BadRequestException('Two-factor authentication is misconfigured for this account');
+            }
+            if (!loginData.totpCode) {
+                throw new UnauthorizedException('Two-factor code is required');
+            }
+            const isTotpValid = authenticator.verify({ token: loginData.totpCode, secret: user.totpSecret });
+            if (!isTotpValid) {
+                throw new UnauthorizedException('Invalid two-factor code');
+            }
+        }
         console.log(user.email, " Login sucessfully!")
 
         const payload = {
@@ -56,52 +70,62 @@ export class AuthService {
 
         const tokens = await this.getTokens(payload);
 
+        await this.saveRefreshToken(user.id, tokens.refresh_token);
+
         return tokens;
     }
 
 
 
-    async refreshTokens(refresh_token : string){
-        const refresh_secret = this.configService.get<string>("REFRESH_SECRET");
+    async refreshTokens(refreshToken: string){
+        if (!refreshToken) {
+            throw new UnauthorizedException("Refresh token is required");
+        }
+
+        const refreshSecret = this.configService.get<string>("REFRESH_SECRET");
         try{
-            const payload = await this.jwtService.verifyAsync(refresh_token, {
-                secret : refresh_secret,
-            })
-            
-            const tokenDto = {
-                id : payload.id,
-                name : payload.name, 
-                email : payload.email, 
-                role : payload.role
+            const payload = await this.jwtService.verifyAsync<TokenDto>(refreshToken, {
+                secret : refreshSecret,
+            });
+
+            const user = await this.usersService.findUserById(payload.id);
+            if (!user || !user.hashedRt) {
+                throw new UnauthorizedException("Access denied");
             }
 
-            console.log(tokenDto)
+            const isRefreshTokenValid = await bcrypt.compare(refreshToken, user.hashedRt);
+            if (!isRefreshTokenValid) {
+                throw new UnauthorizedException("Access denied");
+            }
 
-            return this.getTokens(tokenDto);
+            const tokenDto: TokenDto = {
+                id : user.id,
+                name : user.name, 
+                email : user.email, 
+                role : user.role
+            };
+
+            const tokens = await this.getTokens(tokenDto);
+            await this.saveRefreshToken(user.id, tokens.refresh_token);
+
+            return tokens;
 
         } catch {
-            throw new UnauthorizedException("Invalid refresh token")
+            throw new UnauthorizedException("Invalid refresh token");
         }
     }
 
-    // async updateRtHash(userId: number, rt: string): Promise<void> {
-    //     const hash = await argon.hash(rt);
-    //     await this.prisma.user.update({
-    //         where: {
-    //             id: userId,
-    //         },
-    //         data: {
-    //             hashedRt: hash,
-    //         },
-    //      });
-    // }
+    private async saveRefreshToken(userId: number, refreshToken: string): Promise<void> {
+        const hash = await bcrypt.hash(refreshToken, 10);
+        await this.usersService.updateUser(userId, { hashedRt: hash });
+    }
 
     async getTokens(payload: TokenDto){
         const [at, rt] = await Promise.all([
             this.jwtService.signAsync(
                 payload, 
                 {
-                    expiresIn: 30,
+                    expiresIn: '15m',
                     secret: this.configService.get<string>("JWT_SECRET"),
                 },
             ),
@@ -120,6 +144,39 @@ export class AuthService {
         }
     }
     
+    async generateTwoFactorSecret(userId: number) {
+        const user = await this.usersService.findUserById(userId);
+        const secret = authenticator.generateSecret();
+        const otpauthUrl = authenticator.keyuri(user.email, 'WebTechnology', secret);
+
+        await this.usersService.updateUser(userId, {
+            totpSecret: secret,
+            isTwoFactorEnabled: false,
+        });
+
+        return { secret, otpauthUrl };
+    }
+
+    async enableTwoFactor(userId: number, code: string) {
+        const user = await this.usersService.findUserById(userId);
+        if (!user.totpSecret) {
+            throw new BadRequestException('2FA secret not generated');
+        }
+
+        const isValid = authenticator.verify({ token: code, secret: user.totpSecret });
+        if (!isValid) {
+            throw new UnauthorizedException('Invalid two-factor code');
+        }
+
+        await this.usersService.updateUser(userId, { isTwoFactorEnabled: true });
+        return { message: 'Two-factor authentication enabled' };
+    }
+
+    async disableTwoFactor(userId: number) {
+        await this.usersService.updateUser(userId, { isTwoFactorEnabled: false, totpSecret: null });
+        return { message: 'Two-factor authentication disabled' };
+    }
+
     async googleLogin(googleUser: any) {
         // googleUser = { email, name, providerId, provider, avatar }
         console.log("🔍 Google login attempt for:", googleUser.email);
@@ -177,6 +234,7 @@ export class AuthService {
 
             // Generate access & refresh token
             const tokens = await this.getTokens(payload);
+            await this.saveRefreshToken(finalUser.id, tokens.refresh_token);
             console.log("🎫 Tokens generated successfully for:", finalUser.email);
             return tokens;
         } catch (error) {
