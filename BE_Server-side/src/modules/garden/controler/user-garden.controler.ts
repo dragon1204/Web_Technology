@@ -3,11 +3,12 @@ import { GardenService } from '../garden.service';
 import { Roles } from 'src/common/decorator/roles.decorator';
 import { GardenDto } from '../dto/garden.dto';
 import { Role } from '@prisma/client';
-import { ApiOperation } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { AtGuard } from 'src/modules/auth/guard/auth.guards';
 import { RolesGuard } from 'src/modules/auth/guard/roles.guards';
 
 @Controller('garden')
+@ApiBearerAuth('access-token')
 @UseGuards(AtGuard, RolesGuard)
 export class UserGardenController {
     constructor(private readonly gardenService : GardenService){}

@@ -2,14 +2,15 @@ import { Controller, Get, Post, Delete, Put, Patch, Param, Body, UseGuards } fro
 import { UsersService } from '../users/users.service';
 import { Roles } from 'src/common/decorator/roles.decorator';
 import { Role } from '@prisma/client';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AtGuard } from '../auth/guard/auth.guards';
 import { RolesGuard } from '../auth/guard/roles.guards';
 import { UserDto } from './dto/user.dto';
 
 @ApiTags('Users Section')
 @Controller('users')
-@UseGuards( AtGuard, RolesGuard)// Use AuthGuard to protect the routes
+@ApiBearerAuth('access-token')
+@UseGuards( AtGuard, RolesGuard)
 export class UsersController {
     constructor(private readonly usersService: UsersService) {}
 
