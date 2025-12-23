@@ -1,15 +1,18 @@
-import { Body, Controller, Get, Param, Patch, Post, Put, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Put, Query, UseGuards } from '@nestjs/common';
 import { VegetableService } from './vegetable.service';
 import { NewVegetableDto } from './dto/new-vegetable.dto';
 import { UpdatePriceDto } from './dto/update-price.dto';
 import { UpdateImportedDto } from './dto/update-imported.dto';
 import { UpdateSoldDto } from './dto/update-sold.dto';
-import { ApiOperation } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { FindVegetableDto } from './dto/find-vegetable.dto';
 import { RevenueVegetableDto } from './dto/revenue-vegetable.dto';
-
+import { AtGuard } from '../auth/guard/auth.guards';
+import { RolesGuard } from '../auth/guard/roles.guards';
 
 @Controller('vegetable')
+@ApiBearerAuth('access-token')
+@UseGuards( AtGuard, RolesGuard)
 export class VegetableController {
     constructor(private readonly vegetableService: VegetableService) { }
 

@@ -11,7 +11,7 @@ import { extractErrorMessages } from './common/helper/extractErrorMessages';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.enableCors({
-    origin: 'http://localhost:3001', // Cho phép frontend ở port 3001 gọi
+    origin: 'http://localhost:3001',
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
@@ -38,21 +38,30 @@ async function bootstrap() {
   // Config
   const configService = app.get(ConfigService);
 
-  // API Documentation Swagger
-  const config = new DocumentBuilder()
-    .setTitle('The first NestJs project')
-    .setDescription('The API description')
-    .setVersion('1.0')
-    .addTag('User, Garden, Vegatable, Sale')
-    .addBearerAuth(  
-      { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
-      'access-token',
-    )
-    .build();
-  const documentFactory = () => SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, documentFactory);
+  // Swagger setup
+  const document = SwaggerModule.createDocument(
+    app,
+    new DocumentBuilder()
+      .setTitle('API')
+      .setDescription('Api documents')
+      .setVersion('1.0')
+      .addBearerAuth(
+        {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+        },
+        'access-token',
+      )
+      .build(),
+  );
+  SwaggerModule.setup('api', app, document, {
+    swaggerOptions: {
+      persistAuthorization: true,
+    },
+  });
+  // End Swagger setup
 
-  app.useGlobalPipes(new ValidationPipe({ transform: true }));
   const port = configService.get<string>('PORT');
   await app.listen(port ?? 3000);
 }
