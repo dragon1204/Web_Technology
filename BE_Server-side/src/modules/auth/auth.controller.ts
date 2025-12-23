@@ -31,6 +31,10 @@ export class AuthController {
     @Post("register")
     @HttpCode(HttpStatus.CREATED)
     async register(@Body() data: RegisterDto) {
+<<<<<<< HEAD
+=======
+        console.log("Role", data);
+>>>>>>> c793afaac12fe24bcdd1f01a4e395724005c3abb
         return this.authService.register(data);
     }
 

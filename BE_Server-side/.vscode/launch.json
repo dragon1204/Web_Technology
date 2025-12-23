@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 {
   "version": "0.2.0",
   "configurations": [
@@ -17,3 +18,24 @@
     }
   ]
 }
+=======
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug Node App",
+      "program": "${workspaceFolder}/index.js",
+      "skipFiles": [
+        "<node_internals>/**",
+        "${workspaceFolder}/node_modules/**"
+      ],
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/**",
+        "!**/node_modules/**"
+      ]
+    }
+  ]
+}
+>>>>>>> c793afaac12fe24bcdd1f01a4e395724005c3abb
