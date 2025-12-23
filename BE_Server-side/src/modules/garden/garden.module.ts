@@ -1,12 +1,11 @@
 import { Module } from '@nestjs/common';
-import { AdminGardenController } from './controler/admin-garden.controller';
 import { GardenService } from './garden.service';
-import { UserGardenController } from './controler/user-garden.controler';
 import { SaleController } from './sale/sale.controller';
 import { SaleService } from './sale/sale.service';
+import { GardenController } from './garden.controler';
 
 @Module({
-  controllers: [AdminGardenController, UserGardenController, SaleController],
+  controllers: [GardenController, SaleController],
   providers: [GardenService, SaleService]
 })
 export class GardenModule {}
