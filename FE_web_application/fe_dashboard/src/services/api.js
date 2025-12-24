@@ -1,69 +1,61 @@
 import axios from "axios";
 
-const API_URL = "http://localhost:3000";
+const API_URL = "http://159.223.61.25:3000";
 
 const api = axios.create({
   baseURL: API_URL,
-  headers: {
-    "Content-Type": "application/json",
+  headers: { "Content-Type": "application/json" },
+});
+
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("token");
+    if (token) config.headers.Authorization = `Bearer ${token}`;
+    return config;
   },
-});
+  (error) => Promise.reject(error)
+);
 
-// Interceptor
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+api.interceptors.response.use(
+  (res) => res,
+  (err) => {
+    if (err.response?.status === 401) {
+      localStorage.clear();
+      window.location.href = "/login";
+    }
+    return Promise.reject(err);
   }
-  return config;
-});
+);
 
-// Auth APIs
 export const authAPI = {
   login: (email, password) => api.post("/auth/login", { email, password }),
-  register: (data) => api.post("/auth/register", data),
-  logout: () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-  },
+  getProfile: () => api.get("/auth/profile"),
 };
 
-// User APIs
 export const userAPI = {
-  getAll: () => api.get("/users"),
-  getById: (id) => api.get(`/users/${id}`),
-  getByEmail: (email) => api.get(`/users/${email}`),
-  create: (data) => api.post("/users", data),
+  getAll: (params) => api.get("/users", { params }),
   update: (id, data) => api.put(`/users/${id}`, data),
   delete: (id) => api.delete(`/users/${id}`),
 };
 
-// Garden APIs
 export const gardenAPI = {
-  getAll: () => api.get("/garden"),
+  getAll: (params) => api.get("/garden", { params }),
   getById: (id) => api.get(`/garden/${id}`),
   create: (data) => api.post("/garden", data),
   update: (id, data) => api.put(`/garden/${id}`, data),
   delete: (id) => api.delete(`/garden/${id}`),
-
-  // Admin endpoints
-  adminGetAll: () => api.get("/garden/admin"),
-  adminGetById: (id) => api.get(`/garden/admin/${id}`),
-  adminCreate: (data) => api.post("/garden/admin", data),
-  adminUpdate: (id, data) => api.put(`/garden/admin/${id}`, data),
-  adminDelete: (id) => api.delete(`/garden/admin/${id}`),
+  adminGetAll: (params) => api.get("/garden", { params }),
 };
 
-// Vegetable APIs
 export const vegetableAPI = {
-  getAll: () => api.get("/vegetable"),
+  getAll: (params) => api.get("/vegetable", { params }),
   create: (data) => api.post("/vegetable", data),
+  getRevenue: () => api.get("/vegetable/revenue/all"),
   updatePrice: (id, price) => api.patch(`/vegetable/price/${id}`, { price }),
   updateImported: (id, quantity) =>
     api.patch(`/vegetable/imported/${id}`, { quantity }),
   updateSold: (id, quantity) =>
     api.patch(`/vegetable/sold/${id}`, { quantity }),
-  getRevenue: () => api.get("/vegetable/revenue/all"),
 };
 
 export default api;

@@ -1,36 +1,25 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
-  url = env("DATABASE_URL")
-}
-
-enum Role {
-  USER
-  ADMIN
+  url      = env("DATABASE_URL")
 }
 
 model User {
-  id         Int      @id @default(autoincrement())
-  name       String?
-  email      String   @unique
-  password   String   @default("")
-  role       Role     @default(USER)
-  provider   String?  // "google", "facebook", etc.
-  providerId String? // ID từ provider
-  avatar     String? // URL avatar từ OAuth
-  hashedRt   String?
-  totpSecret String?
-  isTwoFactorEnabled Boolean @default(false)
-  gardens    Garden[]
+  id                 Int      @id @default(autoincrement())
+  email              String   @unique
+  name               String?
+  password           String   @default("")
+  role               Role     @default(USER)
+  avatar             String?
+  provider           String?
+  providerId         String?
+  hashedRt           String?
+  isTwoFactorEnabled Boolean  @default(false)
+  totpSecret         String?
+  gardens            Garden[]
 }
 
 model Vegetable {
@@ -56,10 +45,10 @@ model Garden {
 model vegetable_garden {
   id          Int       @id @default(autoincrement())
   vegetableId Int
-  quantity    Int // số lượng cây
   gardenId    Int
-  vegetable   Vegetable @relation(fields: [vegetableId], references: [id], onDelete: Cascade)
+  quantity    Int
   garden      Garden    @relation(fields: [gardenId], references: [id], onDelete: Cascade)
+  vegetable   Vegetable @relation(fields: [vegetableId], references: [id], onDelete: Cascade)
 }
 
 model Sale {
@@ -76,25 +65,51 @@ model Sale {
 
 model SensorType {
   id      Int      @id @default(autoincrement())
-  name    String // "temperature", "humidity"
-  unit    String // "°C", "%"
+  name    String
+  unit    String
   sensors Sensor[]
 }
 
 model Sensor {
   id       Int          @id @default(autoincrement())
   model    String
-  name     String // the unique name to manage, eg: "sensor-1"
+  name     String
   typeId   Int
-  type     SensorType   @relation(fields: [typeId], references: [id], onDelete: Cascade)
   gardenId Int
   garden   Garden       @relation(fields: [gardenId], references: [id], onDelete: Cascade)
+  type     SensorType   @relation(fields: [typeId], references: [id], onDelete: Cascade)
   data     SensorData[]
 }
 
 model SensorData {
   id       Int      @id @default(autoincrement())
-  sensorId Int
   time     DateTime @default(now())
+  sensorId Int
   sensor   Sensor   @relation(fields: [sensorId], references: [id], onDelete: Cascade)
+}
+
+model AuditLog {
+  id           Int      @id @default(autoincrement())
+  action       String
+  entityType   String?
+  entityId     String?
+  userId       Int?
+  changes      Json?
+  requestId    String?
+  ipAddress    String?
+  userAgent    String?
+  success      Boolean  @default(true)
+  errorMessage String?
+  timestamp    DateTime @default(now())
+
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@index([action])
+  @@index([timestamp])
+  @@index([requestId])
+}
+
+enum Role {
+  USER
+  ADMIN
 }

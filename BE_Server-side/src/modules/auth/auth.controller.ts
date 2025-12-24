@@ -39,14 +39,21 @@ export class AuthController {
     @HttpCode(HttpStatus.OK)
     @Throttle({ default: { limit: 5, ttl: 60 } })
     @Post("login")
-    async login(@Body() data: LoginDto) {
-        return this.authService.login(data);
+    async login(@Body() data: LoginDto, @Req() req) {
+        return this.authService.login(data, req);
     }
 
     @ApiOperation({summary:"Used to refresh the JWT"})
     @Post("refresh")
-    refreshTokens(@Body("refresh_token") refreshToken : string){
-        return this.authService.refreshTokens(refreshToken);
+    refreshTokens(@Body("refresh_token") refreshToken : string, @Req() req){
+        return this.authService.refreshTokens(refreshToken, req);
+    }
+
+    @ApiOperation({ summary: "Logout current user" })
+    @UseGuards(AtGuard)
+    @Post("logout")
+    async logout(@Req() req) {
+        return this.authService.logout(req.user.id, req);
     }
 
     @ApiOperation({ summary: "Generate TOTP secret and URL for 2FA" })

@@ -32,7 +32,7 @@ function UserList() {
   const [editMode, setEditMode] = useState(false);
   const [currentUser, setCurrentUser] = useState({
     id: "",
-    username: "",
+    name: "",
     email: "",
     password: "",
     role: "USER",
@@ -47,9 +47,12 @@ function UserList() {
   const fetchUsers = async () => {
     try {
       const response = await userAPI.getAll();
-      setUsers(response.data);
+      // Xử lý dữ liệu trả về: lấy field .data nếu backend bọc trong object
+      const data = response.data?.data || response.data;
+      setUsers(Array.isArray(data) ? data : []);
     } catch (error) {
-      setError("Failed to fetch users");
+      setError("Không thể tải danh sách người dùng");
+      setUsers([]);
     }
   };
 
@@ -61,7 +64,7 @@ function UserList() {
       setEditMode(false);
       setCurrentUser({
         id: "",
-        username: "",
+        name: "",
         email: "",
         password: "",
         role: "USER",
@@ -78,29 +81,31 @@ function UserList() {
   const handleSave = async () => {
     try {
       if (editMode) {
-        await userAPI.update(currentUser.id, currentUser);
-        setSuccess("User updated successfully");
+        const { password, ...updateData } = currentUser;
+        if (password) updateData.password = password;
+        await userAPI.update(currentUser.id, updateData);
+        setSuccess("Cập nhật thành công");
       } else {
         await userAPI.create(currentUser);
-        setSuccess("User created successfully");
+        setSuccess("Tạo người dùng thành công");
       }
       fetchUsers();
       handleClose();
       setTimeout(() => setSuccess(""), 3000);
     } catch (error) {
-      setError(error.response?.data?.message || "Operation failed");
+      setError(error.response?.data?.message || "Thao tác thất bại");
     }
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm("Are you sure you want to delete this user?")) {
+    if (window.confirm("Bạn có chắc chắn muốn xóa?")) {
       try {
         await userAPI.delete(id);
-        setSuccess("User deleted successfully");
+        setSuccess("Xóa thành công");
         fetchUsers();
         setTimeout(() => setSuccess(""), 3000);
       } catch (error) {
-        setError("Failed to delete user");
+        setError("Lỗi khi xóa người dùng");
       }
     }
   };
@@ -108,13 +113,13 @@ function UserList() {
   return (
     <Box>
       <Box sx={{ display: "flex", justifyContent: "space-between", mb: 3 }}>
-        <Typography variant="h4">Users Management</Typography>
+        <Typography variant="h4">Quản lý người dùng</Typography>
         <Button
           variant="contained"
           startIcon={<AddIcon />}
           onClick={() => handleOpen()}
         >
-          Add User
+          Thêm người dùng
         </Button>
       </Box>
 
@@ -125,7 +130,7 @@ function UserList() {
       )}
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
+          {String(error)}
         </Alert>
       )}
 
@@ -133,52 +138,64 @@ function UserList() {
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>Username</TableCell>
+              <TableCell>Tên</TableCell>
               <TableCell>Email</TableCell>
-              <TableCell>Role</TableCell>
-              <TableCell align="right">Actions</TableCell>
+              <TableCell>Quyền</TableCell>
+              <TableCell align="right">Hành động</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {users.map((user) => (
-              <TableRow key={user.id}>
-                <TableCell>{user.username}</TableCell>
-                <TableCell>{user.email}</TableCell>
-                <TableCell>
-                  <Chip
-                    label={user.role}
-                    color={user.role === "ADMIN" ? "primary" : "default"}
-                    size="small"
-                  />
-                </TableCell>
-                <TableCell align="right">
-                  <IconButton onClick={() => handleOpen(user)} color="primary">
-                    <EditIcon />
-                  </IconButton>
-                  <IconButton
-                    onClick={() => handleDelete(user.id)}
-                    color="error"
-                  >
-                    <DeleteIcon />
-                  </IconButton>
+            {Array.isArray(users) && users.length > 0 ? (
+              users.map((user) => (
+                <TableRow key={user.id}>
+                  <TableCell>{user.name || user.username || "N/A"}</TableCell>
+                  <TableCell>{user.email}</TableCell>
+                  <TableCell>
+                    <Chip
+                      label={user.role}
+                      color={user.role === "ADMIN" ? "primary" : "default"}
+                      size="small"
+                    />
+                  </TableCell>
+                  <TableCell align="right">
+                    <IconButton
+                      onClick={() => handleOpen(user)}
+                      color="primary"
+                    >
+                      <EditIcon />
+                    </IconButton>
+                    <IconButton
+                      onClick={() => handleDelete(user.id)}
+                      color="error"
+                    >
+                      <DeleteIcon />
+                    </IconButton>
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={4} align="center">
+                  Chưa có dữ liệu
                 </TableCell>
               </TableRow>
-            ))}
+            )}
           </TableBody>
         </Table>
       </TableContainer>
 
-      {/* Add/Edit Dialog */}
       <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-        <DialogTitle>{editMode ? "Edit User" : "Add New User"}</DialogTitle>
+        <DialogTitle>
+          {editMode ? "Sửa người dùng" : "Thêm người dùng mới"}
+        </DialogTitle>
         <DialogContent>
           <TextField
             margin="dense"
-            label="Username"
+            label="Tên"
             fullWidth
-            value={currentUser.username}
+            value={currentUser.name || ""}
             onChange={(e) =>
-              setCurrentUser({ ...currentUser, username: e.target.value })
+              setCurrentUser({ ...currentUser, name: e.target.value })
             }
           />
           <TextField
@@ -186,26 +203,24 @@ function UserList() {
             label="Email"
             type="email"
             fullWidth
-            value={currentUser.email}
+            value={currentUser.email || ""}
             onChange={(e) =>
               setCurrentUser({ ...currentUser, email: e.target.value })
             }
           />
-          {!editMode && (
-            <TextField
-              margin="dense"
-              label="Password"
-              type="password"
-              fullWidth
-              value={currentUser.password}
-              onChange={(e) =>
-                setCurrentUser({ ...currentUser, password: e.target.value })
-              }
-            />
-          )}
           <TextField
             margin="dense"
-            label="Role"
+            label="Mật khẩu"
+            type="password"
+            fullWidth
+            value={currentUser.password || ""}
+            onChange={(e) =>
+              setCurrentUser({ ...currentUser, password: e.target.value })
+            }
+          />
+          <TextField
+            margin="dense"
+            label="Quyền"
             select
             fullWidth
             value={currentUser.role}
@@ -219,9 +234,9 @@ function UserList() {
           </TextField>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleClose}>Cancel</Button>
+          <Button onClick={handleClose}>Hủy</Button>
           <Button onClick={handleSave} variant="contained">
-            {editMode ? "Update" : "Create"}
+            {editMode ? "Cập nhật" : "Tạo mới"}
           </Button>
         </DialogActions>
       </Dialog>
