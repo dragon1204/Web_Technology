@@ -55,7 +55,8 @@ pm2 delete be-server || echo "App chưa tồn tại"
 
 # Khởi động app với PM2
 echo "▶️  Khởi động app với PM2..."
-pm2 start dist/main.js --name be-server
+# Nest build đang xuất file vào dist/src/main.js (theo cấu trúc dist hiện tại)
+pm2 start dist/src/main.js --name be-server
 
 # Lưu cấu hình PM2
 pm2 save
