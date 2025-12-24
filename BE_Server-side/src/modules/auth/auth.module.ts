@@ -7,6 +7,7 @@ import { AuthService } from './auth.service';
 import { JwtStrategy, RtStrategy } from './strategy';
 import { GoogleStrategy } from './strategy/google.strategy';
 import { AtGuard } from './guard/auth.guards';
+import { AuditModule } from '../audit/audit.module';
 
 
 
@@ -14,6 +15,7 @@ import { AtGuard } from './guard/auth.guards';
     imports: [
         UsersModule, 
         PassportModule,
+        AuditModule,
         JwtModule.register({
             secret: process.env.JWT_SECRET,
             signOptions: {

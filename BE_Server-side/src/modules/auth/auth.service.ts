@@ -8,6 +8,8 @@ import { ConfigService } from "@nestjs/config";
 import { TokenDto } from "./dto/token.dto";
 import { UsersService } from "../users/users.service";
 import { authenticator } from "otplib";
+import { AuditService } from "../audit/audit.service";
+import { Request } from "express";
 
 
 @Injectable()
@@ -15,7 +17,8 @@ export class AuthService {
     constructor(
         private usersService: UsersService,
         private jwtService: JwtService,
-        private configService: ConfigService
+        private configService: ConfigService,
+        private auditService: AuditService
     ) {}
     
 
@@ -35,49 +38,64 @@ export class AuthService {
     }
 
 
-    async login(loginData: LoginDto) {
-        const user = await this.usersService.findUserByEmail(loginData.email);
+    async login(loginData: LoginDto, req?: Request) {
+        const ip = req?.ip || req?.connection?.remoteAddress;
+        const userAgent = req?.headers['user-agent'];
+        const requestId = (req as any)?.requestId;
 
-        if (!user) {
-            throw new NotFoundException('Email is not founded');
-        }
+        try {
+            const user = await this.usersService.findUserByEmail(loginData.email);
 
-        const isPasswordValid = await bcrypt.compare(loginData.password, user.password);
-        if( !isPasswordValid){
-            throw new UnauthorizedException('Password is incorrect');
-        }
-
-        if (user.isTwoFactorEnabled) {
-            if (!user.totpSecret) {
-                throw new BadRequestException('Two-factor authentication is misconfigured for this account');
+            if (!user) {
+                await this.auditService.logLogin(0, loginData.email, false, requestId, ip, userAgent, 'Email not found');
+                throw new NotFoundException('Email is not founded');
             }
-            if (!loginData.totpCode) {
-                throw new UnauthorizedException('Two-factor code is required');
+
+            const isPasswordValid = await bcrypt.compare(loginData.password, user.password);
+            if( !isPasswordValid){
+                await this.auditService.logLogin(user.id, user.email, false, requestId, ip, userAgent, 'Invalid password');
+                throw new UnauthorizedException('Password is incorrect');
             }
-            const isTotpValid = authenticator.verify({ token: loginData.totpCode, secret: user.totpSecret });
-            if (!isTotpValid) {
-                throw new UnauthorizedException('Invalid two-factor code');
+
+            if (user.isTwoFactorEnabled) {
+                if (!user.totpSecret) {
+                    throw new BadRequestException('Two-factor authentication is misconfigured for this account');
+                }
+                if (!loginData.totpCode) {
+                    await this.auditService.logLogin(user.id, user.email, false, requestId, ip, userAgent, '2FA code required');
+                    throw new UnauthorizedException('Two-factor code is required');
+                }
+                const isTotpValid = authenticator.verify({ token: loginData.totpCode, secret: user.totpSecret });
+                if (!isTotpValid) {
+                    await this.auditService.logLogin(user.id, user.email, false, requestId, ip, userAgent, 'Invalid 2FA code');
+                    throw new UnauthorizedException('Invalid two-factor code');
+                }
             }
+            console.log(user.email, " Login sucessfully!")
+
+            const payload = {
+                id : user.id,
+                name: user.name,
+                email: user.email,
+                role : user.role
+            }
+
+            const tokens = await this.getTokens(payload);
+
+            await this.saveRefreshToken(user.id, tokens.refresh_token);
+
+            // Log successful login
+            await this.auditService.logLogin(user.id, user.email, true, requestId, ip, userAgent);
+
+            return tokens;
+        } catch (error) {
+            throw error;
         }
-        console.log(user.email, " Login sucessfully!")
-
-        const payload = {
-            id : user.id,
-            name: user.name,
-            email: user.email,
-            role : user.role
-        }
-
-        const tokens = await this.getTokens(payload);
-
-        await this.saveRefreshToken(user.id, tokens.refresh_token);
-
-        return tokens;
     }
 
 
 
-    async refreshTokens(refreshToken: string){
+    async refreshTokens(refreshToken: string, req?: Request){
         if (!refreshToken) {
             throw new UnauthorizedException("Refresh token is required");
         }
@@ -175,6 +193,19 @@ export class AuthService {
     async disableTwoFactor(userId: number) {
         await this.usersService.updateUser(userId, { isTwoFactorEnabled: false, totpSecret: null });
         return { message: 'Two-factor authentication disabled' };
+    }
+
+    async logout(userId: number, req?: Request) {
+        const ip = req?.ip || req?.connection?.remoteAddress;
+        const requestId = (req as any)?.requestId;
+
+        // Clear refresh token
+        await this.usersService.updateUser(userId, { hashedRt: null });
+
+        // Log logout event
+        await this.auditService.logLogout(userId, requestId, ip);
+
+        return { message: 'Logged out successfully' };
     }
 
     async googleLogin(googleUser: any) {

@@ -7,13 +7,14 @@ import {
 } from "react-router-dom";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
-import Login from "./components/Login";
-import Layout from "./components/Layout";
 import Dashboard from "./components/Dashboard";
-import UserList from "./components/Users/UserList";
-import GardenList from "./components/Gardens/GardenList";
-import VegetableList from "./components/Vegetables/VegetableList";
-import RevenuePage from "./components/Revenue/RevenuePage";
+import GardenList from "./components/admin/AdminGardenList";
+import UserList from "./components/admin/UserList";
+import VegetableList from "./components/user/VegetableList";
+import RevenuePage from "./components/user/RevenuePage";
+import Sidebar from "./components/common/Sidebar";
+import Login from "./components/common/Login";
+import MyGardenList from "./components/user/MyGardenList";
 
 const theme = createTheme({
   palette: {
@@ -25,6 +26,16 @@ const theme = createTheme({
     },
   },
 });
+
+// Layout component that includes the Sidebar
+const Layout = ({ children }) => {
+  return (
+    <div style={{ display: "flex" }}>
+      <Sidebar />
+      <main style={{ flexGrow: 1, padding: "20px" }}>{children}</main>
+    </div>
+  );
+};
 
 function App() {
   const isAuthenticated = () => {
@@ -65,7 +76,11 @@ function App() {
             path="/gardens"
             element={
               <ProtectedRoute>
-                <GardenList />
+                {JSON.parse(localStorage.getItem("user"))?.role === "ADMIN" ? (
+                  <GardenList />
+                ) : (
+                  <MyGardenList />
+                )}
               </ProtectedRoute>
             }
           />
