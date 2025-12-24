@@ -47,7 +47,6 @@ function UserList() {
   const fetchUsers = async () => {
     try {
       const response = await userAPI.getAll();
-      // Xử lý dữ liệu trả về: lấy field .data nếu backend bọc trong object
       const data = response.data?.data || response.data;
       setUsers(Array.isArray(data) ? data : []);
     } catch (error) {

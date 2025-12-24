@@ -53,16 +53,12 @@ function GardenList() {
   const fetchData = async () => {
     try {
       setError("");
-      // PHẢI truyền page và limit để tránh lỗi 400 Validation của Backend
-      const params = { page: 1, limit: 100 };
 
-      // Admin dùng chung endpoint /garden nhưng Backend sẽ tự trả về tất cả dựa vào Token
+      const params = { page: 1, limit: 100 };
       const [gardenRes, userRes] = await Promise.all([
         gardenAPI.getAll(params),
         isAdmin ? userAPI.getAll(params) : Promise.resolve({ data: [] }),
       ]);
-
-      // Trích xuất dữ liệu từ cấu trúc phân trang { data: { items: [...] } }
       const gardenItems =
         gardenRes.data?.data?.items || gardenRes.data?.data || gardenRes.data;
       const userItems =
@@ -112,7 +108,6 @@ function GardenList() {
         area: parseFloat(currentGarden.area),
       };
       if (editMode) {
-        // Nếu API adminUpdate không tồn tại, hãy dùng gardenAPI.update
         (await gardenAPI.adminUpdate?.(currentGarden.id, gardenData)) ||
           (await gardenAPI.update?.(currentGarden.id, gardenData));
         setSuccess("Cập nhật vườn thành công");
@@ -131,7 +126,6 @@ function GardenList() {
   const handleDelete = async (id) => {
     if (window.confirm("Xác nhận xóa vườn này?")) {
       try {
-        // Dùng adminDelete nếu có, không thì dùng delete thường
         (await gardenAPI.adminDelete?.(id)) || (await gardenAPI.delete?.(id));
         setSuccess("Đã xóa vườn");
         fetchData();

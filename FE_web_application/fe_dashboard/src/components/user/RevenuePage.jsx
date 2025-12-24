@@ -56,7 +56,6 @@ function RevenuePage() {
         byVegetable: revenueRes.data.byVegetable || [],
       });
 
-      // Prepare chart data
       const vegWithRevenue = vegetablesRes.data.map((v) => ({
         name: v.name,
         revenue: (v.price || 0) * (v.quantity || 0),
@@ -93,7 +92,6 @@ function RevenuePage() {
         Revenue Analytics
       </Typography>
 
-      {/* Total Revenue Card */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} md={6}>
           <Card>
@@ -160,8 +158,6 @@ function RevenuePage() {
           </Card>
         </Grid>
       </Grid>
-
-      {/* Revenue Chart */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} md={6}>
           <Card>
@@ -207,8 +203,6 @@ function RevenuePage() {
           </Card>
         </Grid>
       </Grid>
-
-      {/* Detailed Table */}
       <Card>
         <CardContent>
           <Typography variant="h6" gutterBottom>

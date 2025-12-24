@@ -385,7 +385,7 @@ function Login() {
                   mt: 3,
                 }}
               >
-                © 2024 Smart Garden Corp. System Access Only
+                © 2025 Smart Garden Corp. System Access Only
               </Typography>
             </Box>
           </Card>
