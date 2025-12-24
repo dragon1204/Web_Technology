@@ -31,6 +31,13 @@ npm install
 
 # Build project
 echo "🔨 Đang build project..."
+
+# Dọn sạch controller cũ nếu còn sót trên server (tránh lỗi GardenService)
+if [ -d "src/modules/garden/controler" ]; then
+  echo "🧹 Xoá thư mục cũ: src/modules/garden/controler"
+  rm -rf src/modules/garden/controler
+fi
+
 npm run build
 
 # Chạy migrations (nếu cần)
