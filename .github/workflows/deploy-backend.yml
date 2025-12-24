@@ -1,0 +1,68 @@
+name: Deploy Backend to VPS
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      BACKEND_DIR: BE_Server-side
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: |
+            ${{ env.BACKEND_DIR }}/package-lock.json
+
+      - name: Install dependencies & build (backend only)
+        working-directory: ${{ env.BACKEND_DIR }}
+        run: |
+          npm ci || npm install
+          npm run build
+          npx prisma generate
+
+      # Copy BE code lên server (KHÔNG copy node_modules, dist để nhẹ hơn)
+      - name: Upload backend source to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          source: |
+            BE_Server-side/package.json
+            BE_Server-side/package-lock.json
+            BE_Server-side/prisma/**
+            BE_Server-side/src/**
+            BE_Server-side/tsconfig*.json
+            BE_Server-side/nest-cli.json
+            BE_Server-side/deploy.sh
+            BE_Server-side/ecosystem.config.js
+          target: /var/web/Web_Technology
+          rm: false
+
+      - name: Deploy on VPS (npm install, migrate, pm2 restart)
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          script: |
+            set -e
+            cd /var/web/Web_Technology/BE_Server-side
+            chmod +x deploy.sh || true
+            ./deploy.sh
+
+
