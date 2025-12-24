@@ -33,8 +33,6 @@ function UserDashboard({ user }) {
   const fetchUserStats = async () => {
     try {
       console.log("📊 User Dashboard - Fetching stats for user:", user.id);
-
-      // Gọi API lấy gardens và vegetables của user
       const [gardensRes, vegetablesRes] = await Promise.all([
         gardenAPI.getAll({ page: 1, limit: 100 }),
         vegetableAPI.getAll({ page: 1, limit: 100 }),
@@ -44,10 +42,8 @@ function UserDashboard({ user }) {
       const vegetables =
         vegetablesRes.data?.data?.items || vegetablesRes.data || [];
 
-      console.log("✅ Gardens fetched:", gardens.length);
-      console.log("✅ Vegetables fetched:", vegetables.length);
-
-      // Tính tổng diện tích
+      console.log(" Gardens fetched:", gardens.length);
+      console.log(" Vegetables fetched:", vegetables.length);
       const totalArea = gardens.reduce(
         (sum, g) => sum + (parseFloat(g.area) || 0),
         0
@@ -95,7 +91,6 @@ function UserDashboard({ user }) {
         </Button>
       </Box>
 
-      {/* Statistics Cards */}
       <Grid container spacing={3}>
         {/* My Gardens */}
         <Grid item xs={12} sm={6} md={4}>

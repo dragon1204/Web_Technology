@@ -62,7 +62,6 @@ function Sidebar() {
         flexDirection: "column",
       }}
     >
-      {/* Header với User Info */}
       <Box
         sx={{
           p: 3,

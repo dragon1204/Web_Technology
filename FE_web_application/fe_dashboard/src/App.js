@@ -27,7 +27,6 @@ const theme = createTheme({
   },
 });
 
-// Layout component that includes the Sidebar
 const Layout = ({ children }) => {
   return (
     <div style={{ display: "flex" }}>

@@ -25,10 +25,7 @@ function MyGardenList() {
   const fetchMyGardens = async () => {
     try {
       setLoading(true);
-      // KHÔNG gửi userId lên URL, Backend tự lọc qua Token
       const response = await gardenAPI.getAll({ page: 1, limit: 100 });
-
-      // Xử lý dữ liệu linh hoạt (cho cả dạng mảng và dạng phân trang)
       const resData = response.data?.data || response.data;
       const items = resData?.items || (Array.isArray(resData) ? resData : []);
 

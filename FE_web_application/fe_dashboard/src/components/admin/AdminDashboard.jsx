@@ -142,9 +142,7 @@ function AdminDashboard({ user }) {
         >
           Xin chào, {user.username}
         </Typography>
-        <Typography variant="body1" sx={{ color: "#94a3b8" }}>
-          Thứ Tư, 24 tháng 12 - Tổng quan vườn 🌱
-        </Typography>
+        <Typography variant="body1" sx={{ color: "#94a3b8" }}></Typography>
       </Box>
 
       {/* Statistics Cards */}
