@@ -21,7 +21,7 @@ export class GardenService extends PBaseService<Garden> {
     async findGardensSecure(query: BQueryParams, user: any) {
         const relationFilter = user.role === Role.ADMIN 
             ? undefined 
-            : { field: 'userId', value: user.id };
+            : { field: 'ownerId', value: user.id };
 
         return this.pagination(query, relationFilter);
     }
@@ -29,7 +29,7 @@ export class GardenService extends PBaseService<Garden> {
     async findOneSecure(gardenId: number, user: any) {
         const garden = await this.findById(gardenId);
         
-        if (user.role !== Role.ADMIN && garden.userId !== user.id) {
+        if (user.role !== Role.ADMIN && garden.ownerId !== user.id) {
             throw new ForbiddenException('Bạn không có quyền truy cập khu vườn này');
         }
         return garden;
