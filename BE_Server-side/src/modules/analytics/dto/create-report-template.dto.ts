@@ -28,3 +28,4 @@ export class CreateReportTemplateDto {
   isPublic?: boolean;
 }
 
+

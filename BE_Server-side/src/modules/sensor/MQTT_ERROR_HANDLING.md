@@ -62,3 +62,4 @@ Payload: 25.5
 → Sensor ID 999 không tồn tại → Log warning → Bỏ qua
 ```
 
+

@@ -10,3 +10,4 @@ export class UpdateAlertRuleDto extends PartialType(CreateAlertRuleDto) {
   isActive?: boolean;
 }
 
+
