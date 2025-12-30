@@ -90,3 +90,4 @@ npm run db:seed
 - [ ] File `.env` có `DATABASE_URL` đúng
 - [ ] Chạy `npm run db:seed` thành công
 
+

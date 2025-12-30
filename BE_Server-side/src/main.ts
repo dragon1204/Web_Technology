@@ -10,10 +10,30 @@ import { extractErrorMessages } from './common/helper/extractErrorMessages';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  
+  // Config
+  const configService = app.get(ConfigService);
+  
+  // CORS Configuration
+  const corsOrigin = configService.get<string>('CORS_ORIGIN');
+  const allowedOrigins = corsOrigin 
+    ? corsOrigin.split(',').map(origin => origin.trim())
+    : ['http://localhost:3000', 'http://localhost:3001']; // Default for development
+  
   app.enableCors({
-    origin: 'http://localhost:3001',
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+      
+      if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
   });
 
   // Global Exception Filter
@@ -33,9 +53,6 @@ async function bootstrap() {
       },
     }),
   );
-
-  // Config
-  const configService = app.get(ConfigService);
 
   // Swagger setup
   const document = SwaggerModule.createDocument(

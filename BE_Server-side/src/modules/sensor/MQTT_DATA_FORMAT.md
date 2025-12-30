@@ -76,3 +76,4 @@ Hệ thống sẽ tự động lấy giá trị số đầu tiên tìm được.
 - Database chỉ lưu được **một giá trị số** trong field `value`
 - Nếu cần lưu nhiều giá trị, cần thay đổi schema để dùng JSON field
 
+
