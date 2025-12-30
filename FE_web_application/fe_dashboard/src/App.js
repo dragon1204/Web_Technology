@@ -14,6 +14,8 @@ import UserList from "./components/Users/UserList";
 import GardenList from "./components/Gardens/GardenList";
 import VegetableList from "./components/Vegetables/VegetableList";
 import RevenuePage from "./components/Revenue/RevenuePage";
+import NotificationsPage from "./components/Notifications/NotificationsPage";
+import AlertsPage from "./components/Alerts/AlertsPage";
 
 const theme = createTheme({
   palette: {
@@ -82,6 +84,22 @@ function App() {
             element={
               <ProtectedRoute>
                 <RevenuePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/notifications"
+            element={
+              <ProtectedRoute>
+                <NotificationsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/alerts"
+            element={
+              <ProtectedRoute>
+                <AlertsPage />
               </ProtectedRoute>
             }
           />

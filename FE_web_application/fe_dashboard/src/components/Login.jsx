@@ -28,8 +28,30 @@ function Login() {
 
     try {
       const response = await authAPI.login(email, password);
-      localStorage.setItem("token", response.data.access_token);
-      localStorage.setItem("user", JSON.stringify(response.data.user));
+      const payload = response.data?.data || response.data || {};
+      const accessToken =
+        payload.access_token ||
+        payload.accessToken ||
+        payload.token ||
+        payload?.data?.access_token ||
+        payload?.data?.accessToken;
+      const refreshToken =
+        payload.refresh_token || payload.refreshToken || payload?.data?.refresh_token;
+
+      if (!accessToken) {
+        throw new Error("Không nhận được access_token từ server");
+      }
+
+      localStorage.setItem("token", accessToken);
+      if (refreshToken) localStorage.setItem("refresh_token", refreshToken);
+      if (payload.user) localStorage.setItem("user", JSON.stringify(payload.user));
+      // đảm bảo axios instance có header ngay lập tức trước khi navigate
+      try {
+        const { default: apiInstance } = await import("../services/api");
+        apiInstance.defaults.headers.common.Authorization = `Bearer ${accessToken}`;
+      } catch (e) {
+        console.warn("Cannot set default auth header immediately", e);
+      }
       navigate("/dashboard");
     } catch (err) {
       setError(

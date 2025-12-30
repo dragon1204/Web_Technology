@@ -48,6 +48,8 @@ function Layout({ children }) {
     { text: "Gardens", icon: <YardIcon />, path: "/gardens" },
     { text: "Vegetables", icon: <GrassIcon />, path: "/vegetables" },
     { text: "Revenue", icon: <MoneyIcon />, path: "/revenue" },
+    { text: "Notifications", icon: <DashboardIcon />, path: "/notifications" },
+    { text: "Alerts", icon: <DashboardIcon />, path: "/alerts" },
   ];
 
   const drawer = (
