@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { NewVegetableDto } from './dto/new-vegetable.dto';
 import { UpdatePriceDto } from './dto/update-price.dto';
@@ -9,6 +9,8 @@ import { Vegetable } from '@prisma/client';
 
 @Injectable()
 export class VegetableService extends PBaseService<Vegetable> {
+    private readonly logger = new Logger(VegetableService.name);
+
     constructor(private readonly prisma: PrismaService) {
         // Khởi tạo Base Service với prisma model tương ứng
         super(prisma.vegetable);
@@ -79,26 +81,99 @@ export class VegetableService extends PBaseService<Vegetable> {
 
     async getPriceList(type: 'day' | 'week' | 'month', gardenId?: number, vegetableId?: number) {
         this.validateType(type);
+        this.logger.log(`Getting price list with type: ${type}, gardenId: ${gardenId}, vegetableId: ${vegetableId}`);
 
-        const where: any = {};
-        if (gardenId) where.gardenId = gardenId;
-        if (vegetableId) where.vegetableId = vegetableId;
+        try {
+            // Build WHERE conditions using Prisma's where clause
+            const where: any = {};
+            if (gardenId !== undefined && gardenId !== null) {
+                where.gardenId = Number(gardenId);
+            }
+            if (vegetableId !== undefined && vegetableId !== null) {
+                where.vegetableId = Number(vegetableId);
+            }
 
-        // Xây dựng điều kiện WHERE động cho query raw
-        const whereClause = Object.keys(where).length 
-            ? 'WHERE ' + Object.entries(where).map(([k, v]) => `"${k}" = ${v}`).join(' AND ') 
-            : '';
+            // Use Prisma's query builder for safer queries
+            // First, get all sales with filters
+            const sales = await this.prisma.sale.findMany({
+                where,
+                select: {
+                    time: true,
+                    total: true,
+                    quantity: true,
+                },
+            });
 
-        return this.prisma.$queryRawUnsafe(`
-            SELECT 
-                DATE_TRUNC('${type}', "time") AS period,
-                SUM(total) AS totalRevenue,
-                SUM(quantity) AS totalQuantity
-            FROM "Sale"
-            ${whereClause}
-            GROUP BY period
-            ORDER BY period ASC
-        `);
+            // Group by period using JavaScript (more reliable than raw SQL)
+            const grouped = sales.reduce((acc, sale) => {
+                const date = new Date(sale.time);
+                let period: Date;
+
+                switch (type) {
+                    case 'day':
+                        period = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+                        break;
+                    case 'week':
+                        const weekStart = new Date(date);
+                        weekStart.setDate(date.getDate() - date.getDay()); // Start of week (Sunday)
+                        period = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate());
+                        break;
+                    case 'month':
+                        period = new Date(date.getFullYear(), date.getMonth(), 1);
+                        break;
+                    default:
+                        period = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+                }
+
+                const periodKey = period.toISOString();
+                if (!acc[periodKey]) {
+                    acc[periodKey] = {
+                        period: period.toISOString(),
+                        totalRevenue: 0,
+                        totalQuantity: 0,
+                    };
+                }
+
+                acc[periodKey].totalRevenue += Number(sale.total) || 0;
+                acc[periodKey].totalQuantity += Number(sale.quantity) || 0;
+
+                return acc;
+            }, {} as Record<string, { period: string; totalRevenue: number; totalQuantity: number }>);
+
+            // Convert to array and sort
+            const result = Object.values(grouped).sort((a, b) => 
+                new Date(a.period).getTime() - new Date(b.period).getTime()
+            );
+            
+            this.logger.log(`Successfully retrieved ${result.length} revenue records`);
+            return result;
+        } catch (error) {
+            // Log the error for debugging
+            this.logger.error('Error in getPriceList:', error);
+            this.logger.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+            this.logger.error('Query parameters:', { type, gardenId, vegetableId });
+            
+            // Re-throw BadRequestException as-is
+            if (error instanceof BadRequestException) {
+                throw error;
+            }
+            
+            // Check if it's a database connection error
+            if (error instanceof Error && (
+                error.message.includes("Can't reach database") ||
+                error.message.includes('P1001') ||
+                error.message.includes('connection')
+            )) {
+                throw new BadRequestException(
+                    'Database connection error. Please try again in a few moments.'
+                );
+            }
+            
+            // Wrap other errors with more details
+            throw new BadRequestException(
+                `Failed to fetch revenue list: ${error instanceof Error ? error.message : 'Unknown error'}`
+            );
+        }
     }
 
     async getTotalRevenue(type: 'day' | 'week' | 'month', gardenId?: number, vegetableId?: number) {
