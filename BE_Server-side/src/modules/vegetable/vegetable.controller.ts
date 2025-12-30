@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards, ParseIntPipe, Request } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Param, Patch, Post, Query, UseGuards, ParseIntPipe, Request } from '@nestjs/common';
 import { VegetableService } from './vegetable.service';
 import { NewVegetableDto } from './dto/new-vegetable.dto';
 import { UpdatePriceDto } from './dto/update-price.dto';
@@ -63,6 +63,9 @@ export class VegetableController {
     @ApiOperation({ summary: "Lấy danh sách doanh thu theo thời gian (ngày/tuần/tháng)" })
     @Get('revenue/list') // Đổi path để tránh trùng lặp
     async getPriceList(@Query() query: RevenueVegetableDto) {
+        if (!query.type) {
+            throw new BadRequestException('Type parameter is required. Must be one of: day, week, month');
+        }
         return this.vegetableService.getPriceList(
             query.type,
             query.gardenId ? Number(query.gardenId) : undefined,

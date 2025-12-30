@@ -1,22 +1,22 @@
-import { ApiPropertyOptional } from "@nestjs/swagger"
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger"
 import { Type } from "class-transformer"
-import { IsNumber, IsOptional } from "class-validator"
+import { IsEnum, IsNumber, IsOptional } from "class-validator"
 
 export class RevenueVegetableDto {
-    @ApiPropertyOptional({description: "Phân loại thời gian", example: "day/week/month"})
-    @IsOptional()
-    type : 'day' | 'week' | 'month' 
+    @ApiProperty({description: "Phân loại thời gian", example: "month", enum: ['day', 'week', 'month']})
+    @IsEnum(['day', 'week', 'month'], { message: 'Type must be one of: day, week, month' })
+    type: 'day' | 'week' | 'month'
 
-    @ApiPropertyOptional({description: "Id của vườn", example: "1"})
+    @ApiPropertyOptional({description: "Id của vườn", example: 1})
     @IsOptional()
     @Type(() => Number)
     @IsNumber()
-    gardenId : number
+    gardenId?: number
 
-    @ApiPropertyOptional({description: "Id của rau", example: "1"})
+    @ApiPropertyOptional({description: "Id của rau", example: 1})
     @IsOptional()
     @Type(() => Number)
     @IsNumber()
-    vegetableId : number
+    vegetableId?: number
 
 }
