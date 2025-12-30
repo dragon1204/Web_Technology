@@ -11,6 +11,9 @@ import { GardenModule } from './modules/garden/garden.module';
 import { VegetableModule } from './modules/vegetable/vegetable.module';
 import { SensorModule } from './modules/sensor/sensor.module';
 import { AuditModule } from './modules/audit/audit.module';
+import { NotificationModule } from './modules/notification/notification.module';
+import { AlertModule } from './modules/alert/alert.module';
+import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AuditInterceptor } from './common/interceptor/audit.interceptor';
 
@@ -28,7 +31,7 @@ import { AuditInterceptor } from './common/interceptor/audit.interceptor';
       ttl: 60,
       limit: 60,
     }]),
-     GardenModule, VegetableModule, SensorModule],
+     GardenModule, VegetableModule, SensorModule, NotificationModule, AlertModule, AnalyticsModule],
   controllers: [],
   providers: [ 
     PrismaService, 

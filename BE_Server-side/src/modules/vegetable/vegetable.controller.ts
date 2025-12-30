@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards, ParseIntPipe } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards, ParseIntPipe, Request } from '@nestjs/common';
 import { VegetableService } from './vegetable.service';
 import { NewVegetableDto } from './dto/new-vegetable.dto';
 import { UpdatePriceDto } from './dto/update-price.dto';
@@ -7,6 +7,7 @@ import { UpdateSoldDto } from './dto/update-sold.dto';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { FindVegetableDto } from './dto/find-vegetable.dto';
 import { RevenueVegetableDto } from './dto/revenue-vegetable.dto';
+import { GetPriceHistoryDto } from './dto/price-history.dto';
 import { AtGuard } from '../auth/guard/auth.guards';
 import { RolesGuard } from '../auth/guard/roles.guards';
 
@@ -35,9 +36,10 @@ export class VegetableController {
     @Patch('price/:id')
     async updatePrice(
         @Param('id', ParseIntPipe) id: number, 
-        @Body() dto: UpdatePriceDto
+        @Body() dto: UpdatePriceDto,
+        @Request() req?: any
     ) {
-        return await this.vegetableService.updatePrice(id, dto);
+        return await this.vegetableService.updatePrice(id, dto, req?.user?.id);
     }
 
     @ApiOperation({ summary: "Cập nhật số lượng nhập kho" })
@@ -82,5 +84,16 @@ export class VegetableController {
     @Patch('delete/:id') // Hoặc dùng @Delete() tùy theo thiết kế của bạn
     async remove(@Param('id', ParseIntPipe) id: number) {
         return await this.vegetableService.deleteById(id);
+    }
+
+    @ApiOperation({ summary: "Lấy lịch sử giá của rau củ" })
+    @Get('price-history/:id')
+    async getPriceHistory(
+        @Param('id', ParseIntPipe) id: number,
+        @Query() query: GetPriceHistoryDto
+    ) {
+        const startDate = query.startDate ? new Date(query.startDate) : undefined;
+        const endDate = query.endDate ? new Date(query.endDate) : undefined;
+        return await this.vegetableService.getPriceHistory(id, startDate, endDate);
     }
 }

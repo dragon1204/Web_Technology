@@ -21,7 +21,11 @@
     "db:test": "node check-db-connection.js",
     "db:studio": "npx prisma studio",
     "db:migrate": "npx prisma migrate dev",
-    "db:status": "npx prisma migrate status"
+    "db:status": "npx prisma migrate status",
+    "db:seed": "node seed.js"
+  },
+  "prisma": {
+    "seed": "node seed.js"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
