@@ -8,38 +8,56 @@ datasource db {
 }
 
 model User {
-  id                 Int      @id @default(autoincrement())
-  email              String   @unique
+  id                 Int            @id @default(autoincrement())
+  email              String         @unique
   name               String?
-  password           String   @default("")
-  role               Role     @default(USER)
+  password           String         @default("")
+  role               Role           @default(USER)
   avatar             String?
   provider           String?
   providerId         String?
   hashedRt           String?
-  isTwoFactorEnabled Boolean  @default(false)
+  isTwoFactorEnabled Boolean        @default(false)
   totpSecret         String?
   gardens            Garden[]
+  notifications      Notification[]
 }
 
 model Vegetable {
-  id       Int                @id @default(autoincrement())
-  name     String
-  imported Int                @default(0)
-  sold     Int                @default(0)
-  price    Float              @default(0)
-  sales    Sale[]
-  gardens  vegetable_garden[]
+  id            Int                @id @default(autoincrement())
+  name          String
+  imported      Int                @default(0)
+  sold          Int                @default(0)
+  price         Float              @default(0)
+  category      String?            // Loại rau: 'leafy', 'root', 'fruit', 'herb', etc.
+  description   String?            // Mô tả
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  sales         Sale[]
+  gardens       vegetable_garden[]
+  priceHistory  PriceHistory[]
+
+  @@index([category])
+  @@index([createdAt])
 }
 
 model Garden {
   id         Int                @id @default(autoincrement())
   name       String
   ownerId    Int
+  area       Float?             // Diện tích vườn (m²)
+  location   String?            // Địa điểm
+  description String?            // Mô tả
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
   owner      User               @relation(fields: [ownerId], references: [id])
   sales      Sale[]
   sensors    Sensor[]
   vegetables vegetable_garden[]
+  alertRules AlertRule[]
+
+  @@index([ownerId])
+  @@index([createdAt])
 }
 
 model vegetable_garden {
@@ -71,21 +89,27 @@ model SensorType {
 }
 
 model Sensor {
-  id       Int          @id @default(autoincrement())
-  model    String
-  name     String
-  typeId   Int
-  gardenId Int
-  garden   Garden       @relation(fields: [gardenId], references: [id], onDelete: Cascade)
-  type     SensorType   @relation(fields: [typeId], references: [id], onDelete: Cascade)
-  data     SensorData[]
+  id         Int          @id @default(autoincrement())
+  model      String
+  name       String
+  typeId     Int
+  gardenId   Int
+  garden     Garden       @relation(fields: [gardenId], references: [id], onDelete: Cascade)
+  type       SensorType   @relation(fields: [typeId], references: [id], onDelete: Cascade)
+  data       SensorData[]
+  alertRules AlertRule[]
+  alerts     Alert[]
 }
 
 model SensorData {
   id       Int      @id @default(autoincrement())
   time     DateTime @default(now())
+  value    Float    // Giá trị đo được từ sensor
   sensorId Int
   sensor   Sensor   @relation(fields: [sensorId], references: [id], onDelete: Cascade)
+
+  @@index([sensorId, time])
+  @@index([time])
 }
 
 model AuditLog {
@@ -107,6 +131,85 @@ model AuditLog {
   @@index([action])
   @@index([timestamp])
   @@index([requestId])
+}
+
+model Notification {
+  id          Int       @id @default(autoincrement())
+  userId      Int
+  title       String
+  message     String
+  type        String    // 'alert', 'info', 'warning', 'success'
+  isRead      Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([createdAt])
+}
+
+model AlertRule {
+  id          Int       @id @default(autoincrement())
+  sensorId    Int?
+  sensorType  String?   // 'temperature', 'humidity', etc.
+  minValue    Float?
+  maxValue    Float?
+  alertOnMin  Boolean   @default(false)
+  alertOnMax  Boolean   @default(false)
+  severity    String    @default("warning") // 'info', 'warning', 'critical'
+  isActive    Boolean   @default(true)
+  gardenId    Int
+  garden      Garden    @relation(fields: [gardenId], references: [id], onDelete: Cascade)
+  sensor      Sensor?   @relation(fields: [sensorId], references: [id], onDelete: Cascade)
+  alerts      Alert[]
+
+  @@index([gardenId])
+  @@index([sensorId])
+}
+
+model Alert {
+  id          Int       @id @default(autoincrement())
+  ruleId      Int
+  sensorId    Int?
+  value        Float
+  message     String
+  severity    String    // 'info', 'warning', 'critical'
+  isResolved  Boolean   @default(false)
+  resolvedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  rule        AlertRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  sensor      Sensor?   @relation(fields: [sensorId], references: [id], onDelete: Cascade)
+
+  @@index([ruleId])
+  @@index([sensorId])
+  @@index([isResolved])
+  @@index([createdAt])
+}
+
+model PriceHistory {
+  id          Int       @id @default(autoincrement())
+  vegetableId Int
+  price       Float
+  changedAt   DateTime  @default(now())
+  changedBy   Int?      // userId
+  vegetable   Vegetable @relation(fields: [vegetableId], references: [id], onDelete: Cascade)
+
+  @@index([vegetableId, changedAt])
+  @@index([changedAt])
+}
+
+model ReportTemplate {
+  id          Int       @id @default(autoincrement())
+  name        String
+  description String?
+  type        String    // 'revenue', 'productivity', 'sensor', 'custom'
+  config      Json      // Cấu hình báo cáo (filters, fields, etc.)
+  userId      Int?      // User tạo báo cáo (null = system template)
+  isPublic    Boolean   @default(false) // Có thể chia sẻ với user khác
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([type])
+  @@index([userId])
 }
 
 enum Role {

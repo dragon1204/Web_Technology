@@ -43,10 +43,29 @@ export class VegetableService extends PBaseService<Vegetable> {
         });
     }
 
-    async updatePrice(id: number, dto: UpdatePriceDto) {
-        return await this.updateById(id, {
-            price: dto.price,
+    async updatePrice(id: number, dto: UpdatePriceDto, userId?: number) {
+        // Lấy giá cũ trước khi cập nhật
+        const vegetable = await this.findById(id);
+        const oldPrice = vegetable.price;
+        const newPrice = dto.price;
+
+        // Cập nhật giá mới
+        const updated = await this.updateById(id, {
+            price: newPrice,
         });
+
+        // Lưu lịch sử giá nếu giá thay đổi
+        if (oldPrice !== newPrice) {
+            await this.prisma.priceHistory.create({
+                data: {
+                    vegetableId: id,
+                    price: newPrice,
+                    changedBy: userId,
+                },
+            });
+        }
+
+        return updated;
     }
 
     /**
@@ -94,5 +113,27 @@ export class VegetableService extends PBaseService<Vegetable> {
         `;
 
         return result[0] || { totalRevenue: 0 };
+    }
+
+    async getPriceHistory(vegetableId: number, startDate?: Date, endDate?: Date) {
+        const where: any = { vegetableId };
+        if (startDate || endDate) {
+            where.changedAt = {};
+            if (startDate) where.changedAt.gte = startDate;
+            if (endDate) where.changedAt.lte = endDate;
+        }
+
+        return this.prisma.priceHistory.findMany({
+            where,
+            orderBy: { changedAt: 'desc' },
+            include: {
+                vegetable: {
+                    select: {
+                        id: true,
+                        name: true,
+                    },
+                },
+            },
+        });
     }
 }
