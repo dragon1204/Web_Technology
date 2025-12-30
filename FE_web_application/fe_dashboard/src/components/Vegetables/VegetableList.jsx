@@ -52,9 +52,24 @@ function VegetableList() {
   const fetchVegetables = async () => {
     try {
       const response = await vegetableAPI.getAll();
-      setVegetables(response.data);
+      console.log("Vegetable API Response:", response);
+      console.log("Response.data:", response.data);
+      console.log("Response.data.data:", response.data?.data);
+      console.log("Response.data.data.items:", response.data?.data?.items);
+      
+      // Handle pagination response structure: 
+      // Axios response: response.data = { HttpCode, success, data: { items: [...], total, page, ... } }
+      // So we need: response.data.data.items
+      const data = response.data?.data?.items || response.data?.items || response.data?.data || response.data || [];
+      console.log("Extracted data:", data);
+      console.log("Is array?", Array.isArray(data));
+      console.log("Data length:", Array.isArray(data) ? data.length : 0);
+      
+      setVegetables(Array.isArray(data) ? data : []);
     } catch (error) {
-      setError("Failed to fetch vegetables");
+      console.error("Error fetching vegetables:", error);
+      setError(error.response?.data?.message || "Failed to fetch vegetables");
+      setVegetables([]); // Ensure vegetables is always an array
     }
   };
 
@@ -195,7 +210,13 @@ function VegetableList() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {vegetables.map((vegetable) => (
+            {vegetables.map((vegetable) => {
+              // Calculate quantity from imported and sold (inventory = imported - sold)
+              const quantity = vegetable.quantity ?? (vegetable.imported ?? 0) - (vegetable.sold ?? 0);
+              const imported = vegetable.imported ?? 0;
+              const sold = vegetable.sold ?? 0;
+              
+              return (
               <TableRow key={vegetable.id}>
                 <TableCell>
                   <Typography variant="body1" fontWeight="bold">
@@ -203,12 +224,19 @@ function VegetableList() {
                   </Typography>
                 </TableCell>
                 <TableCell>${vegetable.price?.toFixed(2) || "0.00"}</TableCell>
-                <TableCell>{vegetable.quantity || 0}</TableCell>
+                <TableCell>
+                  <Box>
+                    <Typography variant="body2">{quantity}</Typography>
+                    <Typography variant="caption" color="textSecondary">
+                      (Imported: {imported}, Sold: {sold})
+                    </Typography>
+                  </Box>
+                </TableCell>
                 <TableCell>{vegetable.unit || "kg"}</TableCell>
                 <TableCell>
                   <Chip
-                    label={vegetable.quantity > 10 ? "In Stock" : "Low Stock"}
-                    color={vegetable.quantity > 10 ? "success" : "warning"}
+                    label={quantity > 10 ? "In Stock" : "Low Stock"}
+                    color={quantity > 10 ? "success" : "warning"}
                     size="small"
                   />
                 </TableCell>
@@ -239,7 +267,8 @@ function VegetableList() {
                   </IconButton>
                 </TableCell>
               </TableRow>
-            ))}
+              );
+            })}
           </TableBody>
         </Table>
       </TableContainer>
@@ -335,7 +364,11 @@ function VegetableList() {
           )}
           {(updateType === "import" || updateType === "sell") && (
             <Typography variant="body2" sx={{ mb: 2 }}>
-              Current Stock: {currentVegetable.quantity} {currentVegetable.unit}
+              Current Stock: {currentVegetable.quantity ?? ((currentVegetable.imported ?? 0) - (currentVegetable.sold ?? 0))} {currentVegetable.unit || "kg"}
+              <br />
+              <Typography variant="caption" color="textSecondary">
+                (Imported: {currentVegetable.imported ?? 0}, Sold: {currentVegetable.sold ?? 0})
+              </Typography>
             </Typography>
           )}
           <TextField

@@ -47,9 +47,15 @@ function UserList() {
   const fetchUsers = async () => {
     try {
       const response = await userAPI.getAll();
-      setUsers(response.data);
+      // Handle pagination response structure: 
+      // Axios response: response.data = { HttpCode, success, data: { items: [...], total, page, ... } }
+      // So we need: response.data.data.items
+      const data = response.data?.data?.items || response.data?.items || response.data?.data || response.data || [];
+      setUsers(Array.isArray(data) ? data : []);
     } catch (error) {
-      setError("Failed to fetch users");
+      console.error("Error fetching users:", error);
+      setError(error.response?.data?.message || "Failed to fetch users");
+      setUsers([]); // Ensure users is always an array
     }
   };
 

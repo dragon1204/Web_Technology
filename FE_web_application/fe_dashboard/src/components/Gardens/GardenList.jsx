@@ -47,9 +47,24 @@ function GardenList() {
   const fetchGardens = async () => {
     try {
       const response = await gardenAPI.getAll();
-      setGardens(response.data);
+      console.log("Garden API Response:", response);
+      console.log("Response.data:", response.data);
+      console.log("Response.data.data:", response.data?.data);
+      console.log("Response.data.data.items:", response.data?.data?.items);
+      
+      // Handle pagination response structure: 
+      // Axios response: response.data = { HttpCode, success, data: { items: [...], total, page, ... } }
+      // So we need: response.data.data.items
+      const data = response.data?.data?.items || response.data?.items || response.data?.data || response.data || [];
+      console.log("Extracted data:", data);
+      console.log("Is array?", Array.isArray(data));
+      console.log("Data length:", Array.isArray(data) ? data.length : 0);
+      
+      setGardens(Array.isArray(data) ? data : []);
     } catch (error) {
-      setError("Failed to fetch gardens");
+      console.error("Error fetching gardens:", error);
+      setError(error.response?.data?.message || "Failed to fetch gardens");
+      setGardens([]); // Ensure gardens is always an array
     }
   };
 

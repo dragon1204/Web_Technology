@@ -46,23 +46,34 @@ function RevenuePage() {
 
   const fetchData = async () => {
     try {
-      const [revenueRes, vegetablesRes] = await Promise.all([
-        vegetableAPI.getRevenue(),
+      const [revenueTotalRes, revenueListRes, vegetablesRes] = await Promise.all([
+        vegetableAPI.getRevenueTotal({ type: "month" }), // type is required: day, week, or month
+        vegetableAPI.getRevenueList({ type: "month" }), // type is required: day, week, or month
         vegetableAPI.getAll(),
       ]);
 
+      // Handle response structure with pagination: 
+      // Axios response: response.data = { HttpCode, success, data: { items: [...], total, page, ... } }
+      // So we need: response.data.data.items
+      const totalRevenue = revenueTotalRes.data?.data?.totalRevenue || revenueTotalRes.data?.totalRevenue || 0;
+      const listRaw = revenueListRes.data?.data?.items || revenueListRes.data?.items || revenueListRes.data?.data || revenueListRes.data || [];
+      const vegetablesData = vegetablesRes.data?.data?.items || vegetablesRes.data?.items || vegetablesRes.data?.data || vegetablesRes.data || [];
+
       setRevenueData({
-        total: revenueRes.data.totalRevenue || 0,
-        byVegetable: revenueRes.data.byVegetable || [],
+        total: totalRevenue,
+        byVegetable: Array.isArray(listRaw) ? listRaw : [],
       });
 
-      // Prepare chart data
-      const vegWithRevenue = vegetablesRes.data.map((v) => ({
-        name: v.name,
-        revenue: (v.price || 0) * (v.quantity || 0),
-        quantity: v.quantity || 0,
-        price: v.price || 0,
-      }));
+      const vegWithRevenue = (Array.isArray(vegetablesData) ? vegetablesData : []).map((v) => {
+        // Calculate quantity from imported and sold (inventory = imported - sold)
+        const quantity = v.quantity ?? (v.imported ?? 0) - (v.sold ?? 0);
+        return {
+          name: v.name,
+          revenue: (v.price || 0) * quantity,
+          quantity: quantity,
+          price: v.price || 0,
+        };
+      });
 
       setVegetables(vegWithRevenue);
     } catch (error) {
@@ -170,7 +181,7 @@ function RevenuePage() {
                 Revenue by Vegetable
               </Typography>
               <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={vegetables}>
+                <BarChart data={revenueData.byVegetable.length ? revenueData.byVegetable : vegetables}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" />
                   <YAxis />
@@ -226,17 +237,17 @@ function RevenuePage() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {vegetables.map((veg) => (
+                {(revenueData.byVegetable.length ? revenueData.byVegetable : vegetables).map((veg) => (
                   <TableRow key={veg.name}>
                     <TableCell>{veg.name}</TableCell>
-                    <TableCell align="right">${veg.price.toFixed(2)}</TableCell>
-                    <TableCell align="right">{veg.quantity}</TableCell>
+                    <TableCell align="right">${Number(veg.price ?? 0).toFixed(2)}</TableCell>
+                    <TableCell align="right">{veg.quantity ?? 0}</TableCell>
                     <TableCell align="right">
-                      ${veg.revenue.toFixed(2)}
+                      ${Number(veg.revenue ?? 0).toFixed(2)}
                     </TableCell>
                     <TableCell align="right">
                       {revenueData.total > 0
-                        ? ((veg.revenue / revenueData.total) * 100).toFixed(1)
+                        ? (((veg.revenue ?? 0) / revenueData.total) * 100).toFixed(1)
                         : 0}
                       %
                     </TableCell>

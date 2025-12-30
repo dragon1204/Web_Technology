@@ -86,29 +86,40 @@ function Dashboard() {
 
   const fetchData = async () => {
     try {
-      const [usersRes, gardensRes, vegetablesRes, revenueRes] =
+      const [usersRes, gardensRes, vegetablesRes, revenueTotalRes] =
         await Promise.all([
           userAPI.getAll(),
           gardenAPI.getAll(),
           vegetableAPI.getAll(),
-          vegetableAPI.getRevenue(),
+          vegetableAPI.getRevenueTotal({ type: "month" }), // type is required: day, week, or month
         ]);
-      console.log("Revenue response:", revenueRes.data);
+      console.log("Revenue total response:", revenueTotalRes.data);
+
+      // Handle pagination response structure: 
+      // Axios response: response.data = { HttpCode, success, data: { items: [...], total, page, ... } }
+      // So we need: response.data.data.items
+      const usersData = usersRes.data?.data?.items || usersRes.data?.items || usersRes.data?.data || usersRes.data || [];
+      const gardensData = gardensRes.data?.data?.items || gardensRes.data?.items || gardensRes.data?.data || gardensRes.data || [];
+      const vegetablesData = vegetablesRes.data?.data?.items || vegetablesRes.data?.items || vegetablesRes.data?.data || vegetablesRes.data || [];
 
       setStats({
-        users: usersRes.data?.length || 0,
-        gardens: gardensRes.data?.length || 0,
-        vegetables: vegetablesRes.data?.length || 0,
-        revenue: Number(revenueRes.data?.totalRevenue) || 0,
+        users: Array.isArray(usersData) ? usersData.length : 0,
+        gardens: Array.isArray(gardensData) ? gardensData.length : 0,
+        vegetables: Array.isArray(vegetablesData) ? vegetablesData.length : 0,
+        revenue: Number(revenueTotalRes.data?.totalRevenue || revenueTotalRes.data?.data?.totalRevenue) || 0,
       });
 
-      const vegData = (vegetablesRes.data || []).slice(0, 5).map((v) => ({
-        name: v.name || "Unknown",
-        quantity: v.quantity || 0,
-        price: v.price || 0,
-      }));
+      const vegData = (Array.isArray(vegetablesData) ? vegetablesData : []).slice(0, 5).map((v) => {
+        // Calculate quantity from imported and sold (inventory = imported - sold)
+        const quantity = v.quantity ?? (v.imported ?? 0) - (v.sold ?? 0);
+        return {
+          name: v.name || "Unknown",
+          quantity: quantity,
+          price: v.price || 0,
+        };
+      });
 
-      const gardenData = (gardensRes.data || []).slice(0, 5).map((g) => ({
+      const gardenData = (Array.isArray(gardensData) ? gardensData : []).slice(0, 5).map((g) => ({
         name: g.name || "Garden",
         area: g.area || 0,
       }));
