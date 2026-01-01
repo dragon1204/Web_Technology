@@ -8,8 +8,8 @@ import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { GardenModule } from './modules/garden/garden.module';
 import { VegetableModule } from './modules/vegetable/vegetable.module';
-import { SensorModule } from './modules/sensor/sensor.module';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { SensorModule } from './modules/device/device.module';
 
 
 @Module({
