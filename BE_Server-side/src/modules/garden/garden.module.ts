@@ -1,11 +1,14 @@
 import { Module } from '@nestjs/common';
 import { GardenService } from './garden.service';
-import { SaleController } from './sale/sale.controller';
-import { SaleService } from './sale/sale.service';
 import { GardenController } from './garden.controler';
+import { SaleService } from './sale/sale.service';
+import { SaleController } from './sale/sale.controller';
+import { DeviceService } from '../device/device.service';
+import { MqttService } from '../device/mqtt.controller/mqtt.service';
+import { WsGateway } from '../device/websoket.gateway/device.gateway';
 
 @Module({
   controllers: [GardenController, SaleController],
-  providers: [GardenService, SaleService]
+  providers: [GardenService, SaleService, DeviceService, MqttService, WsGateway]
 })
 export class GardenModule {}
