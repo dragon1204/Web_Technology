@@ -141,7 +141,7 @@ export class VegetableService extends PBaseService<Vegetable> {
             }, {} as Record<string, { period: string; totalRevenue: number; totalQuantity: number }>);
 
             // Convert to array and sort
-            const result = Object.values(grouped).sort((a, b) => 
+            const result = Object.values(grouped).sort((a: { period: string; totalRevenue: number; totalQuantity: number }, b: { period: string; totalRevenue: number; totalQuantity: number }) => 
                 new Date(a.period).getTime() - new Date(b.period).getTime()
             );
             
@@ -177,25 +177,59 @@ export class VegetableService extends PBaseService<Vegetable> {
     }
 
     /**
-     * VIẾT MỚI: Thống kê doanh thu kỳ hiện tại
+     * Thống kê doanh thu kỳ hiện tại
      */
     async getTotalRevenue(type: 'day' | 'week' | 'month', gardenId?: number, vegetableId?: number) {
         this.validateType(type);
 
-        const conditions = [
-            Prisma.sql`DATE_TRUNC(${type}, "time") = DATE_TRUNC(${type}, CURRENT_DATE)`
-        ];
+        try {
+            const where: any = {};
+            
+            // Build date condition
+            const now = new Date();
+            let startOfPeriod: Date;
+            
+            switch (type) {
+                case 'day':
+                    startOfPeriod = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                    break;
+                case 'week':
+                    const weekStart = new Date(now);
+                    weekStart.setDate(now.getDate() - now.getDay());
+                    startOfPeriod = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate());
+                    break;
+                case 'month':
+                    startOfPeriod = new Date(now.getFullYear(), now.getMonth(), 1);
+                    break;
+            }
+            
+            where.time = {
+                gte: startOfPeriod,
+            };
 
-        if (gardenId) conditions.push(Prisma.sql`"gardenId" = ${gardenId}`);
-        if (vegetableId) conditions.push(Prisma.sql`"vegetableId" = ${vegetableId}`);
+            if (gardenId !== undefined && gardenId !== null) {
+                where.gardenId = Number(gardenId);
+            }
+            if (vegetableId !== undefined && vegetableId !== null) {
+                where.vegetableId = Number(vegetableId);
+            }
 
-        const result = await this.prisma.$queryRaw<{ totalRevenue: number }[]>`
-            SELECT COALESCE(SUM(total), 0)::FLOAT as "totalRevenue"
-            FROM "Sale"
-            WHERE ${Prisma.join(conditions, ' AND ')}
-        `;
+            const sales = await this.prisma.sale.findMany({
+                where,
+                select: {
+                    total: true,
+                },
+            });
 
-        return result[0] || { totalRevenue: 0 };
+            const totalRevenue = sales.reduce((sum, sale) => sum + Number(sale.total || 0), 0);
+
+            return { totalRevenue };
+        } catch (error) {
+            this.logger.error('Error in getTotalRevenue:', error);
+            throw new BadRequestException(
+                `Failed to fetch total revenue: ${error instanceof Error ? error.message : 'Unknown error'}`
+            );
+        }
     }
 
     /**
