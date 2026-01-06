@@ -1,7 +1,7 @@
 import { Injectable, OnModuleInit, Inject, forwardRef } from '@nestjs/common';
 import * as mqtt from 'mqtt';
-import { DeviceService } from '../device.service';
 import { ConfigService } from '@nestjs/config';
+import { DeviceService } from '../device.service';
 
 @Injectable()
 export class MqttService implements OnModuleInit {
@@ -11,14 +11,21 @@ export class MqttService implements OnModuleInit {
     @Inject(forwardRef(() => DeviceService))
     private deviceService: DeviceService,
     private readonly configService: ConfigService,
-  ) { }
+  ) {}
 
   onModuleInit() {
-    // Lấy cấu hình từ ConfigService
-    const mqtt_url = this.configService.get<string>('MQTT_URL')!;
+    const brokerUrl = this.configService.get<string>('MQTT_URL')!;
+    const username = this.configService.get<string>('MQTT_USERNAME');
+    const password = this.configService.get<string>('MQTT_PASSWORD');
 
+    const options: mqtt.IClientOptions = {};
 
-    this.client = mqtt.connect(mqtt_url);
+    if (username && password) {
+      options.username = username;
+      options.password = password;
+    }
+
+    this.client = mqtt.connect(brokerUrl, options);
 
     this.client.on('connect', () => {
       console.log('MQTT Connected to Broker');
@@ -28,6 +35,7 @@ export class MqttService implements OnModuleInit {
     });
 
     this.client.on('error', (err) => {
+      console.log(this.configService.get<string>('MQTT_URL'));
       console.error('MQTT Connection Error:', err);
     });
 
@@ -71,10 +79,15 @@ export class MqttService implements OnModuleInit {
           }
           break;
         default:
-          console.warn(`❓ Nhận được subTopic lạ: ${subTopic} trên topic ${topic}`);
+          console.warn(
+            `❓ Nhận được subTopic lạ: ${subTopic} trên topic ${topic}`,
+          );
       }
     } catch (e) {
-      console.error(`❌ Lỗi xử lý tin nhắn MQTT trên topic [${topic}]:`, e.message);
+      console.error(
+        `❌ Lỗi xử lý tin nhắn MQTT trên topic [${topic}]:`,
+        e.message,
+      );
     }
   }
 }
