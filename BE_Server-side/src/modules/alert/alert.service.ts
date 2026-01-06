@@ -10,13 +10,12 @@ export class AlertService {
   ) {}
 
   async checkAndCreateAlert(
-    sensorId: number | undefined,
     value: number,
     sensorType?: string,
     deviceMac?: string,
     gardenId?: number,
   ) {
-    // Build where clause - support both old sensorId and new deviceMac/gardenId approach
+    // Build where clause - use sensorType and gardenId
     const whereConditions: any[] = [];
     
     if (sensorType) {
@@ -26,11 +25,6 @@ export class AlertService {
     // If gardenId is provided, use it directly
     if (gardenId) {
       whereConditions.push({ gardenId });
-    }
-    
-    // Legacy support: if sensorId provided, try to find by sensorId (may not work with new schema)
-    if (sensorId) {
-      whereConditions.push({ sensorId });
     }
 
     // Tìm các alert rules liên quan
@@ -71,7 +65,6 @@ export class AlertService {
         const existingAlert = await this.prisma.alert.findFirst({
           where: {
             ruleId: rule.id,
-            sensorId: sensorId,
             isResolved: false,
           },
         });
@@ -81,7 +74,6 @@ export class AlertService {
           const alert = await this.prisma.alert.create({
             data: {
               ruleId: rule.id,
-              sensorId: sensorId || null,
               value,
               message,
               severity: rule.severity,
@@ -121,11 +113,6 @@ export class AlertService {
         rule: {
           include: {
             garden: true,
-          },
-        },
-        sensor: {
-          include: {
-            type: true,
           },
         },
       },

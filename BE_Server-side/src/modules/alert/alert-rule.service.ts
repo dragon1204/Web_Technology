@@ -48,11 +48,6 @@ export class AlertRuleService {
       where,
       include: {
         garden: true,
-        sensor: {
-          include: {
-            type: true,
-          },
-        },
       },
     });
   }

@@ -1,0 +1,1685 @@
+{
+	"info": {
+		"_postman_id": "smart-garden-api-collection",
+		"name": "Smart Garden Management API",
+		"description": "Complete API collection for Smart Garden Management System",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Register",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"password123\",\n  \"name\": \"John Doe\",\n  \"role\": \"USER\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/register",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "register"]
+						}
+					}
+				},
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    if (response.data && response.data.access_token) {",
+									"        pm.environment.set('access_token', response.data.access_token);",
+									"        pm.environment.set('refresh_token', response.data.refresh_token);",
+									"    }",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/login",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "login"]
+						}
+					}
+				},
+				{
+					"name": "Refresh Token",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"refresh_token\": \"{{refresh_token}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/refresh",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "refresh"]
+						}
+					}
+				},
+				{
+					"name": "Logout",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/auth/logout",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "logout"]
+						}
+					}
+				},
+				{
+					"name": "Generate 2FA Secret",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/auth/2fa/generate",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "2fa", "generate"]
+						}
+					}
+				},
+				{
+					"name": "Enable 2FA",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"code\": \"123456\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/2fa/enable",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "2fa", "enable"]
+						}
+					}
+				},
+				{
+					"name": "Disable 2FA",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/auth/2fa/disable",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "2fa", "disable"]
+						}
+					}
+				},
+				{
+					"name": "Generate QR Code",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"otpauthUrl\": \"otpauth://totp/...\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/2fa/qrcode",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "2fa", "qrcode"]
+						}
+					}
+				},
+				{
+					"name": "Google Login",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/auth/google",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "google"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Users",
+			"item": [
+				{
+					"name": "Get All Users (Admin)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/users",
+							"host": ["{{base_url}}"],
+							"path": ["users"]
+						}
+					}
+				},
+				{
+					"name": "Get My Profile",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/users/me",
+							"host": ["{{base_url}}"],
+							"path": ["users", "me"]
+						}
+					}
+				},
+				{
+					"name": "Get User By ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/users/:id",
+							"host": ["{{base_url}}"],
+							"path": ["users", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Create User (Admin)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"newuser@example.com\",\n  \"password\": \"password123\",\n  \"name\": \"New User\",\n  \"role\": \"USER\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/users",
+							"host": ["{{base_url}}"],
+							"path": ["users"]
+						}
+					}
+				},
+				{
+					"name": "Update User (Admin)",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Updated Name\",\n  \"email\": \"updated@example.com\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/users/:id",
+							"host": ["{{base_url}}"],
+							"path": ["users", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Delete User (Admin)",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/users/:id",
+							"host": ["{{base_url}}"],
+							"path": ["users", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Gardens",
+			"item": [
+				{
+					"name": "Create Garden",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"My Garden\",\n  \"area\": 100.5,\n  \"location\": \"Hanoi\",\n  \"description\": \"A beautiful garden\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/garden",
+							"host": ["{{base_url}}"],
+							"path": ["garden"]
+						}
+					}
+				},
+				{
+					"name": "Get All Gardens",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/garden?page=1&limit=10",
+							"host": ["{{base_url}}"],
+							"path": ["garden"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Garden By ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/garden/:id",
+							"host": ["{{base_url}}"],
+							"path": ["garden", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Update Garden",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Updated Garden Name\",\n  \"area\": 150.0,\n  \"location\": \"Ho Chi Minh City\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/garden/:id",
+							"host": ["{{base_url}}"],
+							"path": ["garden", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Delete Garden (Admin)",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/garden/:id",
+							"host": ["{{base_url}}"],
+							"path": ["garden", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Sales",
+			"item": [
+				{
+					"name": "Create Sale",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"vegetableId\": 1,\n  \"quantity\": 10,\n  \"priceAtSale\": 25000,\n  \"total\": 250000\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/garden/:gardenId/sale",
+							"host": ["{{base_url}}"],
+							"path": ["garden", ":gardenId", "sale"],
+							"variable": [
+								{
+									"key": "gardenId",
+									"value": "1"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Sales By Garden",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/garden/:gardenId/sale",
+							"host": ["{{base_url}}"],
+							"path": ["garden", ":gardenId", "sale"],
+							"variable": [
+								{
+									"key": "gardenId",
+									"value": "1"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Garden Revenue",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/garden/:gardenId/sale/revenue",
+							"host": ["{{base_url}}"],
+							"path": ["garden", ":gardenId", "sale", "revenue"],
+							"variable": [
+								{
+									"key": "gardenId",
+									"value": "1"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Vegetables",
+			"item": [
+				{
+					"name": "Create Vegetable",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Rau Cải Xanh\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/vegetable",
+							"host": ["{{base_url}}"],
+							"path": ["vegetable"]
+						}
+					}
+				},
+				{
+					"name": "Get All Vegetables",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/vegetable?page=1&limit=10",
+							"host": ["{{base_url}}"],
+							"path": ["vegetable"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Vegetable By ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/vegetable/:id",
+							"host": ["{{base_url}}"],
+							"path": ["vegetable", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Update Vegetable",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Updated Vegetable Name\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/vegetable/:id",
+							"host": ["{{base_url}}"],
+							"path": ["vegetable", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Delete Vegetable",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/vegetable/:id",
+							"host": ["{{base_url}}"],
+							"path": ["vegetable", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Revenue List",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/vegetable/revenue/list?type=month&gardenId=1&vegetableId=1",
+							"host": ["{{base_url}}"],
+							"path": ["vegetable", "revenue", "list"],
+							"query": [
+								{
+									"key": "type",
+									"value": "month",
+									"description": "day, week, or month"
+								},
+								{
+									"key": "gardenId",
+									"value": "1"
+								},
+								{
+									"key": "vegetableId",
+									"value": "1"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Price History",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/vegetable/price-history/:id?startDate=2024-01-01&endDate=2024-12-31",
+							"host": ["{{base_url}}"],
+							"path": ["vegetable", "price-history", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							],
+							"query": [
+								{
+									"key": "startDate",
+									"value": "2024-01-01"
+								},
+								{
+									"key": "endDate",
+									"value": "2024-12-31"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Alerts",
+			"item": [
+				{
+					"name": "Get All Alerts",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/alerts?gardenId=1&isResolved=false",
+							"host": ["{{base_url}}"],
+							"path": ["alerts"],
+							"query": [
+								{
+									"key": "gardenId",
+									"value": "1"
+								},
+								{
+									"key": "isResolved",
+									"value": "false"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Active Alerts Count",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/alerts/active/count?gardenId=1",
+							"host": ["{{base_url}}"],
+							"path": ["alerts", "active", "count"],
+							"query": [
+								{
+									"key": "gardenId",
+									"value": "1"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Resolve Alert",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/alerts/:id/resolve",
+							"host": ["{{base_url}}"],
+							"path": ["alerts", ":id", "resolve"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Create Alert Rule",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"gardenId\": 1,\n  \"sensorType\": \"temperature\",\n  \"minValue\": 15,\n  \"maxValue\": 35,\n  \"alertOnMin\": true,\n  \"alertOnMax\": true,\n  \"severity\": \"warning\",\n  \"isActive\": true\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/alerts/rules",
+							"host": ["{{base_url}}"],
+							"path": ["alerts", "rules"]
+						}
+					}
+				},
+				{
+					"name": "Get All Alert Rules",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/alerts/rules?gardenId=1",
+							"host": ["{{base_url}}"],
+							"path": ["alerts", "rules"],
+							"query": [
+								{
+									"key": "gardenId",
+									"value": "1"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Alert Rule By ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/alerts/rules/:id",
+							"host": ["{{base_url}}"],
+							"path": ["alerts", "rules", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Update Alert Rule",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"minValue\": 20,\n  \"maxValue\": 30,\n  \"isActive\": true\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/alerts/rules/:id",
+							"host": ["{{base_url}}"],
+							"path": ["alerts", "rules", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Delete Alert Rule",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/alerts/rules/:id",
+							"host": ["{{base_url}}"],
+							"path": ["alerts", "rules", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Notifications",
+			"item": [
+				{
+					"name": "Create Notification (Admin)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"userId\": 1,\n  \"title\": \"New Notification\",\n  \"message\": \"This is a test notification\",\n  \"type\": \"info\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/notifications",
+							"host": ["{{base_url}}"],
+							"path": ["notifications"]
+						}
+					}
+				},
+				{
+					"name": "Get All Notifications",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/notifications?isRead=false",
+							"host": ["{{base_url}}"],
+							"path": ["notifications"],
+							"query": [
+								{
+									"key": "isRead",
+									"value": "false"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Unread Count",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/notifications/unread/count",
+							"host": ["{{base_url}}"],
+							"path": ["notifications", "unread", "count"]
+						}
+					}
+				},
+				{
+					"name": "Mark Notification As Read",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/notifications/:id/read",
+							"host": ["{{base_url}}"],
+							"path": ["notifications", ":id", "read"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Mark All As Read",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/notifications/read-all",
+							"host": ["{{base_url}}"],
+							"path": ["notifications", "read-all"]
+						}
+					}
+				},
+				{
+					"name": "Delete Notification",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/notifications/:id",
+							"host": ["{{base_url}}"],
+							"path": ["notifications", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Analytics",
+			"item": [
+				{
+					"name": "Revenue By Period",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/analytics/revenue/period?period=month&startDate=2024-01-01&endDate=2024-12-31&gardenId=1",
+							"host": ["{{base_url}}"],
+							"path": ["analytics", "revenue", "period"],
+							"query": [
+								{
+									"key": "period",
+									"value": "month"
+								},
+								{
+									"key": "startDate",
+									"value": "2024-01-01"
+								},
+								{
+									"key": "endDate",
+									"value": "2024-12-31"
+								},
+								{
+									"key": "gardenId",
+									"value": "1"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Compare Revenue Between Gardens",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/analytics/revenue/compare-gardens?startDate=2024-01-01&endDate=2024-12-31&gardenIds=1,2,3",
+							"host": ["{{base_url}}"],
+							"path": ["analytics", "revenue", "compare-gardens"],
+							"query": [
+								{
+									"key": "startDate",
+									"value": "2024-01-01"
+								},
+								{
+									"key": "endDate",
+									"value": "2024-12-31"
+								},
+								{
+									"key": "gardenIds",
+									"value": "1,2,3"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Top Selling Products",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/analytics/revenue/top-products?limit=10&startDate=2024-01-01&endDate=2024-12-31",
+							"host": ["{{base_url}}"],
+							"path": ["analytics", "revenue", "top-products"],
+							"query": [
+								{
+									"key": "limit",
+									"value": "10"
+								},
+								{
+									"key": "startDate",
+									"value": "2024-01-01"
+								},
+								{
+									"key": "endDate",
+									"value": "2024-12-31"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Productivity By Category",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/analytics/productivity/by-category?startDate=2024-01-01&endDate=2024-12-31",
+							"host": ["{{base_url}}"],
+							"path": ["analytics", "productivity", "by-category"],
+							"query": [
+								{
+									"key": "startDate",
+									"value": "2024-01-01"
+								},
+								{
+									"key": "endDate",
+									"value": "2024-12-31"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Sales Inventory Ratio",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/analytics/productivity/sales-inventory-ratio?gardenId=1",
+							"host": ["{{base_url}}"],
+							"path": ["analytics", "productivity", "sales-inventory-ratio"],
+							"query": [
+								{
+									"key": "gardenId",
+									"value": "1"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Production Trend",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/analytics/productivity/trend?period=month&startDate=2024-01-01&endDate=2024-12-31",
+							"host": ["{{base_url}}"],
+							"path": ["analytics", "productivity", "trend"],
+							"query": [
+								{
+									"key": "period",
+									"value": "month"
+								},
+								{
+									"key": "startDate",
+									"value": "2024-01-01"
+								},
+								{
+									"key": "endDate",
+									"value": "2024-12-31"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Sensor Analysis",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/analytics/sensor/analysis?sensorId=1&period=day&startDate=2024-01-01&endDate=2024-12-31",
+							"host": ["{{base_url}}"],
+							"path": ["analytics", "sensor", "analysis"],
+							"query": [
+								{
+									"key": "sensorId",
+									"value": "1"
+								},
+								{
+									"key": "period",
+									"value": "day"
+								},
+								{
+									"key": "startDate",
+									"value": "2024-01-01"
+								},
+								{
+									"key": "endDate",
+									"value": "2024-12-31"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Optimal Conditions",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/analytics/sensor/optimal-conditions?vegetableId=1&gardenId=1",
+							"host": ["{{base_url}}"],
+							"path": ["analytics", "sensor", "optimal-conditions"],
+							"query": [
+								{
+									"key": "vegetableId",
+									"value": "1"
+								},
+								{
+									"key": "gardenId",
+									"value": "1"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Generate Custom Report",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"type\": \"revenue\",\n  \"period\": \"month\",\n  \"startDate\": \"2024-01-01\",\n  \"endDate\": \"2024-12-31\",\n  \"filters\": {\n    \"gardenId\": 1\n  },\n  \"fields\": [\"total\", \"quantity\"],\n  \"groupBy\": [\"vegetable\"]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/analytics/custom",
+							"host": ["{{base_url}}"],
+							"path": ["analytics", "custom"]
+						}
+					}
+				},
+				{
+					"name": "Create Report Template",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Monthly Revenue Report\",\n  \"description\": \"Monthly revenue report template\",\n  \"type\": \"revenue\",\n  \"config\": {\n    \"period\": \"month\",\n    \"filters\": {}\n  }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/analytics/templates",
+							"host": ["{{base_url}}"],
+							"path": ["analytics", "templates"]
+						}
+					}
+				},
+				{
+					"name": "Get All Report Templates",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/analytics/templates",
+							"host": ["{{base_url}}"],
+							"path": ["analytics", "templates"]
+						}
+					}
+				},
+				{
+					"name": "Get Report Template By ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/analytics/templates/:id",
+							"host": ["{{base_url}}"],
+							"path": ["analytics", "templates", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Update Report Template",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Updated Template Name\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/analytics/templates/:id",
+							"host": ["{{base_url}}"],
+							"path": ["analytics", "templates", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Delete Report Template",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/analytics/templates/:id",
+							"host": ["{{base_url}}"],
+							"path": ["analytics", "templates", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Audit Logs",
+			"item": [
+				{
+					"name": "Get Recent Logs (Admin)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/audit/recent?limit=100",
+							"host": ["{{base_url}}"],
+							"path": ["audit", "recent"],
+							"query": [
+								{
+									"key": "limit",
+									"value": "100"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get My Logs",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/audit/my-logs?limit=50",
+							"host": ["{{base_url}}"],
+							"path": ["audit", "my-logs"],
+							"query": [
+								{
+									"key": "limit",
+									"value": "50"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Logs By Entity (Admin)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/audit/by-entity?entityType=Garden&entityId=1&limit=50",
+							"host": ["{{base_url}}"],
+							"path": ["audit", "by-entity"],
+							"query": [
+								{
+									"key": "entityType",
+									"value": "Garden"
+								},
+								{
+									"key": "entityId",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "50"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Logs By Request ID (Admin)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/audit/by-request?requestId=abc123",
+							"host": ["{{base_url}}"],
+							"path": ["audit", "by-request"],
+							"query": [
+								{
+									"key": "requestId",
+									"value": "abc123"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Sensor Data",
+			"item": [
+				{
+					"name": "Get Sensor Data By Sensor ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/sensor-data/sensor/:sensorId?startDate=2024-01-01&endDate=2024-12-31&limit=100",
+							"host": ["{{base_url}}"],
+							"path": ["sensor-data", "sensor", ":sensorId"],
+							"variable": [
+								{
+									"key": "sensorId",
+									"value": "1"
+								}
+							],
+							"query": [
+								{
+									"key": "startDate",
+									"value": "2024-01-01"
+								},
+								{
+									"key": "endDate",
+									"value": "2024-12-31"
+								},
+								{
+									"key": "limit",
+									"value": "100"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Sensor Statistics",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/sensor-data/sensor/:sensorId/statistics?startDate=2024-01-01&endDate=2024-12-31",
+							"host": ["{{base_url}}"],
+							"path": ["sensor-data", "sensor", ":sensorId", "statistics"],
+							"variable": [
+								{
+									"key": "sensorId",
+									"value": "1"
+								}
+							],
+							"query": [
+								{
+									"key": "startDate",
+									"value": "2024-01-01"
+								},
+								{
+									"key": "endDate",
+									"value": "2024-12-31"
+								}
+							]
+						}
+					}
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:3000",
+			"type": "string"
+		},
+		{
+			"key": "access_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "refresh_token",
+			"value": "",
+			"type": "string"
+		}
+	]
+}
+

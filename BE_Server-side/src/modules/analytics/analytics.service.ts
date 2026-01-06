@@ -281,39 +281,94 @@ export class AnalyticsService {
   }
 
   /**
-   * Sensor Reports
+   * Device/Sensor Data Reports
    */
 
   /**
-   * Phân tích dữ liệu sensor theo thời gian
+   * Phân tích dữ liệu sensor theo deviceMac và thời gian
    */
   async getSensorAnalysis(
-    sensorId: number,
+    deviceMac: string,
     period: 'hour' | 'day' | 'week' | 'month',
     startDate?: Date,
     endDate?: Date,
   ) {
-    const where: any = { sensorId };
+    const where: any = { deviceMac };
     if (startDate || endDate) {
-      where.time = {};
-      if (startDate) where.time.gte = startDate;
-      if (endDate) where.time.lte = endDate;
+      where.timestamp = {};
+      if (startDate) where.timestamp.gte = startDate;
+      if (endDate) where.timestamp.lte = endDate;
     }
 
-    const whereClause = this.buildWhereClause(where);
+    const sensorData = await this.prisma.sensorData.findMany({
+      where,
+      orderBy: { timestamp: 'asc' },
+    });
 
-    return this.prisma.$queryRawUnsafe(`
-      SELECT 
-        DATE_TRUNC('${period}', time) AS period,
-        MIN(value) AS minValue,
-        MAX(value) AS maxValue,
-        AVG(value) AS avgValue,
-        COUNT(*) AS dataCount
-      FROM "SensorData"
-      ${whereClause}
-      GROUP BY period
-      ORDER BY period ASC
-    `);
+    // Group by period
+    const grouped = new Map<string, { temperatures: number[]; humidities: number[]; soils: number[] }>();
+    
+    sensorData.forEach((data) => {
+      const date = new Date(data.timestamp);
+      let periodKey: string;
+      
+      switch (period) {
+        case 'hour':
+          periodKey = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}-${date.getHours()}`;
+          break;
+        case 'day':
+          periodKey = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+          break;
+        case 'week':
+          const weekStart = new Date(date);
+          weekStart.setDate(date.getDate() - date.getDay());
+          periodKey = `${weekStart.getFullYear()}-${weekStart.getMonth()}-${weekStart.getDate()}`;
+          break;
+        case 'month':
+          periodKey = `${date.getFullYear()}-${date.getMonth()}`;
+          break;
+      }
+
+      if (!grouped.has(periodKey)) {
+        grouped.set(periodKey, { temperatures: [], humidities: [], soils: [] });
+      }
+
+      const group = grouped.get(periodKey)!;
+      if (data.temperature !== null) group.temperatures.push(data.temperature);
+      if (data.humidity !== null) group.humidities.push(data.humidity);
+      if (data.soil !== null) group.soils.push(data.soil);
+    });
+
+    return Array.from(grouped.entries()).map(([period, data]) => {
+      const result: any = { period };
+      
+      if (data.temperatures.length > 0) {
+        result.temperature = {
+          min: Math.min(...data.temperatures),
+          max: Math.max(...data.temperatures),
+          avg: data.temperatures.reduce((a, b) => a + b, 0) / data.temperatures.length,
+        };
+      }
+      
+      if (data.humidities.length > 0) {
+        result.humidity = {
+          min: Math.min(...data.humidities),
+          max: Math.max(...data.humidities),
+          avg: data.humidities.reduce((a, b) => a + b, 0) / data.humidities.length,
+        };
+      }
+      
+      if (data.soils.length > 0) {
+        result.soil = {
+          min: Math.min(...data.soils),
+          max: Math.max(...data.soils),
+          avg: data.soils.reduce((a, b) => a + b, 0) / data.soils.length,
+        };
+      }
+      
+      result.dataCount = data.temperatures.length + data.humidities.length + data.soils.length;
+      return result;
+    });
   }
 
   /**
@@ -354,41 +409,93 @@ export class AnalyticsService {
       };
     }
 
-    const sensors = await this.prisma.sensor.findMany({
+    // Get devices for target gardens
+    const gardens = await this.prisma.garden.findMany({
       where: {
-        gardenId: { in: targetGardenIds },
+        id: { in: targetGardenIds },
       },
-      include: {
-        type: true,
-        data: {
-          take: 1000,
-          orderBy: { time: 'desc' },
-        },
+      select: {
+        id: true,
+        deviceMac: true,
       },
     });
 
-    const optimalConditions = sensors
-      .map((sensor) => {
-        if (sensor.data.length === 0) return null;
+    const deviceMacs = gardens.map((g) => g.deviceMac).filter((mac) => mac !== null);
 
-        const values = sensor.data.map((d) => d.value);
-        const avg = values.reduce((a, b) => a + b, 0) / values.length;
-        const min = Math.min(...values);
-        const max = Math.max(...values);
+    if (deviceMacs.length === 0) {
+      return {
+        message: 'Không tìm thấy thiết bị để phân tích',
+      };
+    }
 
-        return {
-          sensorId: sensor.id,
-          sensorName: sensor.name,
-          sensorType: sensor.type.name,
-          unit: sensor.type.unit,
-          gardenId: sensor.gardenId,
-          optimalRange: {
+    // Get sensor data from devices
+    const sensorDataList = await this.prisma.sensorData.findMany({
+      where: {
+        deviceMac: { in: deviceMacs },
+      },
+      take: 1000,
+      orderBy: { timestamp: 'desc' },
+    });
+
+    // Group by deviceMac and calculate optimal conditions
+    const deviceDataMap = new Map<string, any[]>();
+    sensorDataList.forEach((data) => {
+      if (!deviceDataMap.has(data.deviceMac)) {
+        deviceDataMap.set(data.deviceMac, []);
+      }
+      deviceDataMap.get(data.deviceMac)!.push(data);
+    });
+
+    const optimalConditions = Array.from(deviceDataMap.entries())
+      .map(([deviceMac, dataList]) => {
+        if (dataList.length === 0) return null;
+
+        const temperatures = dataList.map((d) => d.temperature).filter((v) => v !== null && v !== undefined) as number[];
+        const humidities = dataList.map((d) => d.humidity).filter((v) => v !== null && v !== undefined) as number[];
+        const soils = dataList.map((d) => d.soil).filter((v) => v !== null && v !== undefined) as number[];
+
+        const garden = gardens.find((g) => g.deviceMac === deviceMac);
+
+        const result: any = {
+          deviceMac,
+          gardenId: garden?.id || null,
+          dataPoints: dataList.length,
+        };
+
+        if (temperatures.length > 0) {
+          const avg = temperatures.reduce((a, b) => a + b, 0) / temperatures.length;
+          const min = Math.min(...temperatures);
+          const max = Math.max(...temperatures);
+          result.temperature = {
             min: parseFloat(min.toFixed(2)),
             max: parseFloat(max.toFixed(2)),
             average: parseFloat(avg.toFixed(2)),
-          },
-          dataPoints: values.length,
-        };
+          };
+        }
+
+        if (humidities.length > 0) {
+          const avg = humidities.reduce((a, b) => a + b, 0) / humidities.length;
+          const min = Math.min(...humidities);
+          const max = Math.max(...humidities);
+          result.humidity = {
+            min: parseFloat(min.toFixed(2)),
+            max: parseFloat(max.toFixed(2)),
+            average: parseFloat(avg.toFixed(2)),
+          };
+        }
+
+        if (soils.length > 0) {
+          const avg = soils.reduce((a, b) => a + b, 0) / soils.length;
+          const min = Math.min(...soils);
+          const max = Math.max(...soils);
+          result.soil = {
+            min: parseFloat(min.toFixed(2)),
+            max: parseFloat(max.toFixed(2)),
+            average: parseFloat(avg.toFixed(2)),
+          };
+        }
+
+        return result;
       })
       .filter(Boolean);
 
@@ -433,12 +540,12 @@ export class AnalyticsService {
         );
 
       case 'sensor':
-        if (!config.filters?.sensorId) {
-          throw new BadRequestException('sensorId is required for sensor reports');
+        if (!config.filters?.deviceMac) {
+          throw new BadRequestException('deviceMac is required for sensor reports');
         }
         const sensorPeriod = config.period === 'year' ? 'month' : (config.period || 'day');
         return this.getSensorAnalysis(
-          config.filters.sensorId,
+          config.filters.deviceMac,
           sensorPeriod as 'hour' | 'day' | 'week' | 'month',
           config.startDate,
           config.endDate,
@@ -462,9 +569,9 @@ export class AnalyticsService {
             config.filters?.vegetableId,
             config.filters?.gardenId,
           ),
-          config.filters?.sensorId
+          config.filters?.deviceMac
             ? this.getSensorAnalysis(
-                config.filters.sensorId,
+                config.filters.deviceMac,
                 combinedSensorPeriod as 'hour' | 'day' | 'week' | 'month',
                 config.startDate,
                 config.endDate,
@@ -505,8 +612,8 @@ export class AnalyticsService {
       conditions.push(`"vegetableId" = ${where.vegetableId}`);
     }
 
-    if (where.sensorId) {
-      conditions.push(`"sensorId" = ${where.sensorId}`);
+    if (where.deviceMac) {
+      conditions.push(`"deviceMac" = '${where.deviceMac}'`);
     }
 
     if (where.time) {

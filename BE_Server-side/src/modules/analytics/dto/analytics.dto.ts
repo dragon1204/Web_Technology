@@ -74,10 +74,6 @@ export class ProductivityReportDto {
 }
 
 export class SensorReportDto {
-  @ApiProperty({ description: 'ID sensor', required: true })
-  @IsNumber()
-  sensorId: number;
-
   @ApiProperty({
     description: 'Khoảng thời gian',
     enum: ['hour', 'day', 'week', 'month'],
@@ -132,7 +128,7 @@ export class CustomReportDto {
   filters?: {
     gardenId?: number;
     vegetableId?: number;
-    sensorId?: number;
+    deviceMac?: string;
   };
 
   @ApiProperty({ description: 'Fields to include', required: false, type: [String] })

@@ -2,12 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsNumber, IsString, IsBoolean, IsOptional, IsEnum } from 'class-validator';
 
 export class CreateAlertRuleDto {
-  @ApiProperty({ description: 'Sensor ID (optional if using sensorType)' })
-  @IsNumber()
-  @IsOptional()
-  sensorId?: number;
-
-  @ApiProperty({ description: 'Sensor type name (optional if using sensorId)' })
+  @ApiProperty({ description: 'Sensor type name (e.g., temperature, humidity, soil)' })
   @IsString()
   @IsOptional()
   sensorType?: string;
