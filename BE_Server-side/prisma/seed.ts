@@ -89,9 +89,6 @@ async function main() {
     data: {
       name: 'Vườn Rau Cải Xanh',
       ownerId: user1.id,
-      area: 100.5,
-      location: 'Hà Nội',
-      description: 'Vườn trồng rau cải xanh, cà rốt',
     },
   });
 
@@ -99,9 +96,6 @@ async function main() {
     data: {
       name: 'Vườn Rau Sạch',
       ownerId: user1.id,
-      area: 150.0,
-      location: 'Hồ Chí Minh',
-      description: 'Vườn trồng nhiều loại rau',
     },
   });
 
@@ -109,9 +103,6 @@ async function main() {
     data: {
       name: 'Vườn Rau Hữu Cơ',
       ownerId: user2.id,
-      area: 80.0,
-      location: 'Đà Nẵng',
-      description: 'Vườn rau hữu cơ chất lượng cao',
     },
   });
   console.log(`✅ Đã tạo ${3} gardens\n`);

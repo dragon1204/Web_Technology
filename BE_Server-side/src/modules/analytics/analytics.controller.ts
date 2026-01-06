@@ -127,13 +127,13 @@ export class AnalyticsController {
    */
 
   @Get('sensor/analysis')
-  @ApiOperation({ summary: 'Phân tích dữ liệu sensor' })
-  getSensorAnalysis(@Query() query: SensorReportDto) {
-    if (!query.sensorId) {
-      throw new Error('sensorId is required');
+  @ApiOperation({ summary: 'Phân tích dữ liệu sensor theo deviceMac' })
+  getSensorAnalysis(@Query('deviceMac') deviceMac: string, @Query() query: SensorReportDto) {
+    if (!deviceMac) {
+      throw new Error('deviceMac is required');
     }
     return this.analyticsService.getSensorAnalysis(
-      +query.sensorId,
+      deviceMac,
       query.period || 'day',
       query.startDate ? new Date(query.startDate) : undefined,
       query.endDate ? new Date(query.endDate) : undefined,
