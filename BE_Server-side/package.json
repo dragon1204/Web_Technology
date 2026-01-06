@@ -57,6 +57,9 @@
     "swagger-ui-express": "^5.0.1",
     "uuid": "^11.0.5"
   },
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
+  },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
     "@eslint/js": "^9.18.0",

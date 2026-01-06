@@ -10,27 +10,39 @@ export class AlertService {
   ) {}
 
   async checkAndCreateAlert(
-    sensorId: number,
+    sensorId: number | undefined,
     value: number,
     sensorType?: string,
+    deviceMac?: string,
+    gardenId?: number,
   ) {
+    // Build where clause - support both old sensorId and new deviceMac/gardenId approach
+    const whereConditions: any[] = [];
+    
+    if (sensorType) {
+      whereConditions.push({ sensorType });
+    }
+    
+    // If gardenId is provided, use it directly
+    if (gardenId) {
+      whereConditions.push({ gardenId });
+    }
+    
+    // Legacy support: if sensorId provided, try to find by sensorId (may not work with new schema)
+    if (sensorId) {
+      whereConditions.push({ sensorId });
+    }
+
     // Tìm các alert rules liên quan
     const rules = await this.prisma.alertRule.findMany({
       where: {
         isActive: true,
-        OR: [
-          { sensorId },
-          { sensorType },
-        ],
+        OR: whereConditions.length > 0 ? whereConditions : undefined,
       },
       include: {
-        sensor: {
+        garden: {
           include: {
-            garden: {
-              include: {
-                owner: true,
-              },
-            },
+            owner: true,
           },
         },
       },
@@ -45,13 +57,13 @@ export class AlertService {
       // Kiểm tra min value
       if (rule.alertOnMin && rule.minValue !== null && value < rule.minValue) {
         shouldAlert = true;
-        message = `${rule.sensor?.name || sensorType} có giá trị ${value} thấp hơn ngưỡng tối thiểu ${rule.minValue}`;
+        message = `${sensorType || 'Sensor'} có giá trị ${value} thấp hơn ngưỡng tối thiểu ${rule.minValue}`;
       }
 
       // Kiểm tra max value
       if (rule.alertOnMax && rule.maxValue !== null && value > rule.maxValue) {
         shouldAlert = true;
-        message = `${rule.sensor?.name || sensorType} có giá trị ${value} cao hơn ngưỡng tối đa ${rule.maxValue}`;
+        message = `${sensorType || 'Sensor'} có giá trị ${value} cao hơn ngưỡng tối đa ${rule.maxValue}`;
       }
 
       if (shouldAlert) {
@@ -69,7 +81,7 @@ export class AlertService {
           const alert = await this.prisma.alert.create({
             data: {
               ruleId: rule.id,
-              sensorId: sensorId,
+              sensorId: sensorId || null,
               value,
               message,
               severity: rule.severity,
@@ -79,10 +91,10 @@ export class AlertService {
           createdAlerts.push(alert);
 
           // Tạo notification cho chủ vườn
-          if (rule.sensor?.garden?.owner) {
+          if (rule.garden?.owner) {
             await this.notificationService.createForUser(
-              rule.sensor.garden.owner.id,
-              `Cảnh báo ${rule.severity}: ${rule.sensor.name || sensorType}`,
+              rule.garden.owner.id,
+              `Cảnh báo ${rule.severity}: ${sensorType || 'Sensor'}`,
               message,
               'alert',
             );
