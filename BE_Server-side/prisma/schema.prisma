@@ -45,7 +45,8 @@ model Vegetable {
   createdAt     DateTime           @default(now())
   updatedAt     DateTime           @updatedAt
   sales         Sale[]
-  gardens       vegetable_garden[]
+  gardens       VegetableGarden[]
+  priceHistory  PriceHistory[]
 
   @@index([category])
   @@index([createdAt])
@@ -61,6 +62,7 @@ model Garden {
 
   sales       Sale[]
   vegetables  VegetableGarden[]
+  alertRules  AlertRule[]
   temperature Float?
   humidity    Float?
   soil        Float?
@@ -152,7 +154,7 @@ model Notification {
 
 model AlertRule {
   id          Int       @id @default(autoincrement())
-  sensorId    Int?
+  sensorId    Int?      // Legacy field - kept for compatibility
   sensorType  String?   // 'temperature', 'humidity', etc.
   minValue    Float?
   maxValue    Float?
@@ -162,7 +164,6 @@ model AlertRule {
   isActive    Boolean   @default(true)
   gardenId    Int
   garden      Garden    @relation(fields: [gardenId], references: [id], onDelete: Cascade)
-  sensor      Sensor?   @relation(fields: [sensorId], references: [id], onDelete: Cascade)
   alerts      Alert[]
 
   @@index([gardenId])
@@ -172,7 +173,7 @@ model AlertRule {
 model Alert {
   id          Int       @id @default(autoincrement())
   ruleId      Int
-  sensorId    Int?
+  sensorId    Int?      // Legacy field - kept for compatibility
   value        Float
   message     String
   severity    String    // 'info', 'warning', 'critical'
@@ -180,7 +181,6 @@ model Alert {
   resolvedAt  DateTime?
   createdAt   DateTime  @default(now())
   rule        AlertRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
-  sensor      Sensor?   @relation(fields: [sensorId], references: [id], onDelete: Cascade)
 
   @@index([ruleId])
   @@index([sensorId])
