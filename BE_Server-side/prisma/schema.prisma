@@ -102,7 +102,7 @@ model Device {
   garden    Garden?
   data      SensorData[]
 }
-
+ 
 model SensorData {
   id           Int      @id @default(autoincrement())
   deviceMac    String
