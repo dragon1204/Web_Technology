@@ -1,31 +1,31 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { NewVegetableDto } from './dto/new-vegetable.dto';
-import { UpdatePriceDto } from './dto/update-price.dto';
 import { UpdateImportedDto } from './dto/update-imported.dto';
 import { UpdateSoldDto } from './dto/update-sold.dto';
+import { UpdatePriceDto } from './dto/update-price.dto';
 import { PBaseService } from 'src/base/services/base.service';
-import { Vegetable } from '@prisma/client';
+import { Vegetable, Prisma } from '@prisma/client';
 
 @Injectable()
 export class VegetableService extends PBaseService<Vegetable> {
     private readonly logger = new Logger(VegetableService.name);
 
     constructor(private readonly prisma: PrismaService) {
-        // Khởi tạo Base Service với prisma model tương ứng
+        // Khởi tạo Base Service với model vegetable
         super(prisma.vegetable);
     }
 
     /**
-     * Ghi đè phương thức create để ánh xạ dữ liệu từ DTO
-     * Tránh lỗi đệ quy vô hạn của phiên bản cũ
+     * Tạo mới một loại rau củ
+     * Đảm bảo các giá trị mặc định được set đúng
      */
     async createVegetable(payload: NewVegetableDto) {
         return await super.create({
             name: payload.name,
-            imported: payload.imported ?? 0,
-            sold: payload.sold ?? 0,
-            price: payload.price ?? 0,
+            imported: 0,
+            sold: 0,
+            price: 0,
         });
     }
 
@@ -176,20 +176,31 @@ export class VegetableService extends PBaseService<Vegetable> {
         }
     }
 
+    /**
+     * VIẾT MỚI: Thống kê doanh thu kỳ hiện tại
+     */
     async getTotalRevenue(type: 'day' | 'week' | 'month', gardenId?: number, vegetableId?: number) {
         this.validateType(type);
-        
-        // Lưu ý: Logic raw query này đang lấy cố định theo CURRENT_DATE 
-        // Bạn có thể tùy chỉnh thêm để sử dụng biến 'type' nếu cần
+
+        const conditions = [
+            Prisma.sql`DATE_TRUNC(${type}, "time") = DATE_TRUNC(${type}, CURRENT_DATE)`
+        ];
+
+        if (gardenId) conditions.push(Prisma.sql`"gardenId" = ${gardenId}`);
+        if (vegetableId) conditions.push(Prisma.sql`"vegetableId" = ${vegetableId}`);
+
         const result = await this.prisma.$queryRaw<{ totalRevenue: number }[]>`
-            SELECT COALESCE(SUM(total), 0) as "totalRevenue"
+            SELECT COALESCE(SUM(total), 0)::FLOAT as "totalRevenue"
             FROM "Sale"
-            WHERE DATE(time) = CURRENT_DATE
+            WHERE ${Prisma.join(conditions, ' AND ')}
         `;
 
         return result[0] || { totalRevenue: 0 };
     }
 
+    /**
+     * Lấy lịch sử giá của rau củ
+     */
     async getPriceHistory(vegetableId: number, startDate?: Date, endDate?: Date) {
         const where: any = { vegetableId };
         if (startDate || endDate) {

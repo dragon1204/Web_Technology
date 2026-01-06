@@ -16,12 +16,12 @@ async function main() {
     await prisma.priceHistory.deleteMany().catch(() => {});
     await prisma.sensorData.deleteMany().catch(() => {});
     await prisma.sale.deleteMany().catch(() => {});
-    await prisma.vegetable_garden.deleteMany().catch(() => {});
-    await prisma.sensor.deleteMany().catch(() => {});
+    await prisma.vegetableGarden.deleteMany().catch(() => {});
+    await prisma.sensorData.deleteMany().catch(() => {});
+    await prisma.device.deleteMany().catch(() => {});
     await prisma.garden.deleteMany().catch(() => {});
     await prisma.vegetable.deleteMany().catch(() => {});
     await prisma.user.deleteMany().catch(() => {});
-    await prisma.sensorType.deleteMany().catch(() => {});
     await prisma.reportTemplate.deleteMany().catch(() => {});
     console.log('✅ Đã xóa dữ liệu cũ\n');
   } catch (error) {
@@ -79,31 +79,7 @@ async function main() {
   });
   console.log(`✅ Đã tạo/cập nhật ${3} users\n`);
 
-  // 2. Tạo Sensor Types (xóa và tạo lại để đảm bảo ID nhất quán)
-  console.log('📡 Tạo sensor types...');
-  await prisma.sensorType.deleteMany({});
-  
-  const tempSensorType = await prisma.sensorType.create({
-    data: {
-      name: 'Temperature',
-      unit: '°C',
-    },
-  });
-
-  const humiditySensorType = await prisma.sensorType.create({
-    data: {
-      name: 'Humidity',
-      unit: '%',
-    },
-  });
-
-  const soilMoistureSensorType = await prisma.sensorType.create({
-    data: {
-      name: 'Soil Moisture',
-      unit: '%',
-    },
-  });
-  console.log(`✅ Đã tạo ${3} sensor types\n`);
+  // 2. Sensor Types đã được thay thế bằng Device model - bỏ qua phần này
 
   // 3. Tạo Gardens (xóa và tạo lại)
   console.log('🏡 Tạo gardens...');
@@ -202,7 +178,7 @@ async function main() {
 
   // 5. Tạo Vegetable_Garden (Rau trong vườn)
   console.log('🌿 Gán rau vào vườn...');
-  await prisma.vegetable_garden.createMany({
+  await prisma.vegetableGarden.createMany({
     data: [
       { vegetableId: rauCai.id, gardenId: garden1.id, quantity: 100 },
       { vegetableId: caRot.id, gardenId: garden1.id, quantity: 80 },
@@ -214,86 +190,77 @@ async function main() {
   });
   console.log(`✅ Đã gán rau vào vườn\n`);
 
-  // 6. Tạo Sensors
-  console.log('📊 Tạo sensors...');
-  const sensor1 = await prisma.sensor.create({
-    data: {
-      model: 'DHT22',
-      name: 'Nhiệt độ vườn 1',
-      typeId: tempSensorType.id,
-      gardenId: garden1.id,
-    },
-  });
-
-  const sensor2 = await prisma.sensor.create({
-    data: {
-      model: 'DHT22',
-      name: 'Độ ẩm vườn 1',
-      typeId: humiditySensorType.id,
-      gardenId: garden1.id,
-    },
-  });
-
-  const sensor3 = await prisma.sensor.create({
-    data: {
-      model: 'DHT22',
-      name: 'Nhiệt độ vườn 2',
-      typeId: tempSensorType.id,
-      gardenId: garden2.id,
-    },
-  });
-
-  const sensor4 = await prisma.sensor.create({
-    data: {
-      model: 'Soil Moisture Sensor',
-      name: 'Độ ẩm đất vườn 3',
-      typeId: soilMoistureSensorType.id,
-      gardenId: garden3.id,
-    },
-  });
-  console.log(`✅ Đã tạo ${4} sensors\n`);
-
-  // 7. Tạo Sensor Data (dữ liệu mẫu cho 30 ngày qua)
-  console.log('📈 Tạo sensor data...');
-  const sensorDataPromises: Promise<any>[] = [];
+  // 6. Tạo Devices và Sensor Data (sử dụng Device model mới)
+  console.log('📊 Tạo devices và sensor data...');
   const now = new Date();
+  
+  // Tạo device mẫu cho mỗi garden
+  const device1 = await prisma.device.upsert({
+    where: { deviceMac: 'AA:BB:CC:DD:EE:01' },
+    update: {},
+    create: {
+      deviceMac: 'AA:BB:CC:DD:EE:01',
+      model: 'ESP32_GENERIC',
+      name: 'Device_Garden1',
+    },
+  });
 
-  // Tạo dữ liệu cho sensor1 (nhiệt độ) - 30 ngày, mỗi giờ 1 record
-  for (let day = 0; day < 30; day++) {
-    for (let hour = 0; hour < 24; hour++) {
-      const timestamp = new Date(now);
-      timestamp.setDate(timestamp.getDate() - day);
-      timestamp.setHours(hour, 0, 0, 0);
+  const device2 = await prisma.device.upsert({
+    where: { deviceMac: 'AA:BB:CC:DD:EE:02' },
+    update: {},
+    create: {
+      deviceMac: 'AA:BB:CC:DD:EE:02',
+      model: 'ESP32_GENERIC',
+      name: 'Device_Garden2',
+    },
+  });
 
-      // Nhiệt độ dao động từ 20-35 độ
-      const temperature = 20 + Math.random() * 15 + Math.sin(hour / 24 * Math.PI * 2) * 5;
-      sensorDataPromises.push(
-        prisma.sensorData.create({
-          data: {
-            sensorId: sensor1.id,
-            value: parseFloat(temperature.toFixed(2)),
-            time: timestamp,
-          },
-        }),
-      );
-    }
-  }
+  const device3 = await prisma.device.upsert({
+    where: { deviceMac: 'AA:BB:CC:DD:EE:03' },
+    update: {},
+    create: {
+      deviceMac: 'AA:BB:CC:DD:EE:03',
+      model: 'ESP32_GENERIC',
+      name: 'Device_Garden3',
+    },
+  });
 
-  // Tạo dữ liệu cho sensor2 (độ ẩm) - 30 ngày, mỗi 2 giờ 1 record
+  // Gán device vào garden
+  await prisma.garden.update({
+    where: { id: garden1.id },
+    data: { deviceMac: device1.deviceMac },
+  });
+
+  await prisma.garden.update({
+    where: { id: garden2.id },
+    data: { deviceMac: device2.deviceMac },
+  });
+
+  await prisma.garden.update({
+    where: { id: garden3.id },
+    data: { deviceMac: device3.deviceMac },
+  });
+
+  // Tạo sensor data mẫu cho device1 (30 ngày qua)
+  const sensorDataPromises: Promise<any>[] = [];
   for (let day = 0; day < 30; day++) {
     for (let hour = 0; hour < 24; hour += 2) {
       const timestamp = new Date(now);
       timestamp.setDate(timestamp.getDate() - day);
       timestamp.setHours(hour, 0, 0, 0);
 
-      // Độ ẩm dao động từ 40-80%
+      const temperature = 20 + Math.random() * 15 + Math.sin(hour / 24 * Math.PI * 2) * 5;
       const humidity = 40 + Math.random() * 40 + Math.sin(hour / 24 * Math.PI * 2) * 10;
+      const soil = 30 + Math.random() * 40;
+
       sensorDataPromises.push(
         prisma.sensorData.create({
           data: {
-            sensorId: sensor2.id,
-            value: parseFloat(humidity.toFixed(2)),
-            time: timestamp,
+            deviceMac: device1.deviceMac,
+            temperature: parseFloat(temperature.toFixed(2)),
+            humidity: parseFloat(humidity.toFixed(2)),
+            soil: parseFloat(soil.toFixed(2)),
+            timestamp,
           },
         }),
       );
@@ -301,7 +268,7 @@ async function main() {
   }
 
   await Promise.all(sensorDataPromises);
-  console.log(`✅ Đã tạo sensor data (${sensorDataPromises.length} records)\n`);
+  console.log(`✅ Đã tạo ${sensorDataPromises.length} sensor data records\n`);
 
   // 8. Tạo Sales (giao dịch bán hàng)
   console.log('💰 Tạo sales...');
@@ -364,7 +331,7 @@ async function main() {
   const alertRule1 = await prisma.alertRule.create({
     data: {
       gardenId: garden1.id,
-      sensorId: sensor1.id,
+      sensorType: 'temperature',
       minValue: 15,
       maxValue: 35,
       alertOnMin: true,
@@ -377,7 +344,7 @@ async function main() {
   const alertRule2 = await prisma.alertRule.create({
     data: {
       gardenId: garden1.id,
-      sensorId: sensor2.id,
+      sensorType: 'humidity',
       minValue: 30,
       maxValue: 80,
       alertOnMin: true,
@@ -407,7 +374,6 @@ async function main() {
     data: [
       {
         ruleId: alertRule1.id,
-        sensorId: sensor1.id,
         value: 36.5,
         message: 'Nhiệt độ vượt ngưỡng tối đa: 36.5°C',
         severity: 'warning',
@@ -415,7 +381,6 @@ async function main() {
       },
       {
         ruleId: alertRule2.id,
-        sensorId: sensor2.id,
         value: 25.0,
         message: 'Độ ẩm thấp hơn ngưỡng tối thiểu: 25%',
         severity: 'info',

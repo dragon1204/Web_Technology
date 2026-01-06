@@ -1,9 +1,10 @@
-import { ApiPropertyOptional } from "@nestjs/swagger";
-import { IsNumber, IsPositive } from "class-validator";
+import { ApiProperty } from "@nestjs/swagger";
+import { IsNumber, Min } from "class-validator";
 
 export class UpdateSoldDto {
-    @ApiPropertyOptional({description: "Số lượng rau đã bán", example: "1000"})
+    @ApiProperty({ description: "Số lượng đã bán", example: 50 })
     @IsNumber()
-    @IsPositive()
-    sold : number;
+    @Min(0)
+    sold: number;
 }
+

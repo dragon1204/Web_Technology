@@ -14,9 +14,4 @@ export class RegisterDto {
     @IsString()
     @ApiPropertyOptional({ description: "the name of the user", example: "Long Vu" })
     name: string;
-    
-    @ApiPropertyOptional({ description: "the roles of the user", example: "USER" })
-    @IsEnum(Role)
-    role: Role;
-    
 }

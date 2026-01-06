@@ -11,3 +11,4 @@ export class UpdateAlertRuleDto extends PartialType(CreateAlertRuleDto) {
 }
 
 
+

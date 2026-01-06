@@ -29,7 +29,7 @@ export class AuthService {
             {
                 ...data,
                 password: hashedPassword,
-                role: data.role ?? Role.USER , // Default to USER role if not provided
+                role: Role.USER ,
             }
         );
 

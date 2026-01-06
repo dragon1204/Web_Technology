@@ -7,6 +7,17 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Role {
+  USER
+  ADMIN
+}
+
+enum PumpControlMode {
+  AUTO
+  ON
+  OFF
+}
+
 model User {
   id                 Int            @id @default(autoincrement())
   email              String         @unique
@@ -35,36 +46,36 @@ model Vegetable {
   updatedAt     DateTime           @updatedAt
   sales         Sale[]
   gardens       vegetable_garden[]
-  priceHistory  PriceHistory[]
 
   @@index([category])
   @@index([createdAt])
 }
 
 model Garden {
-  id         Int                @id @default(autoincrement())
-  name       String
-  ownerId    Int
-  area       Float?             // Diện tích vườn (m²)
-  location   String?            // Địa điểm
-  description String?            // Mô tả
-  createdAt  DateTime           @default(now())
-  updatedAt  DateTime           @updatedAt
-  owner      User               @relation(fields: [ownerId], references: [id])
-  sales      Sale[]
-  sensors    Sensor[]
-  vegetables vegetable_garden[]
-  alertRules AlertRule[]
+  id        Int     @id @default(autoincrement())
+  name      String
+  ownerId   Int
+  owner     User    @relation(fields: [ownerId], references: [id])
+  deviceMac String? @unique
+  device    Device? @relation(fields: [deviceMac], references: [deviceMac])
 
-  @@index([ownerId])
-  @@index([createdAt])
+  sales       Sale[]
+  vegetables  VegetableGarden[]
+  temperature Float?
+  humidity    Float?
+  soil        Float?
+  timestamp   DateTime?
+  pumpControl PumpControlMode?  @default(AUTO)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
-model vegetable_garden {
+model VegetableGarden {
   id          Int       @id @default(autoincrement())
   vegetableId Int
   gardenId    Int
-  quantity    Int
+  quantity    Int // số lượng cây
   garden      Garden    @relation(fields: [gardenId], references: [id], onDelete: Cascade)
   vegetable   Vegetable @relation(fields: [vegetableId], references: [id], onDelete: Cascade)
 }
@@ -81,35 +92,27 @@ model Sale {
   vegetable   Vegetable @relation(fields: [vegetableId], references: [id], onDelete: Cascade)
 }
 
-model SensorType {
-  id      Int      @id @default(autoincrement())
-  name    String
-  unit    String
-  sensors Sensor[]
-}
-
-model Sensor {
-  id         Int          @id @default(autoincrement())
-  model      String
-  name       String
-  typeId     Int
-  gardenId   Int
-  garden     Garden       @relation(fields: [gardenId], references: [id], onDelete: Cascade)
-  type       SensorType   @relation(fields: [typeId], references: [id], onDelete: Cascade)
-  data       SensorData[]
-  alertRules AlertRule[]
-  alerts     Alert[]
+model Device {
+  id        Int          @id @default(autoincrement())
+  model     String
+  name      String
+  deviceMac String       @unique
+  garden    Garden?
+  data      SensorData[]
 }
 
 model SensorData {
-  id       Int      @id @default(autoincrement())
-  time     DateTime @default(now())
-  value    Float    // Giá trị đo được từ sensor
-  sensorId Int
-  sensor   Sensor   @relation(fields: [sensorId], references: [id], onDelete: Cascade)
+  id           Int      @id @default(autoincrement())
+  deviceMac    String
+  device       Device   @relation(fields: [deviceMac], references: [deviceMac], onDelete: Cascade)
+  temperature  Float?
+  humidity     Float?
+  soil         Float?
+  soilDigital  Int?
+  lightDigital Int?
+  timestamp    DateTime @default(now())
 
-  @@index([sensorId, time])
-  @@index([time])
+  @@index([timestamp])
 }
 
 model AuditLog {
@@ -210,9 +213,4 @@ model ReportTemplate {
 
   @@index([type])
   @@index([userId])
-}
-
-enum Role {
-  USER
-  ADMIN
 }
