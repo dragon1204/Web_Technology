@@ -1,7 +1,8 @@
 import { Injectable, NotFoundException, Inject, forwardRef, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { MqttService } from './mqtt.controller/mqtt.service';
-import { WsGateway } from './websoket.gateway/device.gateway';
+import { MqttService } from './mqtt/mqtt.service';
+import { WsGateway } from './websoket/device.gateway';
+
 
 @Injectable()
 export class DeviceService {
@@ -47,8 +48,10 @@ export class DeviceService {
                 temperature,
                 humidity,
                 soil,
+                pumpMode: data.pump_mode,
                 timestamp: new Date(),
             });
+            console.log("đã gui lên fe", data);
         } catch (error) {
             this.logger.error(`Lỗi cập nhật Sensor cho MAC ${mac}: ${error.message}`);
         }
@@ -58,6 +61,7 @@ export class DeviceService {
      * 2. BẬT CHẾ ĐỘ CHỜ PAIR (Web -> Server)
      */
     async startPairingMode(gardenId: number) {
+        console.log(gardenId);
         // Nếu vườn này đang trong chế độ chờ, xóa timer cũ để reset 4 phút
         if (this.pendingPairs.has(gardenId)) {
             clearTimeout(this.pendingPairs.get(gardenId));
@@ -146,7 +150,7 @@ export class DeviceService {
         if (!garden) throw new NotFoundException('Thiết bị này chưa được gắn vào khu vườn nào.');
 
         // Gửi lệnh xuống ESP32
-        const topic = `/iot/${mac}/pump/state`;
+        const topic = `/iot/${mac}/pump`;
         this.mqttService.publish(topic, action);
 
         // Cập nhật trạng thái hiển thị
