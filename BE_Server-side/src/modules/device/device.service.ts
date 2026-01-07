@@ -51,7 +51,6 @@ export class DeviceService {
                 pumpMode: data.pump_mode,
                 timestamp: new Date(),
             });
-            console.log("đã gui lên fe", data);
         } catch (error) {
             this.logger.error(`Lỗi cập nhật Sensor cho MAC ${mac}: ${error.message}`);
         }
@@ -71,7 +70,7 @@ export class DeviceService {
 
         const timeout = setTimeout(() => {
             this.pendingPairs.delete(gardenId);
-            this.wsGateway.server.to(`iot/${gardenId}`).emit('pair_timeout', {
+            this.wsGateway.server.to(`iot/${gardenId}`).emit('iot/device/pair/timeout', {
                 message: 'Hết thời gian chờ. Vui lòng thử lại.',
             });
             this.logger.warn(`TIMEOUT: Vườn ${gardenId} không tìm thấy thiết bị.`);
@@ -105,7 +104,7 @@ export class DeviceService {
             this.pendingPairs.delete(gardenIdToPair);
 
             // Báo thành công về Web qua Socket
-            this.wsGateway.server.to(`iot/${gardenIdToPair}`).emit('pair_success', {
+            this.wsGateway.server.to(`iot/${gardenIdToPair}`).emit('iot/device/pair/success', {
                 deviceMac,
                 garden: result,
             });

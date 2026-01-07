@@ -65,18 +65,8 @@ export class WsGateway implements OnGatewayConnection {
     @MessageBody() data: { gardenId: number },
   ) {
     console.log(data.gardenId);
-    client.join(`garden_${data.gardenId}`);
+    client.join(`iot/${data.gardenId}`);
     return await this.deviceService.startPairingMode(data.gardenId);
-  }
-
-  notifyPairingSuccess(gardenId: number, deviceMac: string) {
-    const roomName = `iot/${gardenId}`;
-    this.server.to(roomName).emit('pairingSuccess', {
-      status: 'success',
-      mac: deviceMac,
-      message: 'Thiết bị đã kết nối thành công!'
-    });
-    console.log(`Notified success to room ${roomName} for MAC: ${deviceMac}`);
   }
 
   /**
