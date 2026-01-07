@@ -28,7 +28,6 @@ export class AuthService {
         const  user = await this.usersService.createUser(
             {
                 ...data,
-                password: hashedPassword,
                 role: Role.USER ,
             }
         );
