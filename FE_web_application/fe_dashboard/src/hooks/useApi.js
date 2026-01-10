@@ -1,42 +1,88 @@
 import { useState, useEffect, useCallback } from "react";
+import { useAuth } from "../contexts/AuthContext";
 
-// Generic hook for API calls
-export const useApi = (apiFunction, dependencies = []) => {
+export const useApi = () => {
+  const { token, refreshToken } = useAuth();
+
+  const apiCall = useCallback(
+    async (url, options = {}) => {
+      const headers = {
+        "Content-Type": "application/json",
+        ...options.headers,
+      };
+
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
+      try {
+        const response = await fetch(url, {
+          ...options,
+          headers,
+        });
+
+        // Handle token expiration
+        if (response.status === 401) {
+          const refreshed = await refreshToken();
+          if (refreshed) {
+            // Retry the request with new token
+            headers.Authorization = `Bearer ${localStorage.getItem("token")}`;
+            const retryResponse = await fetch(url, {
+              ...options,
+              headers,
+            });
+            return retryResponse;
+          }
+        }
+
+        return response;
+      } catch (error) {
+        console.error("API call failed:", error);
+        throw error;
+      }
+    },
+    [token, refreshToken]
+  );
+
+  return { apiCall };
+};
+
+export const useApiCall = (url, options = {}) => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const { apiCall } = useApi();
 
-  const execute = useCallback(async (...args) => {
-    try {
+  const execute = useCallback(
+    async (customUrl = url, customOptions = options) => {
       setLoading(true);
       setError(null);
-      const response = await apiFunction(...args);
-      setData(response.data);
-      return response.data;
-    } catch (err) {
-      setError(err.response?.data?.message || err.message);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, dependencies);
+
+      try {
+        const response = await apiCall(customUrl, customOptions);
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || "API call failed");
+        }
+
+        const result = await response.json();
+        setData(result);
+        return result;
+      } catch (err) {
+        setError(err.message);
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [url, options, apiCall]
+  );
 
   return { data, loading, error, execute };
 };
 
-// Hook for automatic API calls on mount
-export const useApiEffect = (apiFunction, dependencies = []) => {
-  const { data, loading, error, execute } = useApi(apiFunction, dependencies);
-
-  useEffect(() => {
-    execute();
-  }, dependencies);
-
-  return { data, loading, error, refetch: execute };
-};
-
-// Hook for paginated data
-export const usePaginatedApi = (apiFunction, initialParams = {}) => {
+export const usePaginatedApi = (baseUrl, initialParams = {}) => {
   const [data, setData] = useState([]);
   const [pagination, setPagination] = useState({
     page: 1,
@@ -46,36 +92,49 @@ export const usePaginatedApi = (apiFunction, initialParams = {}) => {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const { apiCall } = useApi();
 
   const fetchData = useCallback(
     async (params = {}) => {
+      setLoading(true);
+      setError(null);
+
+      const queryParams = new URLSearchParams({
+        ...initialParams,
+        ...params,
+        page: params.page || pagination.page,
+        limit: params.limit || pagination.limit,
+      });
+
       try {
-        setLoading(true);
-        setError(null);
-        const response = await apiFunction({
-          ...initialParams,
-          ...params,
-          page: params.page || pagination.page,
-          limit: params.limit || pagination.limit,
+        const response = await apiCall(`${baseUrl}?${queryParams}`);
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || "Failed to fetch data");
+        }
+
+        const result = await response.json();
+
+        setData(result.data || result.items || []);
+        setPagination({
+          page: result.page || 1,
+          limit: result.limit || 10,
+          total: result.total || 0,
+          totalPages:
+            result.totalPages ||
+            Math.ceil((result.total || 0) / (result.limit || 10)),
         });
 
-        setData(response.data.data || response.data);
-        setPagination((prev) => ({
-          ...prev,
-          ...response.data.pagination,
-          page: params.page || prev.page,
-          limit: params.limit || prev.limit,
-        }));
-
-        return response.data;
+        return result;
       } catch (err) {
-        setError(err.response?.data?.message || err.message);
+        setError(err.message);
         throw err;
       } finally {
         setLoading(false);
       }
     },
-    [apiFunction, initialParams]
+    [baseUrl, initialParams, pagination.page, pagination.limit, apiCall]
   );
 
   const nextPage = () => {
@@ -91,7 +150,9 @@ export const usePaginatedApi = (apiFunction, initialParams = {}) => {
   };
 
   const goToPage = (page) => {
-    fetchData({ page });
+    if (page >= 1 && page <= pagination.totalPages) {
+      fetchData({ page });
+    }
   };
 
   useEffect(() => {
@@ -103,9 +164,10 @@ export const usePaginatedApi = (apiFunction, initialParams = {}) => {
     pagination,
     loading,
     error,
-    refetch: fetchData,
+    fetchData,
     nextPage,
     prevPage,
     goToPage,
+    refresh: () => fetchData({ page: pagination.page }),
   };
 };

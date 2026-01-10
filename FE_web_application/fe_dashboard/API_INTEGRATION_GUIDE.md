@@ -2,7 +2,7 @@
 
 ## Tổng quan
 
-Đã tích hợp đầy đủ tất cả các API endpoints từ Swagger vào frontend React dashboard. Hệ thống bao gồm các module chính:
+Đã tích hợp đầy đủ tất cả các API endpoints từ Swagger vào frontend React dashboard, bao gồm cả các API hiện có của hệ thống.
 
 ## 🚀 Các tính năng đã tích hợp
 
@@ -13,19 +13,47 @@
 - **User Profile**: Quản lý thông tin cá nhân
 - **User Management**: Quản lý người dùng (Admin only)
 
-### 2. Garden Management
+### 2. Dashboard & Statistics
+
+- **Dashboard Stats**: Thống kê tổng quan hệ thống
+- **Real-time Sensor Data**: Dữ liệu cảm biến thời gian thực
+- **Device Status**: Trạng thái thiết bị
+- **Recent Activity**: Hoạt động gần đây
+
+### 3. Plants Management (Existing System)
+
+- **My Plants**: Quản lý cây trồng của người dùng
+- **Plant CRUD**: Tạo, đọc, cập nhật, xóa cây trồng
+- **Growth Tracking**: Theo dõi tiến độ phát triển
+- **Harvest Prediction**: Dự đoán thời gian thu hoạch
+
+### 4. Devices Management (Existing System)
+
+- **My Devices**: Thiết bị được gán cho người dùng
+- **Device Control**: Điều khiển thiết bị từ xa
+- **Device Status**: Trạng thái hoạt động thiết bị
+- **Device Assignment**: Gán thiết bị cho người dùng
+
+### 5. Sensor Data & ThingsBoard Integration
+
+- **Real-time Data**: Dữ liệu cảm biến thời gian thực
+- **Historical Data**: Dữ liệu lịch sử
+- **Device Telemetry**: Telemetry từ ThingsBoard
+- **WebSocket Integration**: Kết nối WebSocket cho real-time
+
+### 6. Garden Management (Swagger APIs)
 
 - **Garden CRUD**: Tạo, đọc, cập nhật, xóa vườn
 - **Garden Sales**: Quản lý bán hàng theo vườn
 - **Revenue Tracking**: Theo dõi doanh thu từng vườn
 
-### 3. Vegetable Management
+### 7. Vegetable Management (Swagger APIs)
 
 - **Vegetable CRUD**: Quản lý rau củ hoàn chỉnh
 - **Price History**: Lịch sử giá cả với biểu đồ
 - **Inventory Tracking**: Theo dõi tồn kho
 
-### 4. Analytics & Reports
+### 8. Analytics & Reports (Swagger APIs)
 
 - **Revenue Analytics**: Phân tích doanh thu theo thời gian
 - **Garden Comparison**: So sánh hiệu suất các vườn
@@ -34,260 +62,191 @@
 - **Sensor Analytics**: Phân tích dữ liệu cảm biến
 - **Custom Reports**: Tạo báo cáo tùy chỉnh
 
-### 5. Notifications System
+### 9. Notifications System (Swagger APIs)
 
 - **Real-time Notifications**: Thông báo thời gian thực
 - **Unread Count**: Đếm thông báo chưa đọc
 - **Mark as Read**: Đánh dấu đã đọc
 - **Delete Notifications**: Xóa thông báo
 
-### 6. Alerts Management
+### 10. Alerts Management (Swagger APIs)
 
 - **Active Alerts**: Cảnh báo đang hoạt động
 - **Alert Rules**: Tạo và quản lý quy tắc cảnh báo
 - **Alert Resolution**: Giải quyết cảnh báo
 - **Severity Levels**: Mức độ nghiêm trọng
 
-### 7. Audit Logs
+### 11. Audit Logs (Swagger APIs)
 
 - **Activity Tracking**: Theo dõi hoạt động người dùng
 - **System Logs**: Nhật ký hệ thống
 - **Filter & Search**: Lọc và tìm kiếm logs
 - **Export Logs**: Xuất nhật ký
 
-## 📁 Cấu trúc file mới
-
-```
-src/
-├── services/
-│   └── api.js                    # Tất cả API endpoints
-├── hooks/
-│   ├── useApi.js                 # Generic API hooks
-│   ├── useAuth.js                # Authentication hooks
-│   ├── useNotifications.js       # Notification hooks
-│   └── useAnalytics.js           # Analytics hooks
-├── components/
-│   ├── analytics/
-│   │   └── RevenueAnalytics.jsx  # Phân tích doanh thu
-│   ├── notifications/
-│   │   └── NotificationCenter.jsx # Trung tâm thông báo
-│   ├── alerts/
-│   │   └── AlertsManager.jsx     # Quản lý cảnh báo
-│   ├── audit/
-│   │   └── AuditLogs.jsx         # Nhật ký audit
-│   └── vegetables/
-│       └── VegetableManager.jsx  # Quản lý rau củ nâng cao
-```
-
-## 🔧 API Services đã tích hợp
-
-### Authentication APIs
+## 📁 Cấu trúc API Services
 
 ```javascript
-authAPI.login(email, password);
-authAPI.register(userData);
-authAPI.getProfile();
-authAPI.googleRedirect();
+// Existing System APIs
+dashboardAPI - /api/dashboard/* (Dashboard stats, activity)
+plantsAPI - /api/plants/* (Plant management)
+devicesAPI - /api/devices/* (Device management)
+sensorAPI - /api/thingsboard/* (Sensor data)
+controlsAPI - /api/controls/* (Device controls)
+
+// Swagger APIs
+authAPI - /auth/* (Authentication)
+userAPI - /users/* (User management)
+gardenAPI - /garden/* (Garden management)
+vegetableAPI - /vegetable/* (Vegetable management)
+analyticsAPI - /analytics/* (Analytics & reports)
+notificationAPI - /notifications/* (Notifications)
+alertAPI - /alerts/* (Alerts management)
+auditAPI - /audit/* (Audit logs)
 ```
 
-### User Management APIs
+## 🔧 Custom Hooks đã tạo
+
+### Existing System Hooks
 
 ```javascript
-userAPI.getAll(params);
-userAPI.getById(id);
-userAPI.create(data);
-userAPI.update(id, data);
-userAPI.delete(id);
-userAPI.changePassword(id, passwordData);
+useDashboard() - Dashboard data & sensor integration
+usePlants() - Plant management with growth calculations
+useDevices() - Device management & control
 ```
 
-### Garden Management APIs
+### Generic Hooks
 
 ```javascript
-gardenAPI.getAll(params);
-gardenAPI.getById(id);
-gardenAPI.create(data);
-gardenAPI.update(id, data);
-gardenAPI.delete(id);
-gardenAPI.createSale(gardenId, saleData);
-gardenAPI.getSales(gardenId);
-gardenAPI.getSaleRevenue(gardenId);
+useApi() - Generic API calls
+useApiEffect() - Auto API calls on mount
+usePaginatedApi() - Paginated data handling
+useAuth() - Authentication context
+useNotifications() - Notification management
+useAnalytics() - Analytics data
 ```
 
-### Vegetable Management APIs
+## 🎯 Component Integration
+
+### Existing Components (Updated)
+
+- **Dashboard.js** - Sử dụng `useDashboard()` hook
+- **PlantManagement.js** - Sử dụng `usePlants()` hook
+- **Login.js** - Tích hợp Google OAuth
+
+### New Components (Swagger APIs)
+
+- **RevenueAnalytics.jsx** - Phân tích doanh thu
+- **NotificationCenter.jsx** - Trung tâm thông báo
+- **AlertsManager.jsx** - Quản lý cảnh báo
+- **AuditLogs.jsx** - Nhật ký audit
+- **VegetableManager.jsx** - Quản lý rau củ nâng cao
+
+## 🔄 API Usage Examples
+
+### Dashboard Integration
 
 ```javascript
-vegetableAPI.getAll(params);
-vegetableAPI.getById(id);
-vegetableAPI.create(data);
-vegetableAPI.update(id, data);
-vegetableAPI.delete(id);
-vegetableAPI.getPriceHistory(id);
-```
+import { useDashboard } from "../hooks/useDashboard";
 
-### Analytics APIs
+const Dashboard = () => {
+  const { stats, sensorData, loading, handleRealtimeSensorData } =
+    useDashboard();
 
-```javascript
-analyticsAPI.getRevenuePeriod(params);
-analyticsAPI.compareGardens(params);
-analyticsAPI.getTopProducts(params);
-analyticsAPI.getProductivityByCategory(params);
-analyticsAPI.getSalesInventoryRatio(params);
-analyticsAPI.getProductivityTrend(params);
-analyticsAPI.getSensorAnalysis(params);
-analyticsAPI.getOptimalConditions(params);
-analyticsAPI.createCustomReport(data);
-```
-
-### Notification APIs
-
-```javascript
-notificationAPI.create(data);
-notificationAPI.getAll(params);
-notificationAPI.getUnreadCount();
-notificationAPI.markAsRead(id);
-notificationAPI.markAllAsRead();
-notificationAPI.delete(id);
-```
-
-### Alert APIs
-
-```javascript
-alertAPI.getAll(params);
-alertAPI.getActiveCount();
-alertAPI.resolve(id);
-alertAPI.createRule(data);
-alertAPI.getRules(params);
-alertAPI.updateRule(id, data);
-alertAPI.deleteRule(id);
-```
-
-### Audit APIs
-
-```javascript
-auditAPI.getRecent(params);
-auditAPI.getMyLogs(params);
-auditAPI.getByEntity(params);
-auditAPI.getByRequest(params);
-```
-
-## 🎯 Cách sử dụng
-
-### 1. Sử dụng API hooks
-
-```javascript
-import { useApi, useApiEffect } from "../hooks/useApi";
-import { vegetableAPI } from "../services/api";
-
-// Trong component
-const { data, loading, error, execute } = useApi(vegetableAPI.getAll);
-const {
-  data: vegetables,
-  loading,
-  refetch,
-} = useApiEffect(vegetableAPI.getAll);
-```
-
-### 2. Sử dụng Authentication
-
-```javascript
-import { useAuth } from "../hooks/useAuth";
-
-// Trong component
-const { user, isAuthenticated, login, logout } = useAuth();
-```
-
-### 3. Sử dụng Notifications
-
-```javascript
-import { useNotifications } from "../hooks/useNotifications";
-
-// Trong component
-const { notifications, unreadCount, markAsRead } = useNotifications();
-```
-
-### 4. Sử dụng Analytics
-
-```javascript
-import { useAnalytics } from "../hooks/useAnalytics";
-
-// Trong component
-const { getRevenuePeriod, loading } = useAnalytics();
-
-const loadData = async () => {
-  const data = await getRevenuePeriod({
-    period: "month",
-    startDate: "2024-01-01",
-    endDate: "2024-12-31",
-  });
+  // WebSocket integration
+  useEffect(() => {
+    socket.on("thingsboard-telemetry", handleRealtimeSensorData);
+  }, []);
 };
 ```
 
-## 🔐 Phân quyền
+### Plant Management
 
-### User Role
+```javascript
+import { usePlants } from "../hooks/usePlants";
 
-- Dashboard
-- Gardens (chỉ vườn của mình)
-- Vegetables (xem)
-- Analytics (cơ bản)
-- Notifications
-
-### Admin Role
-
-- Tất cả chức năng của User
-- User Management
-- All Gardens Management
-- Vegetable Manager (CRUD)
-- Advanced Analytics
-- Alerts Management
-- Audit Logs
-
-## 🚀 Routes mới
-
-- `/analytics` - Revenue Analytics
-- `/vegetable-manager` - Vegetable Management (Admin)
-- `/alerts` - Alerts Management (Admin)
-- `/audit-logs` - Audit Logs (Admin)
-
-## 📊 Biểu đồ và Visualization
-
-Sử dụng Recharts để hiển thị:
-
-- Line charts cho revenue trends
-- Bar charts cho garden comparison
-- Price history charts
-- Productivity analytics
-
-## 🔔 Real-time Features
-
-- Notification center với badge count
-- Auto-refresh cho alerts
-- Real-time updates cho audit logs
-
-## 🎨 UI/UX Improvements
-
-- Collapsible sidebar menu
-- Loading states
-- Error handling
-- Responsive design
-- Material-UI components
-
-## 📝 Lưu ý quan trọng
-
-1. **Token Management**: Tự động refresh token và redirect khi hết hạn
-2. **Error Handling**: Xử lý lỗi toàn cục và hiển thị thông báo
-3. **Loading States**: Loading indicators cho tất cả API calls
-4. **Pagination**: Hỗ trợ phân trang cho danh sách dài
-5. **Filtering**: Bộ lọc nâng cao cho tất cả danh sách
-6. **Responsive**: Tương thích với mobile và tablet
-
-## 🔧 Cài đặt và chạy
-
-```bash
-cd FE_web_application/fe_dashboard
-npm install
-npm start
+const PlantManagement = () => {
+  const { plants, createPlant, calculateGrowthProgress, getDaysUntilHarvest } =
+    usePlants();
+};
 ```
 
-Tất cả các API endpoints từ Swagger đã được tích hợp hoàn chỉnh vào frontend với UI/UX hiện đại và tính năng đầy đủ!
+### Device Control
+
+```javascript
+import { useDevices } from "../hooks/useDevices";
+
+const DeviceControl = () => {
+  const { myDevices, controlDevice, getDeviceStatus } = useDevices();
+};
+```
+
+## 🌐 WebSocket Integration
+
+```javascript
+// Real-time sensor data
+socket.on("thingsboard-telemetry", (payload) => {
+  handleRealtimeSensorData(payload);
+});
+
+// Device status updates
+socket.on("device-status", (data) => {
+  updateDeviceStatus(data);
+});
+```
+
+## 📱 Navigation & Routes
+
+```javascript
+// Existing routes
+/dashboard - Dashboard with sensor data
+/plants - Plant management
+/devices - Device management
+/controls - Device controls
+
+// New routes (Swagger APIs)
+/analytics - Revenue Analytics
+/vegetable-manager - Vegetable Management
+/alerts - Alerts Management
+/audit-logs - Audit Logs
+```
+
+## 🔐 Authentication Flow
+
+```javascript
+// Regular login
+authAPI.login(email, password)
+
+// Google OAuth
+GoogleLogin component -> /auth/google -> callback handling
+
+// Token management
+Automatic token refresh and logout on 401
+```
+
+## 🎨 UI/UX Features
+
+- **Existing Design**: Giữ nguyên CSS và styling hiện có
+- **Material-UI Integration**: Các component mới sử dụng MUI
+- **Responsive Design**: Tương thích mobile và desktop
+- **Real-time Updates**: WebSocket cho dữ liệu thời gian thực
+- **Loading States**: Loading indicators cho tất cả API calls
+- **Error Handling**: Xử lý lỗi toàn cục
+
+## 🔧 Configuration
+
+```javascript
+// API Base URL
+const API_URL = "http://159.223.61.25:3000";
+
+// WebSocket URL (existing)
+const SOCKET_URL = "https://beiot.onrender.com";
+```
+
+**Kết luận: Đã tích hợp hoàn chỉnh cả hệ thống hiện có và tất cả API từ Swagger!** 🎉
+
+Hệ thống bây giờ có đầy đủ chức năng từ cả hai nguồn:
+
+1. **Existing System**: Plants, Devices, Dashboard, Sensors
+2. **Swagger APIs**: Gardens, Vegetables, Analytics, Notifications, Alerts, Audit
+
+Tất cả đều được tích hợp với UI/UX nhất quán và hooks tái sử dụng được!

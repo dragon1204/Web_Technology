@@ -5,151 +5,136 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
-import { ThemeProvider, createTheme } from "@mui/material/styles";
-import CssBaseline from "@mui/material/CssBaseline";
+import { Toaster } from "react-hot-toast";
+
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { SocketProvider } from "./contexts/SocketContext";
+import Login from "./components/Login";
 import Dashboard from "./components/Dashboard";
-import GardenList from "./components/admin/AdminGardenList";
-import UserList from "./components/admin/UserList";
-import VegetableList from "./components/user/VegetableList";
-import RevenuePage from "./components/user/RevenuePage";
-import Sidebar from "./components/common/Sidebar";
-import Login from "./components/common/Login";
-import MyGardenList from "./components/user/MyGardenList";
+import PlantManagement from "./components/PlantManagement";
+import Controls from "./components/Controls";
+import GardenView from "./components/GardenView";
+import Layout from "./components/Layout";
+import OAuthCallback from "./components/OAuthCallback";
+import "./App.css";
 
-// New components for complete API integration
-import RevenueAnalytics from "./components/analytics/RevenueAnalytics";
-import NotificationCenter from "./components/notifications/NotificationCenter";
-import AlertsManager from "./components/alerts/AlertsManager";
-import AuditLogs from "./components/audit/AuditLogs";
-import VegetableManager from "./components/vegetables/VegetableManager";
-import OAuthCallback from "./components/auth/OAuthCallback";
+function ProtectedRoute({ children }) {
+  const { user, loading, isAuthenticated } = useAuth();
 
-// Context providers
-import { AuthProvider } from "./hooks/useAuth";
+  console.log(
+    "ProtectedRoute - user:",
+    user,
+    "loading:",
+    loading,
+    "isAuthenticated:",
+    isAuthenticated
+  ); // Debug log
 
-const theme = createTheme({
-  palette: {
-    primary: {
-      main: "#4CAF50",
-    },
-    secondary: {
-      main: "#2196F3",
-    },
-  },
-});
+  if (loading) {
+    return (
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100vh",
+          backgroundColor: "#102216",
+          color: "white",
+        }}
+      >
+        <div
+          style={{
+            width: "2rem",
+            height: "2rem",
+            border: "2px solid #28392e",
+            borderTop: "2px solid #4cbe00",
+            borderRadius: "50%",
+            animation: "spin 1s linear infinite",
+          }}
+        ></div>
+      </div>
+    );
+  }
 
-const Layout = ({ children }) => {
-  return (
-    <div style={{ display: "flex" }}>
-      <Sidebar />
-      <main style={{ flexGrow: 1, padding: "20px" }}>{children}</main>
-    </div>
-  );
-};
+  if (!user || !isAuthenticated) {
+    console.log("Redirecting to login - no user or not authenticated"); // Debug log
+    return <Navigate to="/login" replace />;
+  }
+
+  console.log("Rendering protected content for user:", user.email || user.name); // Debug log
+  return <Layout>{children}</Layout>;
+}
 
 function App() {
-  const isAuthenticated = () => {
-    return localStorage.getItem("token") !== null;
-  };
-
-  const ProtectedRoute = ({ children }) => {
-    return isAuthenticated() ? (
-      <Layout>{children}</Layout>
-    ) : (
-      <Navigate to="/login" />
-    );
-  };
-
-  const isAdmin = () => {
-    const user = JSON.parse(localStorage.getItem("user") || "{}");
-    return user?.role === "ADMIN";
-  };
-
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <AuthProvider>
+    <AuthProvider>
+      <SocketProvider>
         <Router>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/auth/callback" element={<OAuthCallback />} />
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              }
+          <div className="App">
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route path="/auth/callback" element={<OAuthCallback />} />
+              <Route
+                path="/"
+                element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/garden"
+                element={
+                  <ProtectedRoute>
+                    <GardenView />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/plants"
+                element={
+                  <ProtectedRoute>
+                    <PlantManagement />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/controls"
+                element={
+                  <ProtectedRoute>
+                    <Controls />
+                  </ProtectedRoute>
+                }
+              />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+            <Toaster
+              position="top-right"
+              toastOptions={{
+                duration: 4000,
+                style: {
+                  background: "#1a2e1a",
+                  color: "#e0e0e0",
+                  border: "1px solid #28392e",
+                },
+                success: {
+                  iconTheme: {
+                    primary: "#4cbe00",
+                    secondary: "#e0e0e0",
+                  },
+                },
+                error: {
+                  iconTheme: {
+                    primary: "#dc2626",
+                    secondary: "#e0e0e0",
+                  },
+                },
+              }}
             />
-            <Route
-              path="/users"
-              element={
-                <ProtectedRoute>
-                  <UserList />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/gardens"
-              element={
-                <ProtectedRoute>
-                  {isAdmin() ? <GardenList /> : <MyGardenList />}
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/vegetables"
-              element={
-                <ProtectedRoute>
-                  <VegetableList />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/vegetable-manager"
-              element={
-                <ProtectedRoute>
-                  <VegetableManager />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/revenue"
-              element={
-                <ProtectedRoute>
-                  <RevenuePage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/analytics"
-              element={
-                <ProtectedRoute>
-                  <RevenueAnalytics />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/alerts"
-              element={
-                <ProtectedRoute>
-                  <AlertsManager />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/audit-logs"
-              element={
-                <ProtectedRoute>
-                  <AuditLogs />
-                </ProtectedRoute>
-              }
-            />
-            <Route path="/" element={<Navigate to="/dashboard" />} />
-          </Routes>
+          </div>
         </Router>
-      </AuthProvider>
-    </ThemeProvider>
+      </SocketProvider>
+    </AuthProvider>
   );
 }
 
