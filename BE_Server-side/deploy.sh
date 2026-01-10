@@ -40,12 +40,25 @@ fi
 
 npm run build
 
-# Chạy migrations (nếu cần)
-echo "🗄️  Đang kiểm tra migrations..."
-npx prisma migrate deploy || echo "⚠️  Migrations đã được apply hoặc có lỗi"
-
-# Generate Prisma Client
+# Generate Prisma Client trước
 echo "🔧 Đang generate Prisma Client..."
+npx prisma generate
+
+# Đồng bộ database schema
+echo "🗄️  Đang đồng bộ database schema..."
+echo "   Option 1: Dùng migrations (recommended)..."
+npx prisma migrate deploy
+
+# Nếu migrations fail, dùng db push
+if [ $? -ne 0 ]; then
+    echo ""
+    echo "⚠️  Migrations failed. Dùng db push để đồng bộ trực tiếp..."
+    npx prisma db push --accept-data-loss || echo "⚠️  Database sync có lỗi, kiểm tra lại"
+fi
+
+# Generate lại Prisma Client sau khi sync
+echo ""
+echo "🔧 Đang generate lại Prisma Client..."
 npx prisma generate
 
 # Dừng app cũ nếu đang chạy
