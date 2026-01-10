@@ -8,7 +8,9 @@ export const api = {
     const response = await fetch(`${API_BASE}${endpoint}`, {
       ...options,
       headers: {
-        Authorization: `Bearer ${localStorage.getItem(config.STORAGE_KEYS.TOKEN)}`,
+        Authorization: `Bearer ${localStorage.getItem(
+          config.STORAGE_KEYS.TOKEN
+        )}`,
         ...options.headers,
       },
     });
@@ -21,7 +23,9 @@ export const api = {
         return fetch(`${API_BASE}${endpoint}`, {
           ...options,
           headers: {
-            Authorization: `Bearer ${localStorage.getItem(config.STORAGE_KEYS.TOKEN)}`,
+            Authorization: `Bearer ${localStorage.getItem(
+              config.STORAGE_KEYS.TOKEN
+            )}`,
             ...options.headers,
           },
         });
@@ -36,7 +40,9 @@ export const api = {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem(config.STORAGE_KEYS.TOKEN)}`,
+        Authorization: `Bearer ${localStorage.getItem(
+          config.STORAGE_KEYS.TOKEN
+        )}`,
         ...options.headers,
       },
       body: JSON.stringify(data),
@@ -52,7 +58,9 @@ export const api = {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem(config.STORAGE_KEYS.TOKEN)}`,
+            Authorization: `Bearer ${localStorage.getItem(
+              config.STORAGE_KEYS.TOKEN
+            )}`,
             ...options.headers,
           },
           body: JSON.stringify(data),
@@ -69,7 +77,9 @@ export const api = {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem(config.STORAGE_KEYS.TOKEN)}`,
+        Authorization: `Bearer ${localStorage.getItem(
+          config.STORAGE_KEYS.TOKEN
+        )}`,
         ...options.headers,
       },
       body: JSON.stringify(data),
@@ -83,7 +93,9 @@ export const api = {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem(config.STORAGE_KEYS.TOKEN)}`,
+            Authorization: `Bearer ${localStorage.getItem(
+              config.STORAGE_KEYS.TOKEN
+            )}`,
             ...options.headers,
           },
           body: JSON.stringify(data),
@@ -99,7 +111,9 @@ export const api = {
     const response = await fetch(`${API_BASE}${endpoint}`, {
       method: "DELETE",
       headers: {
-        Authorization: `Bearer ${localStorage.getItem(config.STORAGE_KEYS.TOKEN)}`,
+        Authorization: `Bearer ${localStorage.getItem(
+          config.STORAGE_KEYS.TOKEN
+        )}`,
         ...options.headers,
       },
       ...options,
@@ -111,7 +125,9 @@ export const api = {
         return fetch(`${API_BASE}${endpoint}`, {
           method: "DELETE",
           headers: {
-            Authorization: `Bearer ${localStorage.getItem(config.STORAGE_KEYS.TOKEN)}`,
+            Authorization: `Bearer ${localStorage.getItem(
+              config.STORAGE_KEYS.TOKEN
+            )}`,
             ...options.headers,
           },
           ...options,
@@ -127,7 +143,9 @@ export const api = {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem(config.STORAGE_KEYS.TOKEN)}`,
+        Authorization: `Bearer ${localStorage.getItem(
+          config.STORAGE_KEYS.TOKEN
+        )}`,
         ...options.headers,
       },
       body: JSON.stringify(data),
@@ -141,7 +159,9 @@ export const api = {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem(config.STORAGE_KEYS.TOKEN)}`,
+            Authorization: `Bearer ${localStorage.getItem(
+              config.STORAGE_KEYS.TOKEN
+            )}`,
             ...options.headers,
           },
           body: JSON.stringify(data),
@@ -155,7 +175,9 @@ export const api = {
 
   refreshToken: async () => {
     try {
-      const refreshToken = localStorage.getItem(config.STORAGE_KEYS.REFRESH_TOKEN);
+      const refreshToken = localStorage.getItem(
+        config.STORAGE_KEYS.REFRESH_TOKEN
+      );
       if (!refreshToken) {
         return false;
       }
@@ -173,14 +195,13 @@ export const api = {
         localStorage.setItem(config.STORAGE_KEYS.TOKEN, data.access_token);
         return true;
       }
-      
+
       return false;
     } catch (error) {
-      console.error('Token refresh failed:', error);
+      console.error("Token refresh failed:", error);
       return false;
     }
   },
-};
 };
 
 export default api;
