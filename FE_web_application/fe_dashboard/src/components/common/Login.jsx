@@ -11,6 +11,7 @@ import {
   CircularProgress,
   InputAdornment,
   IconButton,
+  Divider,
 } from "@mui/material";
 import {
   Visibility,
@@ -19,6 +20,7 @@ import {
   Lock as LockIcon,
 } from "@mui/icons-material";
 import { authAPI } from "../../services/api";
+import GoogleLogin from "../auth/GoogleLogin";
 
 function Login() {
   const [email, setEmail] = useState("");
@@ -93,6 +95,11 @@ function Login() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleGoogleError = (error) => {
+    setError("Google login failed. Please try again.");
+    console.error("Google OAuth Error:", error);
   };
 
   return (
@@ -214,6 +221,29 @@ function Login() {
                   {String(error)}
                 </Alert>
               )}
+
+              {/* Google Login */}
+              <Box sx={{ mb: 3 }}>
+                <GoogleLogin onError={handleGoogleError} disabled={loading} />
+              </Box>
+
+              {/* Divider */}
+              <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
+                <Divider sx={{ flex: 1, borderColor: "#334155" }} />
+                <Typography
+                  variant="body2"
+                  sx={{
+                    px: 2,
+                    color: "#64748b",
+                    fontSize: "0.75rem",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px",
+                  }}
+                >
+                  Or continue with email
+                </Typography>
+                <Divider sx={{ flex: 1, borderColor: "#334155" }} />
+              </Box>
 
               <Box component="form" onSubmit={handleSubmit}>
                 <Typography
