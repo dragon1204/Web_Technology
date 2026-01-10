@@ -11,6 +11,7 @@ import {
   Typography,
   Chip,
   Avatar,
+  Collapse,
 } from "@mui/material";
 import {
   Dashboard as DashIcon,
@@ -19,12 +20,24 @@ import {
   Grass as GrassIcon,
   AttachMoney as MoneyIcon,
   ExitToApp as LogoutIcon,
+  Analytics as AnalyticsIcon,
+  Notifications as NotificationsIcon,
+  Warning as AlertIcon,
+  History as AuditIcon,
+  ExpandLess,
+  ExpandMore,
+  Settings as SettingsIcon,
+  TrendingUp as TrendingUpIcon,
+  Inventory as InventoryIcon,
 } from "@mui/icons-material";
+import NotificationCenter from "../notifications/NotificationCenter";
 
 function Sidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
+  const [analyticsOpen, setAnalyticsOpen] = useState(false);
+  const [managementOpen, setManagementOpen] = useState(false);
 
   useEffect(() => {
     const userData = localStorage.getItem("user");
@@ -50,6 +63,15 @@ function Sidebar() {
     localStorage.removeItem("user");
     navigate("/login");
   };
+
+  const isAnalyticsPath = ["/analytics", "/revenue"].includes(
+    location.pathname
+  );
+  const isManagementPath = [
+    "/vegetable-manager",
+    "/alerts",
+    "/audit-logs",
+  ].includes(location.pathname);
 
   return (
     <Box
@@ -87,6 +109,7 @@ function Sidebar() {
           <Typography variant="h6" sx={{ fontWeight: 700 }}>
             Garden IOT
           </Typography>
+          <NotificationCenter />
         </Box>
 
         {user && (
@@ -307,42 +330,221 @@ function Sidebar() {
           </ListItemButton>
         </ListItem>
 
+        {/* Analytics Section */}
         <ListItem disablePadding sx={{ mb: 1 }}>
           <ListItemButton
-            component={Link}
-            to="/revenue"
-            selected={location.pathname === "/revenue"}
+            onClick={() => setAnalyticsOpen(!analyticsOpen)}
             sx={{
               borderRadius: 2,
-              color: location.pathname === "/revenue" ? "white" : "#94a3b8",
-              bgcolor:
-                location.pathname === "/revenue"
-                  ? "rgba(59, 130, 246, 0.15)"
-                  : "transparent",
+              color: isAnalyticsPath ? "white" : "#94a3b8",
+              bgcolor: isAnalyticsPath
+                ? "rgba(59, 130, 246, 0.15)"
+                : "transparent",
               "&:hover": {
-                bgcolor:
-                  location.pathname === "/revenue"
-                    ? "rgba(59, 130, 246, 0.25)"
-                    : "#1e293b",
-              },
-              "&.Mui-selected": {
-                bgcolor: "rgba(59, 130, 246, 0.15)",
-                borderLeft: "3px solid #3b82f6",
+                bgcolor: isAnalyticsPath
+                  ? "rgba(59, 130, 246, 0.25)"
+                  : "#1e293b",
               },
             }}
           >
             <ListItemIcon sx={{ color: "inherit", minWidth: 40, opacity: 0.9 }}>
-              <MoneyIcon />
+              <AnalyticsIcon />
             </ListItemIcon>
             <ListItemText
-              primary="Revenue"
+              primary="Analytics"
               primaryTypographyProps={{
-                fontWeight: location.pathname === "/revenue" ? 600 : 400,
+                fontWeight: isAnalyticsPath ? 600 : 400,
                 fontSize: "0.95rem",
               }}
             />
+            {analyticsOpen ? <ExpandLess /> : <ExpandMore />}
           </ListItemButton>
         </ListItem>
+        <Collapse in={analyticsOpen} timeout="auto" unmountOnExit>
+          <List component="div" disablePadding>
+            <ListItem disablePadding sx={{ pl: 4, mb: 0.5 }}>
+              <ListItemButton
+                component={Link}
+                to="/analytics"
+                selected={location.pathname === "/analytics"}
+                sx={{
+                  borderRadius: 2,
+                  color:
+                    location.pathname === "/analytics" ? "white" : "#94a3b8",
+                  bgcolor:
+                    location.pathname === "/analytics"
+                      ? "rgba(59, 130, 246, 0.15)"
+                      : "transparent",
+                  "&:hover": { bgcolor: "#1e293b" },
+                }}
+              >
+                <ListItemIcon sx={{ color: "inherit", minWidth: 35 }}>
+                  <TrendingUpIcon fontSize="small" />
+                </ListItemIcon>
+                <ListItemText
+                  primary="Revenue Analytics"
+                  primaryTypographyProps={{ fontSize: "0.85rem" }}
+                />
+              </ListItemButton>
+            </ListItem>
+            <ListItem disablePadding sx={{ pl: 4, mb: 0.5 }}>
+              <ListItemButton
+                component={Link}
+                to="/revenue"
+                selected={location.pathname === "/revenue"}
+                sx={{
+                  borderRadius: 2,
+                  color: location.pathname === "/revenue" ? "white" : "#94a3b8",
+                  bgcolor:
+                    location.pathname === "/revenue"
+                      ? "rgba(59, 130, 246, 0.15)"
+                      : "transparent",
+                  "&:hover": { bgcolor: "#1e293b" },
+                }}
+              >
+                <ListItemIcon sx={{ color: "inherit", minWidth: 35 }}>
+                  <MoneyIcon fontSize="small" />
+                </ListItemIcon>
+                <ListItemText
+                  primary="Revenue Reports"
+                  primaryTypographyProps={{ fontSize: "0.85rem" }}
+                />
+              </ListItemButton>
+            </ListItem>
+          </List>
+        </Collapse>
+
+        {/* Management Section */}
+        {isAdmin && (
+          <>
+            <ListItem disablePadding sx={{ mb: 1 }}>
+              <ListItemButton
+                onClick={() => setManagementOpen(!managementOpen)}
+                sx={{
+                  borderRadius: 2,
+                  color: isManagementPath ? "white" : "#94a3b8",
+                  bgcolor: isManagementPath
+                    ? "rgba(168, 85, 247, 0.15)"
+                    : "transparent",
+                  "&:hover": {
+                    bgcolor: isManagementPath
+                      ? "rgba(168, 85, 247, 0.25)"
+                      : "#1e293b",
+                  },
+                }}
+              >
+                <ListItemIcon
+                  sx={{ color: "inherit", minWidth: 40, opacity: 0.9 }}
+                >
+                  <SettingsIcon />
+                </ListItemIcon>
+                <ListItemText
+                  primary="Management"
+                  primaryTypographyProps={{
+                    fontWeight: isManagementPath ? 600 : 400,
+                    fontSize: "0.95rem",
+                  }}
+                />
+                <Chip
+                  label="Admin"
+                  size="small"
+                  sx={{
+                    height: 18,
+                    fontSize: "0.65rem",
+                    bgcolor: "rgba(168, 85, 247, 0.2)",
+                    color: "#c4b5fd",
+                    fontWeight: 700,
+                    mr: 1,
+                  }}
+                />
+                {managementOpen ? <ExpandLess /> : <ExpandMore />}
+              </ListItemButton>
+            </ListItem>
+            <Collapse in={managementOpen} timeout="auto" unmountOnExit>
+              <List component="div" disablePadding>
+                <ListItem disablePadding sx={{ pl: 4, mb: 0.5 }}>
+                  <ListItemButton
+                    component={Link}
+                    to="/vegetable-manager"
+                    selected={location.pathname === "/vegetable-manager"}
+                    sx={{
+                      borderRadius: 2,
+                      color:
+                        location.pathname === "/vegetable-manager"
+                          ? "white"
+                          : "#94a3b8",
+                      bgcolor:
+                        location.pathname === "/vegetable-manager"
+                          ? "rgba(168, 85, 247, 0.15)"
+                          : "transparent",
+                      "&:hover": { bgcolor: "#1e293b" },
+                    }}
+                  >
+                    <ListItemIcon sx={{ color: "inherit", minWidth: 35 }}>
+                      <InventoryIcon fontSize="small" />
+                    </ListItemIcon>
+                    <ListItemText
+                      primary="Vegetable Manager"
+                      primaryTypographyProps={{ fontSize: "0.85rem" }}
+                    />
+                  </ListItemButton>
+                </ListItem>
+                <ListItem disablePadding sx={{ pl: 4, mb: 0.5 }}>
+                  <ListItemButton
+                    component={Link}
+                    to="/alerts"
+                    selected={location.pathname === "/alerts"}
+                    sx={{
+                      borderRadius: 2,
+                      color:
+                        location.pathname === "/alerts" ? "white" : "#94a3b8",
+                      bgcolor:
+                        location.pathname === "/alerts"
+                          ? "rgba(168, 85, 247, 0.15)"
+                          : "transparent",
+                      "&:hover": { bgcolor: "#1e293b" },
+                    }}
+                  >
+                    <ListItemIcon sx={{ color: "inherit", minWidth: 35 }}>
+                      <AlertIcon fontSize="small" />
+                    </ListItemIcon>
+                    <ListItemText
+                      primary="Alerts"
+                      primaryTypographyProps={{ fontSize: "0.85rem" }}
+                    />
+                  </ListItemButton>
+                </ListItem>
+                <ListItem disablePadding sx={{ pl: 4, mb: 0.5 }}>
+                  <ListItemButton
+                    component={Link}
+                    to="/audit-logs"
+                    selected={location.pathname === "/audit-logs"}
+                    sx={{
+                      borderRadius: 2,
+                      color:
+                        location.pathname === "/audit-logs"
+                          ? "white"
+                          : "#94a3b8",
+                      bgcolor:
+                        location.pathname === "/audit-logs"
+                          ? "rgba(168, 85, 247, 0.15)"
+                          : "transparent",
+                      "&:hover": { bgcolor: "#1e293b" },
+                    }}
+                  >
+                    <ListItemIcon sx={{ color: "inherit", minWidth: 35 }}>
+                      <AuditIcon fontSize="small" />
+                    </ListItemIcon>
+                    <ListItemText
+                      primary="Audit Logs"
+                      primaryTypographyProps={{ fontSize: "0.85rem" }}
+                    />
+                  </ListItemButton>
+                </ListItem>
+              </List>
+            </Collapse>
+          </>
+        )}
       </List>
 
       {/* Logout */}
