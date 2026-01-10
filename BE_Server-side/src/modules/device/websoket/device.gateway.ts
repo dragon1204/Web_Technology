@@ -10,9 +10,12 @@ import { Server, Socket } from 'socket.io';
 import { forwardRef, Inject } from '@nestjs/common';
 import { DeviceService } from '../device.service';
 
-@WebSocketGateway(3001, {
-  cors: '*',
-  path: `/socket`,
+@WebSocketGateway({
+  cors: {
+    origin: '*',
+    credentials: true,
+  },
+  path: `/socket.io`,
   namespace: `/devices`,
 })
 export class WsGateway implements OnGatewayConnection {
