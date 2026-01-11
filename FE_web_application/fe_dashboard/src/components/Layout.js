@@ -1,13 +1,21 @@
-import React, { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
 import toast from "react-hot-toast";
 
 const Layout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const { user, logout } = useAuth();
+  const { user, logout, token } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Debug authentication status
+  useEffect(() => {
+    console.log("Layout: User:", user);
+    console.log("Layout: Token:", token ? "exists" : "none");
+    console.log("Layout: Token value:", token);
+    console.log("Layout: localStorage token:", localStorage.getItem("token"));
+  }, [user, token]);
 
   const handleLogout = async () => {
     try {
@@ -207,14 +215,26 @@ const Layout = ({ children }) => {
                   fontWeight: "bold",
                 }}
               >
-                {user?.name?.charAt(0)?.toUpperCase() || "U"}
+                {(
+                  user?.name ||
+                  user?.data?.name ||
+                  user?.email ||
+                  user?.data?.email ||
+                  "U"
+                )
+                  ?.charAt(0)
+                  ?.toUpperCase()}
               </div>
               <div>
                 <div style={{ fontSize: "14px", fontWeight: "500" }}>
-                  {user?.name || "User"}
+                  {user?.name ||
+                    user?.data?.name ||
+                    user?.email ||
+                    user?.data?.email ||
+                    "User"}
                 </div>
                 <div style={{ fontSize: "12px", color: "#a0a0a0" }}>
-                  {user?.role || "USER"}
+                  {user?.role || user?.data?.role || "USER"}
                 </div>
               </div>
             </div>
