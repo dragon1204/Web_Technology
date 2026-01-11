@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 import { authService } from "../services/authService";
 
 const AuthContext = createContext();
@@ -36,9 +36,18 @@ export const AuthProvider = ({ children }) => {
           try {
             const profile = await authService.getProfile();
             console.log("InitAuth - profile from API:", profile);
-            if (profile) {
-              setUser(profile);
-              localStorage.setItem("user", JSON.stringify(profile));
+
+            // Handle the correct backend format: { HttpCode, success, data: {...} }
+            let userData = null;
+            if (profile && profile.data) {
+              userData = profile.data;
+            } else if (profile && profile.id) {
+              userData = profile;
+            }
+
+            if (userData) {
+              setUser(userData);
+              localStorage.setItem("user", JSON.stringify(userData));
             }
           } catch (error) {
             console.error("Token validation failed:", error);

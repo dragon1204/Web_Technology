@@ -4,10 +4,22 @@ const API_BASE = config.API_BASE_URL;
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem("token");
-  return {
+  console.log(
+    "GardenService: Token from localStorage:",
+    token ? "exists" : "none"
+  );
+  console.log("GardenService: Token value:", token);
+
+  const headers = {
     "Content-Type": "application/json",
-    Authorization: `Bearer ${token}`,
   };
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  console.log("GardenService: Headers:", headers);
+  return headers;
 };
 
 export const gardenService = {
@@ -42,21 +54,33 @@ export const gardenService = {
     console.log("GardenService: Fetching gardens with params:", params);
     console.log("GardenService: API URL:", `${API_BASE}/garden?${queryParams}`);
 
-    const response = await fetch(`${API_BASE}/garden?${queryParams}`, {
-      headers: getAuthHeaders(),
-    });
+    try {
+      const response = await fetch(`${API_BASE}/garden?${queryParams}`, {
+        method: "GET",
+        headers: getAuthHeaders(),
+      });
 
-    console.log("GardenService: Response status:", response.status);
+      console.log("GardenService: Response status:", response.status);
+      console.log("GardenService: Response headers:", response.headers);
 
-    if (!response.ok) {
-      const error = await response.json();
-      console.error("GardenService: Error response:", error);
-      throw new Error(error.message || "Failed to fetch gardens");
+      // Always try to parse JSON response, regardless of status
+      const data = await response.json();
+      console.log("GardenService: Raw response data:", data);
+
+      // Check if response has the expected format
+      if (data && (data.data || Array.isArray(data))) {
+        console.log("GardenService: Success - returning data");
+        return data;
+      } else {
+        console.error("GardenService: Unexpected response format:", data);
+        // Return empty data structure
+        return { data: [], total: 0, page: 1, limit: 10, totalPages: 0 };
+      }
+    } catch (error) {
+      console.error("GardenService: Network or parsing error:", error);
+      // Return empty data instead of throwing to prevent app crash
+      return { data: [], total: 0, page: 1, limit: 10, totalPages: 0 };
     }
-
-    const data = await response.json();
-    console.log("GardenService: Success response:", data);
-    return data;
   },
 
   async getGardenById(id) {

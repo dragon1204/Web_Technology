@@ -1,4 +1,3 @@
-import React from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -11,9 +10,9 @@ import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { SocketProvider } from "./contexts/SocketContext";
 import Login from "./components/Login";
 import Dashboard from "./components/Dashboard";
-import PlantManagement from "./components/PlantManagement";
+import VegetableList from "./components/VegetableList";
 import Controls from "./components/Controls";
-import GardenView from "./components/GardenView";
+import GardenList from "./components/GardenList";
 import Layout from "./components/Layout";
 import OAuthCallback from "./components/OAuthCallback";
 import "./App.css";
@@ -61,7 +60,10 @@ function ProtectedRoute({ children }) {
     return <Navigate to="/login" replace />;
   }
 
-  console.log("Rendering protected content for user:", user.email || user.name); // Debug log
+  console.log(
+    "Rendering protected content for user:",
+    user?.email || user?.name || user?.data?.email || user?.data?.name
+  ); // Debug log
   return <Layout>{children}</Layout>;
 }
 
@@ -86,7 +88,7 @@ function App() {
                 path="/garden"
                 element={
                   <ProtectedRoute>
-                    <GardenView />
+                    <GardenList />
                   </ProtectedRoute>
                 }
               />
@@ -94,7 +96,7 @@ function App() {
                 path="/plants"
                 element={
                   <ProtectedRoute>
-                    <PlantManagement />
+                    <VegetableList />
                   </ProtectedRoute>
                 }
               />

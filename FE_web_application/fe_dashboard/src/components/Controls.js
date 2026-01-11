@@ -1,12 +1,18 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useSocket } from "../contexts/SocketContext";
 import toast from "react-hot-toast";
 
 const Controls = () => {
   const [devices, setDevices] = useState([]);
-  const [simulatorConnected, setSimulatorConnected] = useState(false);
 
-  const { connected, emit, subscribeTo } = useSocket();
+  const {
+    connected,
+    subscribeTo,
+    deviceMode,
+    switchDeviceMode,
+    simulatorConnected,
+    sendDeviceCommand,
+  } = useSocket();
 
   // Map device types to icons
   const getDeviceIcon = (type) => {
@@ -19,134 +25,132 @@ const Controls = () => {
     return iconMap[type] || "⚙️";
   };
 
-  // Connect to device simulator
+  // Connect to device simulator or real devices
   useEffect(() => {
-    const connectToSimulator = () => {
-      try {
-        const simulatorWs = new WebSocket("ws://localhost:8080");
+    if (deviceMode === "simulator") {
+      // Subscribe to simulator data
+      const unsubscribe = subscribeTo("simulatorData", (message) => {
+        console.log("Simulator message:", message);
 
-        simulatorWs.onopen = () => {
-          console.log("Connected to device simulator");
-          setSimulatorConnected(true);
-          toast.success("Kết nối thiết bị mô phỏng thành công");
-        };
+        switch (message.type) {
+          case "device_list":
+            const formattedDevices = message.data.map((device) => ({
+              id: device.id,
+              name: device.name,
+              type: device.type,
+              status: device.status,
+              location: device.location,
+              icon: getDeviceIcon(device.type),
+              value: device.value
+                ? `${device.value}${device.unit || ""}`
+                : null,
+              controllable: device.controllable,
+            }));
+            setDevices(formattedDevices);
+            break;
 
-        simulatorWs.onmessage = (event) => {
-          const message = JSON.parse(event.data);
-          console.log("Simulator message:", message);
+          case "device_update":
+            setDevices((prev) =>
+              prev.map((d) =>
+                d.id === message.data.id
+                  ? {
+                      ...d,
+                      status: message.data.status,
+                      value: message.data.value
+                        ? `${message.data.value}${message.data.unit || ""}`
+                        : d.value,
+                    }
+                  : d
+              )
+            );
+            break;
 
-          switch (message.type) {
-            case "device_list":
-              // Initial device list from simulator
-              const formattedDevices = message.data.map((device) => ({
-                id: device.id,
-                name: device.name,
-                type: device.type,
-                status: device.status,
-                location: device.location,
-                icon: getDeviceIcon(device.type),
-                value: device.value
-                  ? `${device.value}${device.unit || ""}`
-                  : null,
-                controllable: device.controllable,
-              }));
-              setDevices(formattedDevices);
-              break;
+          case "sensor_data":
+            setDevices((prev) =>
+              prev.map((d) =>
+                d.id === message.data.deviceId
+                  ? {
+                      ...d,
+                      value: `${message.data.value}${message.data.unit || ""}`,
+                    }
+                  : d
+              )
+            );
+            break;
 
-            case "device_update":
-              // Single device update
-              setDevices((prev) =>
-                prev.map((d) =>
-                  d.id === message.data.id
-                    ? {
-                        ...d,
-                        status: message.data.status,
-                        value: message.data.value
-                          ? `${message.data.value}${message.data.unit || ""}`
-                          : d.value,
-                      }
-                    : d
-                )
-              );
-              break;
+          case "device_response":
+            if (!message.data.success) {
+              toast.error(`Lỗi thiết bị: ${message.data.message}`);
+            }
+            break;
+        }
+      });
 
-            case "sensor_data":
-              // Sensor data update
-              setDevices((prev) =>
-                prev.map((d) =>
-                  d.id === message.data.deviceId
-                    ? {
-                        ...d,
-                        value: `${message.data.value}${
-                          message.data.unit || ""
-                        }`,
-                      }
-                    : d
-                )
-              );
-              break;
+      return unsubscribe;
+    } else if (deviceMode === "real") {
+      // Subscribe to real device data from backend
+      const unsubscribeDeviceList = subscribeTo("deviceList", (data) => {
+        console.log("Real device list:", data);
+        const formattedDevices = data.map((device) => ({
+          id: device.id,
+          name: device.name,
+          type: device.type,
+          status: device.status,
+          location: device.location || "Vườn",
+          icon: getDeviceIcon(device.type),
+          value: device.value ? `${device.value}${device.unit || ""}` : null,
+          controllable: device.controllable !== false,
+        }));
+        setDevices(formattedDevices);
+      });
 
-            case "device_response":
-              // Device command response
-              if (!message.data.success) {
-                toast.error(`Lỗi thiết bị: ${message.data.message}`);
-              }
-              break;
-          }
-        };
+      const unsubscribeDeviceStatus = subscribeTo("deviceStatus", (data) => {
+        console.log("Real device status update:", data);
+        setDevices((prev) =>
+          prev.map((device) =>
+            device.id === data.deviceId
+              ? {
+                  ...device,
+                  status: data.status,
+                  value: data.value
+                    ? `${data.value}${data.unit || ""}`
+                    : device.value,
+                }
+              : device
+          )
+        );
+      });
 
-        simulatorWs.onclose = () => {
-          console.log("Disconnected from device simulator");
-          setSimulatorConnected(false);
-          toast.error("Mất kết nối thiết bị mô phỏng");
+      const unsubscribeSensorData = subscribeTo("sensorData", (data) => {
+        console.log("Real sensor data:", data);
+        setDevices((prev) =>
+          prev.map((device) =>
+            device.id === data.sensorId
+              ? {
+                  ...device,
+                  value: `${data.value}${data.unit || ""}`,
+                }
+              : device
+          )
+        );
+      });
 
-          // Try to reconnect after 5 seconds
-          setTimeout(connectToSimulator, 5000);
-        };
-
-        simulatorWs.onerror = (error) => {
-          console.error("Simulator WebSocket error:", error);
-          setSimulatorConnected(false);
-        };
-
-        // Store WebSocket reference for cleanup
-        window.simulatorWs = simulatorWs;
-      } catch (error) {
-        console.error("Failed to connect to simulator:", error);
-        setSimulatorConnected(false);
+      // Request device list from backend
+      if (connected) {
+        subscribeTo("requestDeviceList", {});
       }
-    };
 
-    // Connect to simulator on component mount
-    connectToSimulator();
-
-    // Cleanup on unmount
-    return () => {
-      if (window.simulatorWs) {
-        window.simulatorWs.close();
-        window.simulatorWs = null;
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    // Subscribe to device status updates
-    const unsubscribe = subscribeTo("deviceStatus", (data) => {
-      setDevices((prev) =>
-        prev.map((device) =>
-          device.id === data.deviceId
-            ? { ...device, status: data.status, value: data.value }
-            : device
-        )
-      );
-    });
-
-    return unsubscribe;
-  }, [subscribeTo]);
+      return () => {
+        unsubscribeDeviceList();
+        unsubscribeDeviceStatus();
+        unsubscribeSensorData();
+      };
+    }
+  }, [deviceMode, subscribeTo, connected]);
 
   const handleDeviceToggle = async (device) => {
     if (device.type === "sensor" || !device.controllable) {
-      toast.info("Thiết bị này không thể điều khiển");
+      toast("Thiết bị này không thể điều khiển");
       return;
     }
 
@@ -158,25 +162,14 @@ const Controls = () => {
         prev.map((d) => (d.id === device.id ? { ...d, status: newStatus } : d))
       );
 
-      // Send command to device simulator
-      if (simulatorConnected && window.simulatorWs) {
-        const command = {
-          deviceId: device.id,
-          action: newStatus === "on" ? "turn_on" : "turn_off",
-        };
-
-        console.log("Sending device command:", command);
-        window.simulatorWs.send(JSON.stringify(command));
-      }
-
-      // Also send via main WebSocket if connected (for backend integration)
-      if (connected) {
-        emit("deviceControl", {
-          deviceId: device.id,
-          command: newStatus,
+      // Send command using unified method
+      sendDeviceCommand(
+        device.id,
+        newStatus === "on" ? "turn_on" : "turn_off",
+        {
           type: device.type,
-        });
-      }
+        }
+      );
 
       toast.success(`${device.name} đã ${newStatus === "on" ? "bật" : "tắt"}`);
     } catch (error) {
@@ -345,7 +338,10 @@ const Controls = () => {
       {device.type !== "sensor" && device.controllable && (
         <button
           onClick={() => handleDeviceToggle(device)}
-          disabled={!simulatorConnected}
+          disabled={
+            (deviceMode === "simulator" && !simulatorConnected) ||
+            (deviceMode === "real" && !connected)
+          }
           style={{
             backgroundColor: device.status === "on" ? "#dc2626" : "#4cbe00",
             color: "white",
@@ -354,8 +350,16 @@ const Controls = () => {
             borderRadius: "8px",
             fontSize: "14px",
             fontWeight: "500",
-            cursor: simulatorConnected ? "pointer" : "not-allowed",
-            opacity: simulatorConnected ? 1 : 0.5,
+            cursor:
+              (deviceMode === "simulator" && simulatorConnected) ||
+              (deviceMode === "real" && connected)
+                ? "pointer"
+                : "not-allowed",
+            opacity:
+              (deviceMode === "simulator" && simulatorConnected) ||
+              (deviceMode === "real" && connected)
+                ? 1
+                : 0.5,
             transition: "all 0.2s ease",
           }}
         >
@@ -368,33 +372,98 @@ const Controls = () => {
   return (
     <div>
       {/* Header */}
-      <div style={{ marginBottom: "30px" }}>
-        <h1
+      <div
+        style={{
+          marginBottom: "30px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+        }}
+      >
+        <div>
+          <h1
+            style={{
+              color: "#e0e0e0",
+              fontSize: "24px",
+              fontWeight: "bold",
+              margin: "0 0 8px 0",
+            }}
+          >
+            ⚙️ Điều khiển thiết bị
+          </h1>
+          <p
+            style={{
+              color: "#a0a0a0",
+              fontSize: "14px",
+              margin: 0,
+            }}
+          >
+            Quản lý và điều khiển các thiết bị IoT trong vườn
+          </p>
+        </div>
+
+        {/* Device Mode Switcher */}
+        <div
           style={{
-            color: "#e0e0e0",
-            fontSize: "24px",
-            fontWeight: "bold",
-            margin: "0 0 8px 0",
+            backgroundColor: "#1a2e1a",
+            border: "1px solid #28392e",
+            borderRadius: "8px",
+            padding: "4px",
+            display: "flex",
+            gap: "4px",
           }}
         >
-          Điều khiển thiết bị
-        </h1>
-        <p
-          style={{
-            color: "#a0a0a0",
-            fontSize: "14px",
-            margin: 0,
-          }}
-        >
-          Quản lý và điều khiển các thiết bị IoT trong vườn
-        </p>
+          <button
+            onClick={() => switchDeviceMode("simulator")}
+            style={{
+              backgroundColor:
+                deviceMode === "simulator" ? "#4cbe00" : "transparent",
+              color: deviceMode === "simulator" ? "white" : "#a0a0a0",
+              border: "none",
+              padding: "8px 16px",
+              borderRadius: "6px",
+              fontSize: "14px",
+              fontWeight: "500",
+              cursor: "pointer",
+              transition: "all 0.2s ease",
+            }}
+          >
+            🤖 Mô phỏng
+          </button>
+          <button
+            onClick={() => switchDeviceMode("real")}
+            style={{
+              backgroundColor:
+                deviceMode === "real" ? "#4cbe00" : "transparent",
+              color: deviceMode === "real" ? "white" : "#a0a0a0",
+              border: "none",
+              padding: "8px 16px",
+              borderRadius: "6px",
+              fontSize: "14px",
+              fontWeight: "500",
+              cursor: "pointer",
+              transition: "all 0.2s ease",
+            }}
+          >
+            🔌 Thiết bị thật
+          </button>
+        </div>
       </div>
 
       {/* Connection Status */}
       <div
         style={{
-          backgroundColor: simulatorConnected ? "#10b98120" : "#dc262620",
-          border: `1px solid ${simulatorConnected ? "#10b981" : "#dc2626"}`,
+          backgroundColor:
+            (deviceMode === "simulator" && simulatorConnected) ||
+            (deviceMode === "real" && connected)
+              ? "#10b98120"
+              : "#dc262620",
+          border: `1px solid ${
+            (deviceMode === "simulator" && simulatorConnected) ||
+            (deviceMode === "real" && connected)
+              ? "#10b981"
+              : "#dc2626"
+          }`,
           borderRadius: "8px",
           padding: "16px",
           marginBottom: "30px",
@@ -414,22 +483,34 @@ const Controls = () => {
             style={{
               width: "12px",
               height: "12px",
-              backgroundColor: simulatorConnected ? "#10b981" : "#dc2626",
+              backgroundColor:
+                (deviceMode === "simulator" && simulatorConnected) ||
+                (deviceMode === "real" && connected)
+                  ? "#10b981"
+                  : "#dc2626",
               borderRadius: "50%",
             }}
           ></div>
           <div>
             <div
               style={{
-                color: simulatorConnected ? "#10b981" : "#dc2626",
+                color:
+                  (deviceMode === "simulator" && simulatorConnected) ||
+                  (deviceMode === "real" && connected)
+                    ? "#10b981"
+                    : "#dc2626",
                 fontSize: "16px",
                 fontWeight: "600",
                 marginBottom: "2px",
               }}
             >
-              {simulatorConnected
-                ? "Thiết bị mô phỏng kết nối"
-                : "Mất kết nối thiết bị"}
+              {deviceMode === "simulator"
+                ? simulatorConnected
+                  ? "Thiết bị mô phỏng kết nối"
+                  : "Mất kết nối thiết bị mô phỏng"
+                : connected
+                ? "Thiết bị thật kết nối"
+                : "Mất kết nối thiết bị thật"}
             </div>
             <div
               style={{
@@ -437,14 +518,19 @@ const Controls = () => {
                 fontSize: "14px",
               }}
             >
-              {simulatorConnected
-                ? "Có thể điều khiển thiết bị mô phỏng"
-                : "Không thể điều khiển thiết bị"}
+              {deviceMode === "simulator"
+                ? simulatorConnected
+                  ? "Có thể điều khiển thiết bị mô phỏng (localhost:8080)"
+                  : "Không thể điều khiển thiết bị - Khởi động simulator"
+                : connected
+                ? "Có thể điều khiển thiết bị thật qua backend"
+                : "Không thể điều khiển thiết bị - Kiểm tra kết nối backend"}
             </div>
           </div>
         </div>
 
-        {!simulatorConnected && (
+        {((deviceMode === "simulator" && !simulatorConnected) ||
+          (deviceMode === "real" && !connected)) && (
           <button
             onClick={() => window.location.reload()}
             style={{
@@ -620,12 +706,25 @@ const Controls = () => {
             lineHeight: "1.5",
           }}
         >
-          🤖 <strong>Thiết bị mô phỏng:</strong> Các thiết bị được điều khiển
-          thông qua Device Simulator chạy trên WebSocket (localhost:8080). Cảm
-          biến sẽ tự động cập nhật dữ liệu theo thời gian thực.
-          <br />
-          💡 <strong>Lưu ý:</strong> Đảm bảo Device Simulator đang chạy để có
-          thể điều khiển thiết bị.
+          {deviceMode === "simulator" ? (
+            <>
+              🤖 <strong>Chế độ mô phỏng:</strong> Các thiết bị được điều khiển
+              thông qua Device Simulator chạy trên WebSocket (localhost:8080).
+              Cảm biến sẽ tự động cập nhật dữ liệu theo thời gian thực.
+              <br />
+              💡 <strong>Lưu ý:</strong> Đảm bảo Device Simulator đang chạy để
+              có thể điều khiển thiết bị.
+            </>
+          ) : (
+            <>
+              🔌 <strong>Chế độ thiết bị thật:</strong> Các thiết bị được điều
+              khiển thông qua backend WebSocket. Thiết bị phải được kết nối và
+              đăng ký với hệ thống.
+              <br />
+              💡 <strong>Lưu ý:</strong> Đảm bảo thiết bị IoT đã được kết nối
+              với backend và đăng ký đúng gardenId.
+            </>
+          )}
         </div>
       </div>
     </div>
