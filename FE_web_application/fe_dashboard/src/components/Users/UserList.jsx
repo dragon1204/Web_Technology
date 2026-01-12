@@ -519,6 +519,7 @@ function UserList() {
             select
             fullWidth
             required
+            variant="outlined"
             value={currentUser.role}
             onChange={(e) =>
               setCurrentUser({ ...currentUser, role: e.target.value })

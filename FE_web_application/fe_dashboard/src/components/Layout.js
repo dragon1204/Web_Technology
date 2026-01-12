@@ -62,6 +62,7 @@ const Layout = ({ children }) => {
     },
   ];
 
+<<<<<<< HEAD
   const customerMenuItems = [
     {
       path: "/customer/shops",
@@ -85,6 +86,8 @@ const Layout = ({ children }) => {
     },
   ];
 
+=======
+>>>>>>> main
   const isActive = (path) => {
     return location.pathname === path;
   };
@@ -177,6 +180,7 @@ const Layout = ({ children }) => {
                 {sidebarOpen && <span>{item.name}</span>}
               </button>
             ))}
+<<<<<<< HEAD
           
           {/* Customer Section Divider */}
           {sidebarOpen && (
@@ -240,6 +244,8 @@ const Layout = ({ children }) => {
               </button>
             );
           })}
+=======
+>>>>>>> main
         </nav>
 
         {/* Toggle Button */}

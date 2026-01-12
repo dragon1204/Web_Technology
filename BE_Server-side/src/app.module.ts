@@ -16,11 +16,14 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { DeviceModule } from './modules/device/device.module';
 import { AuditInterceptor } from './common/interceptor/audit.interceptor';
+<<<<<<< HEAD
 import { ShopModule } from './modules/shop/shop.module';
 import { ProductModule } from './modules/product/product.module';
 import { CartModule } from './modules/cart/cart.module';
 import { OrderModule } from './modules/order/order.module';
 import { StorageModule } from './modules/storage/storage.module';
+=======
+>>>>>>> main
 
 
 @Module({
@@ -36,8 +39,12 @@ import { StorageModule } from './modules/storage/storage.module';
       ttl: 60,
       limit: 60,
     }]),
+<<<<<<< HEAD
      GardenModule, VegetableModule, DeviceModule, NotificationModule, AlertModule, AnalyticsModule,
      ShopModule, ProductModule, CartModule, OrderModule, StorageModule],
+=======
+     GardenModule, VegetableModule, DeviceModule, NotificationModule, AlertModule, AnalyticsModule],
+>>>>>>> main
   controllers: [],
   providers: [ 
     PrismaService, 

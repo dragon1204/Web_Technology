@@ -31,6 +31,9 @@ import {
   Store as StoreIcon,
   Inventory as InventoryIcon,
   History as HistoryIcon,
+  ExpandLess as ExpandLessIcon,
+  ExpandMore as ExpandMoreIcon,
+  Settings as SettingsIcon,
 } from "@mui/icons-material";
 import { authAPI, gardenAPI } from "../services/api";
 import toast from "react-hot-toast";
@@ -68,7 +71,6 @@ function Layout({ children }) {
   };
 
   const handleSelectGarden = (garden) => {
-    // Điều hướng đến dashboard của garden
     navigate(`/gardens/${garden.id}`);
   };
 
@@ -97,11 +99,13 @@ function Layout({ children }) {
   const drawer = (
     <div>
       <Toolbar>
-        <Typography variant="h6" noWrap component="div">
+        <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
           Garden IOT
         </Typography>
       </Toolbar>
       <Divider />
+      
+      {/* Main Navigation */}
       <List>
         {menuItems.map((item) => (
           <ListItem key={item.text} disablePadding>
@@ -115,7 +119,10 @@ function Layout({ children }) {
           </ListItem>
         ))}
       </List>
+      
       <Divider />
+
+      {/* Customer Section */}
       <List>
         <ListItem disablePadding>
           <ListItemText 
@@ -134,11 +141,7 @@ function Layout({ children }) {
         {customerMenuItems.map((item) => (
           <ListItem key={item.text} disablePadding>
             <ListItemButton
-              selected={
-                location.pathname === item.path ||
-                (item.path === "/customer/products" && location.pathname.startsWith("/customer/products")) ||
-                (item.path === "/customer/orders" && location.pathname.startsWith("/customer/orders"))
-              }
+              selected={location.pathname.startsWith(item.path)}
               onClick={() => navigate(item.path)}
               sx={{ pl: 4 }}
             >
@@ -148,7 +151,71 @@ function Layout({ children }) {
           </ListItem>
         ))}
       </List>
+
       <Divider />
+
+      {/* Collapsible Gardens Section */}
+      <List>
+        <ListItem disablePadding>
+          <ListItemButton onClick={() => setGardensExpanded(!gardensExpanded)}>
+            <ListItemIcon>
+              <YardIcon />
+            </ListItemIcon>
+            <ListItemText primary="My Gardens" />
+            {gardensExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+          </ListItemButton>
+        </ListItem>
+        <Collapse in={gardensExpanded} timeout="auto" unmountOnExit>
+          <List component="div" disablePadding>
+            {gardens.length === 0 ? (
+              <ListItem sx={{ pl: 4 }}>
+                <ListItemText 
+                  primary="Không có garden" 
+                  secondary="Tạo garden mới"
+                  primaryTypographyProps={{ variant: "body2", color: "textSecondary" }}
+                />
+              </ListItem>
+            ) : (
+              gardens.map((garden) => (
+                <ListItem key={garden.id} disablePadding>
+                  <ListItemButton
+                    onClick={() => handleSelectGarden(garden)}
+                    sx={{ pl: 4 }}
+                    selected={location.pathname === `/gardens/${garden.id}`}
+                  >
+                    <ListItemIcon>
+                      {garden.deviceMac ? (
+                        <SettingsIcon fontSize="small" color="success" />
+                      ) : (
+                        <YardIcon fontSize="small" />
+                      )}
+                    </ListItemIcon>
+                    <ListItemText 
+                      primary={garden.name}
+                      secondary={
+                        garden.deviceMac ? (
+                          <Chip 
+                            label={garden.deviceMac} 
+                            size="small" 
+                            color="success"
+                            sx={{ height: 18, fontSize: '0.65rem', mt: 0.5 }}
+                          />
+                        ) : (
+                          "Chưa có thiết bị"
+                        )
+                      }
+                    />
+                  </ListItemButton>
+                </ListItem>
+              ))
+            )}
+          </List>
+        </Collapse>
+      </List>
+
+      <Divider />
+
+      {/* Bottom Actions */}
       <List>
         {bottomMenuItems.map((item) => (
           <ListItem key={item.text} disablePadding>
@@ -161,9 +228,6 @@ function Layout({ children }) {
             </ListItemButton>
           </ListItem>
         ))}
-      </List>
-      <Divider />
-      <List>
         <ListItem disablePadding>
           <ListItemButton onClick={handleLogout}>
             <ListItemIcon>

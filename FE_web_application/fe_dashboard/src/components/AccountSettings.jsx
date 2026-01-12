@@ -20,9 +20,21 @@ import {
   Tab,
   Chip,
   Paper,
+<<<<<<< HEAD
 } from "@mui/material";
 import {
   AccountCircle as AccountIcon,
+=======
+  List,
+  ListItem,
+  ListItemText,
+  ListItemIcon,
+  IconButton,
+} from "@mui/material";
+import {
+  AccountCircle as AccountIcon,
+  Security as SecurityIcon,
+>>>>>>> main
   Lock as LockIcon,
   Verified as VerifiedIcon,
   Edit as EditIcon,
@@ -30,9 +42,18 @@ import {
   Close as CloseIcon,
   Delete as DeleteIcon,
   Check as CheckIcon,
+<<<<<<< HEAD
 } from "@mui/icons-material";
 import { authAPI } from "../services/api";
 import storageService from "../services/storageService";
+=======
+  Warning as WarningIcon,
+  Devices as DevicesIcon,
+  LocationOn as LocationIcon,
+  AccessTime as AccessTimeIcon,
+} from "@mui/icons-material";
+import { authAPI } from "../services/api";
+>>>>>>> main
 
 function AccountSettings() {
   const [tabValue, setTabValue] = useState(0);
@@ -40,10 +61,13 @@ function AccountSettings() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+<<<<<<< HEAD
   
   // Avatar
   const [avatarUrl, setAvatarUrl] = useState("");
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+=======
+>>>>>>> main
 
   // Profile
   const [editProfile, setEditProfile] = useState(false);
@@ -99,12 +123,15 @@ function AccountSettings() {
         email: userData.email || "",
         phone: userData.phone || "",
       });
+<<<<<<< HEAD
       
       // Load avatar if exists
       if (userData.id) {
         loadAvatar(userData.id);
       }
       
+=======
+>>>>>>> main
       // Check 2FA status
       // const status = await authAPI.getTwoFAStatus();
       // setTwoFAEnabled(status.data?.data?.enabled || false);
@@ -113,6 +140,7 @@ function AccountSettings() {
     }
   };
 
+<<<<<<< HEAD
   const loadAvatar = async (userId) => {
     try {
       const fileName = `avatars/user-${userId}.jpg`;
@@ -178,6 +206,8 @@ function AccountSettings() {
     }
   };
 
+=======
+>>>>>>> main
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
   };
@@ -269,21 +299,53 @@ function AccountSettings() {
   };
 
   return (
+<<<<<<< HEAD
     <Box sx={{ p: 2 }}>
       {/* Alerts */}
       {error && (
         <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError("")}>
+=======
+    <Box sx={{ p: 3 }}>
+      {/* Header */}
+      <Box sx={{ mb: 4 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <Avatar sx={{ width: 64, height: 64, bgcolor: "primary.main" }}>
+            <AccountIcon sx={{ fontSize: 40 }} />
+          </Avatar>
+          <Box>
+            <Typography variant="h4" sx={{ fontWeight: 700 }}>
+              Account Settings
+            </Typography>
+            <Typography variant="body2" color="textSecondary">
+              Manage your profile and security preferences
+            </Typography>
+          </Box>
+        </Box>
+      </Box>
+
+      {/* Alerts */}
+      {error && (
+        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError("")}>
+>>>>>>> main
           {error}
         </Alert>
       )}
       {success && (
+<<<<<<< HEAD
         <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess("")}>
+=======
+        <Alert severity="success" sx={{ mb: 3 }} onClose={() => setSuccess("")}>
+>>>>>>> main
           {success}
         </Alert>
       )}
 
       {/* Tabs */}
+<<<<<<< HEAD
       <Paper sx={{ mb: 2 }}>
+=======
+      <Paper sx={{ mb: 3 }}>
+>>>>>>> main
         <Tabs
           value={tabValue}
           onChange={handleTabChange}
@@ -293,24 +355,40 @@ function AccountSettings() {
         >
           <Tab icon={<AccountIcon />} label="Profile" iconPosition="start" />
           <Tab icon={<LockIcon />} label="Password" iconPosition="start" />
+<<<<<<< HEAD
           <Tab icon={<VerifiedIcon />} label="2FA" iconPosition="start" />
+=======
+          <Tab icon={<VerifiedIcon />} label="Two-Factor Auth" iconPosition="start" />
+          <Tab icon={<DevicesIcon />} label="Sessions" iconPosition="start" />
+>>>>>>> main
         </Tabs>
       </Paper>
 
       {/* Profile Tab */}
       {tabValue === 0 && (
+<<<<<<< HEAD
         <Grid container spacing={2}>
           <Grid item xs={12} md={8}>
             <Card>
               <CardContent sx={{ p: 2.5 }}>
                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2.5 }}>
+=======
+        <Grid container spacing={3}>
+          <Grid item xs={12} md={8}>
+            <Card>
+              <CardContent>
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
+>>>>>>> main
                   <Typography variant="h6" sx={{ fontWeight: 600 }}>
                     Profile Information
                   </Typography>
                   {!editProfile && (
                     <Button
+<<<<<<< HEAD
                       size="small"
                       variant="outlined"
+=======
+>>>>>>> main
                       startIcon={<EditIcon />}
                       onClick={handleEditProfile}
                     >
@@ -319,6 +397,7 @@ function AccountSettings() {
                   )}
                 </Box>
 
+<<<<<<< HEAD
                 <Box sx={{ display: "flex", alignItems: "flex-start", gap: 2.5, mb: 2.5, pb: 2.5, borderBottom: 1, borderColor: 'divider' }}>
                   <Box sx={{ position: 'relative' }}>
                     <Avatar 
@@ -372,6 +451,8 @@ function AccountSettings() {
                   </Box>
                 </Box>
 
+=======
+>>>>>>> main
                 <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
                   <TextField
                     fullWidth
@@ -403,16 +484,29 @@ function AccountSettings() {
                   />
 
                   {editProfile && (
+<<<<<<< HEAD
                     <Box sx={{ display: "flex", gap: 1.5, mt: 1 }}>
                       <Button
+=======
+                    <Box sx={{ display: "flex", gap: 2, mt: 2 }}>
+                      <Button
+                        fullWidth
+>>>>>>> main
                         variant="contained"
                         startIcon={<SaveIcon />}
                         onClick={handleSaveProfile}
                         disabled={loading}
                       >
+<<<<<<< HEAD
                         {loading ? <CircularProgress size={20} color="inherit" /> : "Save"}
                       </Button>
                       <Button
+=======
+                        {loading ? <CircularProgress size={24} color="inherit" /> : "Save"}
+                      </Button>
+                      <Button
+                        fullWidth
+>>>>>>> main
                         variant="outlined"
                         startIcon={<CloseIcon />}
                         onClick={() => setEditProfile(false)}
@@ -429,39 +523,68 @@ function AccountSettings() {
 
           <Grid item xs={12} md={4}>
             <Card>
+<<<<<<< HEAD
               <CardContent sx={{ p: 2.5 }}>
+=======
+              <CardContent>
+>>>>>>> main
                 <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
                   Account Info
                 </Typography>
                 <Divider sx={{ mb: 2 }} />
 
+<<<<<<< HEAD
                 <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
                   <Box>
                     <Typography variant="caption" color="textSecondary" sx={{ display: "block", mb: 0.5 }}>
                       User ID
                     </Typography>
                     <Typography variant="body1" sx={{ fontWeight: 500 }}>
+=======
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                  <Box>
+                    <Typography variant="caption" color="textSecondary">
+                      User ID
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
+>>>>>>> main
                       {user?.id || "N/A"}
                     </Typography>
                   </Box>
 
                   <Box>
+<<<<<<< HEAD
                     <Typography variant="caption" color="textSecondary" sx={{ display: "block", mb: 0.5 }}>
+=======
+                    <Typography variant="caption" color="textSecondary">
+>>>>>>> main
                       Account Type
                     </Typography>
                     <Chip
                       label={user?.role || "USER"}
                       color="primary"
                       variant="outlined"
+<<<<<<< HEAD
                       sx={{ mt: 0.5 }}
+=======
+                      size="small"
+                      sx={{ mt: 1 }}
+>>>>>>> main
                     />
                   </Box>
 
                   <Box>
+<<<<<<< HEAD
                     <Typography variant="caption" color="textSecondary" sx={{ display: "block", mb: 0.5 }}>
                       Member Since
                     </Typography>
                     <Typography variant="body1" sx={{ fontWeight: 500 }}>
+=======
+                    <Typography variant="caption" color="textSecondary">
+                      Member Since
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
+>>>>>>> main
                       {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : "N/A"}
                     </Typography>
                   </Box>
@@ -474,6 +597,7 @@ function AccountSettings() {
 
       {/* Password Tab */}
       {tabValue === 1 && (
+<<<<<<< HEAD
         <Card>
           <CardContent sx={{ p: 2 }}>
             <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
@@ -495,18 +619,112 @@ function AccountSettings() {
             </Button>
           </CardContent>
         </Card>
+=======
+        <Grid container spacing={3}>
+          <Grid item xs={12} md={8}>
+            <Card>
+              <CardContent>
+                <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
+                  Change Password
+                </Typography>
+
+                <Alert severity="info" sx={{ mb: 3 }}>
+                  <Typography variant="body2">
+                    For your security, please use a strong password with uppercase, lowercase,
+                    numbers, and special characters.
+                  </Typography>
+                </Alert>
+
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                  <Typography variant="body2" color="textSecondary">
+                    Last changed: <strong>45 days ago</strong>
+                  </Typography>
+
+                  <Button
+                    fullWidth
+                    variant="contained"
+                    startIcon={<LockIcon />}
+                    onClick={() => setPasswordDialog(true)}
+                  >
+                    Change Password
+                  </Button>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid item xs={12} md={4}>
+            <Card>
+              <CardContent>
+                <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
+                  Password Tips
+                </Typography>
+                <Divider sx={{ mb: 2 }} />
+
+                <List dense>
+                  <ListItem disableGutters>
+                    <ListItemIcon sx={{ minWidth: 32 }}>
+                      <CheckIcon sx={{ fontSize: 18, color: "success.main" }} />
+                    </ListItemIcon>
+                    <ListItemText
+                      primary="At least 8 characters"
+                      primaryTypographyProps={{ variant: "caption" }}
+                    />
+                  </ListItem>
+                  <ListItem disableGutters>
+                    <ListItemIcon sx={{ minWidth: 32 }}>
+                      <CheckIcon sx={{ fontSize: 18, color: "success.main" }} />
+                    </ListItemIcon>
+                    <ListItemText
+                      primary="Mix of uppercase and lowercase"
+                      primaryTypographyProps={{ variant: "caption" }}
+                    />
+                  </ListItem>
+                  <ListItem disableGutters>
+                    <ListItemIcon sx={{ minWidth: 32 }}>
+                      <CheckIcon sx={{ fontSize: 18, color: "success.main" }} />
+                    </ListItemIcon>
+                    <ListItemText
+                      primary="Include numbers"
+                      primaryTypographyProps={{ variant: "caption" }}
+                    />
+                  </ListItem>
+                  <ListItem disableGutters>
+                    <ListItemIcon sx={{ minWidth: 32 }}>
+                      <CheckIcon sx={{ fontSize: 18, color: "success.main" }} />
+                    </ListItemIcon>
+                    <ListItemText
+                      primary="Special characters (!@#$%)"
+                      primaryTypographyProps={{ variant: "caption" }}
+                    />
+                  </ListItem>
+                </List>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+>>>>>>> main
       )}
 
       {/* 2FA Tab */}
       {tabValue === 2 && (
         <Card>
+<<<<<<< HEAD
           <CardContent sx={{ p: 2 }}>
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+=======
+          <CardContent>
+            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
+>>>>>>> main
               <Box>
                 <Typography variant="h6" sx={{ fontWeight: 600 }}>
                   Two-Factor Authentication
                 </Typography>
+<<<<<<< HEAD
                 <Typography variant="body2" color="textSecondary" sx={{ mt: 0.5 }}>
+=======
+                <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
+>>>>>>> main
                   Add an extra layer of security to your account
                 </Typography>
               </Box>
@@ -515,11 +733,16 @@ function AccountSettings() {
                   icon={<CheckIcon />}
                   label="Enabled"
                   color="success"
+<<<<<<< HEAD
                   size="small"
+=======
+                  sx={{ fontWeight: 600 }}
+>>>>>>> main
                 />
               )}
             </Box>
 
+<<<<<<< HEAD
             <Divider sx={{ mb: 2 }} />
 
             <Box sx={{ mb: 2 }}>
@@ -530,10 +753,25 @@ function AccountSettings() {
               ) : (
                 <Alert severity="warning" sx={{ py: 1 }}>
                   Two-factor authentication is not enabled. We recommend enabling it.
+=======
+            <Divider sx={{ mb: 3 }} />
+
+            <Box sx={{ mb: 3 }}>
+              {twoFAEnabled ? (
+                <Alert severity="success">
+                  Two-factor authentication is enabled on your account. You will need
+                  to enter a verification code when logging in.
+                </Alert>
+              ) : (
+                <Alert severity="warning">
+                  Two-factor authentication is not enabled. We strongly recommend enabling
+                  it to protect your account.
+>>>>>>> main
                 </Alert>
               )}
             </Box>
 
+<<<<<<< HEAD
             <Button
               variant={twoFAEnabled ? "outlined" : "contained"}
               color={twoFAEnabled ? "error" : "success"}
@@ -549,6 +787,108 @@ function AccountSettings() {
               }}
             >
               {twoFAEnabled ? "Disable 2FA" : "Setup 2FA"}
+=======
+            <Box sx={{ display: "flex", gap: 2 }}>
+              <Button
+                variant={twoFAEnabled ? "outlined" : "contained"}
+                color={twoFAEnabled ? "error" : "success"}
+                onClick={() => {
+                  if (twoFAEnabled) {
+                    if (window.confirm("Are you sure you want to disable 2FA?")) {
+                      setTwoFAEnabled(false);
+                      setSuccess("2FA has been disabled");
+                    }
+                  } else {
+                    navigate("/security/2fa");
+                  }
+                }}
+              >
+                {twoFAEnabled ? "Disable 2FA" : "Setup 2FA"}
+              </Button>
+            </Box>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Sessions Tab */}
+      {tabValue === 3 && (
+        <Card>
+          <CardContent>
+            <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
+              Active Sessions
+            </Typography>
+
+            <List>
+              {[
+                {
+                  device: "Chrome on Windows",
+                  location: "Ho Chi Minh City, Vietnam",
+                  time: "Active now",
+                  current: true,
+                },
+                {
+                  device: "Safari on iPhone",
+                  location: "Ha Noi, Vietnam",
+                  time: "2 hours ago",
+                  current: false,
+                },
+                {
+                  device: "Chrome on Windows",
+                  location: "Da Nang, Vietnam",
+                  time: "1 day ago",
+                  current: false,
+                },
+              ].map((session, index) => (
+                <ListItem
+                  key={index}
+                  secondaryAction={
+                    !session.current && (
+                      <IconButton edge="end" aria-label="delete" color="error" size="small">
+                        <DeleteIcon />
+                      </IconButton>
+                    )
+                  }
+                  sx={{
+                    borderLeft: session.current ? "4px solid" : "none",
+                    borderColor: session.current ? "primary.main" : "transparent",
+                    pl: session.current ? 1 : 2,
+                  }}
+                >
+                  <ListItemIcon>
+                    <DevicesIcon />
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={session.device}
+                    secondary={
+                      <Box sx={{ display: "flex", gap: 2, mt: 0.5 }}>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                          <LocationIcon sx={{ fontSize: 14 }} />
+                          <Typography variant="caption">{session.location}</Typography>
+                        </Box>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                          <AccessTimeIcon sx={{ fontSize: 14 }} />
+                          <Typography variant="caption">{session.time}</Typography>
+                        </Box>
+                        {session.current && (
+                          <Chip label="Current" size="small" color="primary" />
+                        )}
+                      </Box>
+                    }
+                  />
+                </ListItem>
+              ))}
+            </List>
+
+            <Divider sx={{ my: 3 }} />
+
+            <Button
+              fullWidth
+              variant="outlined"
+              color="error"
+              startIcon={<DeleteIcon />}
+            >
+              Sign Out All Other Sessions
+>>>>>>> main
             </Button>
           </CardContent>
         </Card>

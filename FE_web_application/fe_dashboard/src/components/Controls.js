@@ -304,6 +304,7 @@ const Controls = () => {
       </div>
 
       {/* Device Value (for sensors) */}
+<<<<<<< HEAD
       {device.type === "sensor" && device.value && (
         <div
           style={{
@@ -312,20 +313,36 @@ const Controls = () => {
             borderRadius: "8px",
             textAlign: "center",
             border: "2px solid #4cbe00",
+=======
+      {device.value && (
+        <div
+          style={{
+            backgroundColor: "#28392e",
+            padding: "16px",
+            borderRadius: "8px",
+            textAlign: "center",
+>>>>>>> main
           }}
         >
           <div
             style={{
               color: "#4cbe00",
+<<<<<<< HEAD
               fontSize: "32px",
               fontWeight: "bold",
               marginBottom: "8px",
+=======
+              fontSize: "24px",
+              fontWeight: "bold",
+              marginBottom: "4px",
+>>>>>>> main
             }}
           >
             {device.value}
           </div>
           <div
             style={{
+<<<<<<< HEAD
               color: "#d0d0d0",
               fontSize: "14px",
               fontWeight: "500",
@@ -341,6 +358,13 @@ const Controls = () => {
             }}
           >
             Cập nhật theo thời gian thực
+=======
+              color: "#a0a0a0",
+              fontSize: "12px",
+            }}
+          >
+            Giá trị hiện tại
+>>>>>>> main
           </div>
         </div>
       )}
@@ -686,6 +710,7 @@ const Controls = () => {
         </div>
       </div>
 
+<<<<<<< HEAD
       {/* Sensors Section */}
       {devices.filter((d) => d.type === "sensor").length > 0 && (
         <div style={{ marginBottom: "30px" }}>
@@ -766,6 +791,20 @@ const Controls = () => {
           </div>
         </div>
       )}
+=======
+      {/* Devices Grid */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+          gap: "24px",
+        }}
+      >
+        {devices.map((device) => (
+          <DeviceCard key={device.id} device={device} />
+        ))}
+      </div>
+>>>>>>> main
 
       {/* Help Text */}
       <div

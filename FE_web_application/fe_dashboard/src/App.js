@@ -9,12 +9,19 @@ import CssBaseline from "@mui/material/CssBaseline";
 import { useAuth } from "./contexts/AuthContext";
 import Login from "./components/Login";
 import OAuthCallback from "./components/OAuthCallback";
+<<<<<<< HEAD
 import { AdminLayout, UserLayout, CustomerLayout } from "./components/Layouts";
+=======
+import Layout from "./components/Layout";
+>>>>>>> main
 import Dashboard from "./components/Dashboard";
 import UserList from "./components/Users/UserList";
 import GardenList from "./components/Gardens/GardenList";
 import GardenDashboard from "./components/Gardens/GardenDashboard";
+<<<<<<< HEAD
 import GardenDetail from "./components/Gardens/GardenDetail";
+=======
+>>>>>>> main
 import VegetableList from "./components/Vegetables/VegetableList";
 import RevenuePage from "./components/Revenue/RevenuePage";
 import NotificationsPage from "./components/Notifications/NotificationsPage";
@@ -26,6 +33,7 @@ import SecuritySettings from "./components/Security/SecuritySettings";
 import AccountSettings from "./components/AccountSettings";
 
 import AuditLogs from "./components/AuditLogs.jsx";
+<<<<<<< HEAD
 import Controls from "./components/Controls";
 import { 
   ShopList, 
@@ -35,6 +43,8 @@ import {
   OrderHistory, 
   OrderDetail 
 } from "./components/Customer";
+=======
+>>>>>>> main
 
 const theme = createTheme({
   palette: {
@@ -125,6 +135,7 @@ const theme = createTheme({
   },
 });
 
+<<<<<<< HEAD
 // Component để chọn layout dựa trên role
 function RoleBasedLayout({ children }) {
   const { user } = useAuth();
@@ -160,6 +171,12 @@ function App() {
   const ProtectedRoute = ({ children, allowedRoles = [] }) => {
     const { isAuthenticated, loading, user } = useAuth();
     
+=======
+function App() {
+  const ProtectedRoute = ({ children }) => {
+    const { isAuthenticated, loading } = useAuth();
+
+>>>>>>> main
     if (loading) {
       return (
         <div
@@ -175,6 +192,7 @@ function App() {
         </div>
       );
     }
+<<<<<<< HEAD
     
     if (!isAuthenticated) {
       return <Navigate to="/login" />;
@@ -193,6 +211,14 @@ function App() {
     }
     
     return <RoleBasedLayout>{children}</RoleBasedLayout>;
+=======
+
+    return isAuthenticated ? (
+      <Layout>{children}</Layout>
+    ) : (
+      <Navigate to="/login" />
+    );
+>>>>>>> main
   };
 
   return (
@@ -231,6 +257,7 @@ function App() {
           <Route
             path="/gardens/:id"
             element={
+<<<<<<< HEAD
               <ProtectedRoute allowedRoles={["ADMIN", "USER"]}>
                 <GardenDetail />
               </ProtectedRoute>
@@ -241,6 +268,10 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={["ADMIN", "USER"]}>
                 <Controls />
+=======
+              <ProtectedRoute>
+                <GardenDashboard />
+>>>>>>> main
               </ProtectedRoute>
             }
           />
@@ -266,7 +297,11 @@ function App() {
           <Route
             path="/notifications"
             element={
+<<<<<<< HEAD
               <ProtectedRoute allowedRoles={["ADMIN", "USER"]}>
+=======
+              <ProtectedRoute>
+>>>>>>> main
                 <NotificationsPage />
               </ProtectedRoute>
             }
@@ -274,7 +309,11 @@ function App() {
           <Route
             path="/alerts"
             element={
+<<<<<<< HEAD
               <ProtectedRoute allowedRoles={["ADMIN", "USER"]}>
+=======
+              <ProtectedRoute>
+>>>>>>> main
                 <AlertsPage />
               </ProtectedRoute>
             }
@@ -307,11 +346,16 @@ function App() {
           <Route
             path="/audit-logs"
             element={
+<<<<<<< HEAD
               <ProtectedRoute allowedRoles={["ADMIN", "USER"]}>
+=======
+              <ProtectedRoute>
+>>>>>>> main
                 <AuditLogs />
               </ProtectedRoute>
             }
           />
+<<<<<<< HEAD
           {/* Customer Routes */}
           <Route
             path="/customer/shops"
@@ -377,6 +421,9 @@ function App() {
               </ProtectedRoute>
             }
           />
+=======
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+>>>>>>> main
         </Routes>
       </Router>
     </ThemeProvider>
