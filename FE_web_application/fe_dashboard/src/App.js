@@ -23,7 +23,7 @@ import ResetPassword from "./components/Security/ResetPassword";
 import TwoFactorAuth from "./components/Security/TwoFactorAuth";
 import SecuritySettings from "./components/Security/SecuritySettings";
 import AccountSettings from "./components/AccountSettings";
-import Controls from "./components/Controls";
+
 import AuditLogs from "./components/AuditLogs.jsx";
 
 const theme = createTheme({
@@ -36,17 +36,17 @@ const theme = createTheme({
       contrastText: "#fff",
     },
     secondary: {
-      main: "#102216",
-      dark: "#0a1410",
-      light: "#1a3a3a",
-      contrastText: "#fff",
+      main: "#ffffff",
+      dark: "#f0f0f0",
+      light: "#ffffff",
+      contrastText: "#2d8e00",
     },
     background: {
-      default: "#f5f5f5",
+      default: "#f8fcf8", // Very light mint white
       paper: "#ffffff",
     },
     text: {
-      primary: "#212121",
+      primary: "#1a2e1a", // Dark green-black
       secondary: "#666666",
     },
     success: {
@@ -66,26 +66,26 @@ const theme = createTheme({
     fontFamily: "'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell'",
     h4: {
       fontWeight: 700,
-      color: "#ffffff",
+      color: "#1a2e1a",
     },
     h5: {
       fontWeight: 700,
-      color: "#f0f0f0",
+      color: "#1a2e1a",
     },
     body1: {
-      color: "#ffffff",
+      color: "#333333",
     },
     body2: {
-      color: "#e0e0e0",
+      color: "#555555",
     },
   },
   components: {
     MuiButton: {
       styleOverrides: {
         contained: {
-          boxShadow: "0 2px 8px rgba(76, 190, 0, 0.3)",
+          boxShadow: "0 2px 4px rgba(76, 190, 0, 0.2)",
           "&:hover": {
-            boxShadow: "0 4px 12px rgba(76, 190, 0, 0.4)",
+            boxShadow: "0 4px 8px rgba(76, 190, 0, 0.3)",
           },
         },
       },
@@ -100,7 +100,15 @@ const theme = createTheme({
     MuiTableHead: {
       styleOverrides: {
         root: {
-          backgroundColor: "#1a3a3a",
+          backgroundColor: "#e8f5e9", // Light green for table headers
+        },
+      },
+    },
+    MuiTableCell: {
+      styleOverrides: {
+        head: {
+          color: "#1a2e1a",
+          fontWeight: 600,
         },
       },
     },
@@ -110,7 +118,7 @@ const theme = createTheme({
 function App() {
   const ProtectedRoute = ({ children }) => {
     const { isAuthenticated, loading } = useAuth();
-    
+
     if (loading) {
       return (
         <div
@@ -126,7 +134,7 @@ function App() {
         </div>
       );
     }
-    
+
     return isAuthenticated ? (
       <Layout>{children}</Layout>
     ) : (
@@ -177,14 +185,7 @@ function App() {
           />
           <Route path="/garden" element={<Navigate to="/gardens" replace />} />
           <Route
-            path="/controls"
-            element={
-              <ProtectedRoute>
-                <Controls />
-              </ProtectedRoute>
-            }
-          />
-          <Route path="/plants" element={<Navigate to="/vegetables" replace />} />
+            path="/plants" element={<Navigate to="/vegetables" replace />} />
           <Route
             path="/vegetables"
             element={

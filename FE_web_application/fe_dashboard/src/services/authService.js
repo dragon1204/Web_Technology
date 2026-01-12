@@ -78,7 +78,7 @@ export const authService = {
     // Nếu backend trả requires2FA (trong body 200) → chuyển cho UI xử lý
     // Check cả response.requires2FA và response.data.requires2FA (nested structure)
     const requires2FA = parsedData?.requires2FA === true || parsedData?.data?.requires2FA === true;
-    
+
     if (parsedData && requires2FA) {
       console.log("AuthService: 2FA required detected, returning requires2FA flag");
       const twoFAData = parsedData.data?.requires2FA ? parsedData.data : parsedData;
@@ -220,6 +220,35 @@ export const authService = {
   },
 
   // 2FA Methods
+  // Helper to parse errors
+  async _parseError(response) {
+    let errorMessage = "Request failed";
+    try {
+      const errorText = await response.text();
+      try {
+        const errorData = JSON.parse(errorText);
+        if (typeof errorData === "string") {
+          errorMessage = errorData;
+        } else if (errorData.message) {
+          if (typeof errorData.message === "string") {
+            errorMessage = errorData.message;
+          } else if (Array.isArray(errorData.message)) {
+            errorMessage = errorData.message.join(", ");
+          } else {
+            errorMessage = JSON.stringify(errorData.message);
+          }
+        } else {
+          errorMessage = JSON.stringify(errorData);
+        }
+      } catch (e) {
+        errorMessage = errorText || `Error ${response.status}: ${response.statusText}`;
+      }
+    } catch (e) {
+      errorMessage = `Error ${response.status}: ${response.statusText}`;
+    }
+    return new Error(errorMessage);
+  },
+
   async generate2FA() {
     const token = localStorage.getItem("token");
     const response = await fetch(`${API_BASE}/auth/2fa/generate`, {
@@ -231,8 +260,7 @@ export const authService = {
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Failed to generate 2FA secret");
+      throw await this._parseError(response);
     }
 
     return response.json();
@@ -240,6 +268,8 @@ export const authService = {
 
   async enable2FA(totpCode) {
     const token = localStorage.getItem("token");
+    console.log("AuthService: Enabling 2FA with code length:", totpCode?.length);
+
     const response = await fetch(`${API_BASE}/auth/2fa/enable`, {
       method: "POST",
       headers: {
@@ -250,8 +280,8 @@ export const authService = {
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Failed to enable 2FA");
+      console.error("AuthService: Enable 2FA failed with status:", response.status);
+      throw await this._parseError(response);
     }
 
     return response.json();
@@ -268,8 +298,7 @@ export const authService = {
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Failed to disable 2FA");
+      throw await this._parseError(response);
     }
 
     return response.json();
