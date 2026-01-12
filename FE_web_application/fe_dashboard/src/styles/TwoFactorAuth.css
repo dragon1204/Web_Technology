@@ -1,0 +1,149 @@
+.two-factor-auth {
+  padding: 20px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.two-factor-auth h2 {
+  margin-bottom: 20px;
+}
+
+.status-section {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+}
+
+.status-section p {
+  margin-bottom: 15px;
+  font-size: 16px;
+}
+
+.setup-section {
+  background: white;
+  padding: 30px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.setup-section h3 {
+  margin-top: 0;
+  margin-bottom: 20px;
+}
+
+.setup-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+.step {
+  padding: 20px;
+  background: #f9f9f9;
+  border-radius: 8px;
+}
+
+.step h4 {
+  margin-top: 0;
+  color: #4ecdc4;
+}
+
+.qr-code {
+  display: flex;
+  justify-content: center;
+  margin: 20px 0;
+}
+
+.qr-code img {
+  max-width: 250px;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  padding: 10px;
+  background: white;
+}
+
+.secret-code {
+  display: block;
+  background: white;
+  padding: 15px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 16px;
+  letter-spacing: 2px;
+  text-align: center;
+  margin: 10px 0;
+  border: 2px dashed #4ecdc4;
+}
+
+.step form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.step input {
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 18px;
+  text-align: center;
+  letter-spacing: 4px;
+  font-family: monospace;
+}
+
+.form-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-start;
+}
+
+.btn-primary,
+.btn-secondary,
+.btn-danger {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.btn-primary {
+  background: #4ecdc4;
+  color: white;
+}
+
+.btn-secondary {
+  background: #95a5a6;
+  color: white;
+}
+
+.btn-danger {
+  background: #ff6b6b;
+  color: white;
+}
+
+.btn-primary:disabled,
+.btn-secondary:disabled,
+.btn-danger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.error-message {
+  background: #ffe0e0;
+  color: #d32f2f;
+  padding: 12px;
+  border-radius: 4px;
+  margin-bottom: 15px;
+}
+
+.success-message {
+  background: #e0f7e0;
+  color: #2e7d32;
+  padding: 12px;
+  border-radius: 4px;
+  margin-bottom: 15px;
+}
