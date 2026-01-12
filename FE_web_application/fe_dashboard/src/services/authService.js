@@ -34,20 +34,54 @@ export const authService = {
   },
 
   async register(userData) {
+    // Only send required fields according to Swagger API
+    const registerPayload = {
+      email: userData.email,
+      password: userData.password,
+      name: userData.name,
+    };
+
+    console.log("AuthService: Attempting registration with:", registerPayload);
+
     const response = await fetch(`${API_BASE}/auth/register`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(userData),
+      body: JSON.stringify(registerPayload),
     });
 
+    console.log("AuthService: Registration response status:", response.status);
+
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Registration failed");
+      const errorText = await response.text();
+      console.error("AuthService: Registration error response:", errorText);
+
+      let error;
+      try {
+        error = JSON.parse(errorText);
+      } catch (e) {
+        error = { message: errorText || "Registration failed" };
+      }
+
+      // Extract the actual error message
+      let errorMessage = "Registration failed";
+      if (error.message) {
+        if (typeof error.message === "string") {
+          errorMessage = error.message;
+        } else if (error.message.message) {
+          errorMessage = error.message.message;
+        } else if (Array.isArray(error.message)) {
+          errorMessage = error.message.join(", ");
+        }
+      }
+
+      throw new Error(errorMessage);
     }
 
-    return response.json();
+    const data = await response.json();
+    console.log("AuthService: Registration success:", data);
+    return data;
   },
 
   async refreshToken(refreshToken) {
@@ -113,5 +147,95 @@ export const authService = {
     localStorage.setItem("token", token);
     localStorage.setItem("user", JSON.stringify(userData));
     return { token, user: userData };
+  },
+
+  // 2FA Methods
+  async generate2FA() {
+    const token = localStorage.getItem("token");
+    const response = await fetch(`${API_BASE}/auth/2fa/generate`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Failed to generate 2FA secret");
+    }
+
+    return response.json();
+  },
+
+  async enable2FA(totpCode) {
+    const token = localStorage.getItem("token");
+    const response = await fetch(`${API_BASE}/auth/2fa/enable`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ totp_code: totpCode }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Failed to enable 2FA");
+    }
+
+    return response.json();
+  },
+
+  async disable2FA() {
+    const token = localStorage.getItem("token");
+    const response = await fetch(`${API_BASE}/auth/2fa/disable`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Failed to disable 2FA");
+    }
+
+    return response.json();
+  },
+
+  async get2FAQRCode() {
+    const token = localStorage.getItem("token");
+
+    console.log("AuthService: Getting 2FA QR code...");
+
+    const response = await fetch(`${API_BASE}/auth/2fa/qrcode`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    console.log("AuthService: QR code response status:", response.status);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("AuthService: QR code error:", errorText);
+
+      let error;
+      try {
+        error = JSON.parse(errorText);
+      } catch (e) {
+        error = { message: errorText || "Failed to get QR code" };
+      }
+
+      throw new Error(error.message || "Failed to get QR code");
+    }
+
+    const data = await response.json();
+    console.log("AuthService: QR code data:", data);
+    return data;
   },
 };

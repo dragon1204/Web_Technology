@@ -48,6 +48,22 @@ const Layout = ({ children }) => {
       name: "Điều khiển thiết bị",
       icon: "🎛️",
     },
+    {
+      path: "/users",
+      name: "Quản lý người dùng",
+      icon: "👥",
+      adminOnly: true,
+    },
+    {
+      path: "/audit-logs",
+      name: "Nhật ký hoạt động",
+      icon: "📋",
+    },
+    {
+      path: "/2fa",
+      name: "Xác thực 2FA",
+      icon: "🔐",
+    },
   ];
 
   const isActive = (path) => {
@@ -94,43 +110,50 @@ const Layout = ({ children }) => {
 
         {/* Menu Items */}
         <nav style={{ padding: "20px 0" }}>
-          {menuItems.map((item) => (
-            <button
-              key={item.path}
-              onClick={() => navigate(item.path)}
-              style={{
-                width: "100%",
-                padding: "12px 20px",
-                backgroundColor: isActive(item.path)
-                  ? "#28392e"
-                  : "transparent",
-                border: "none",
-                color: isActive(item.path) ? "#4cbe00" : "#e0e0e0",
-                fontSize: "14px",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: "12px",
-                transition: "all 0.2s ease",
-                textAlign: "left",
-              }}
-              onMouseOver={(e) => {
-                if (!isActive(item.path)) {
-                  e.target.style.backgroundColor = "#28392e";
-                  e.target.style.color = "#4cbe00";
-                }
-              }}
-              onMouseOut={(e) => {
-                if (!isActive(item.path)) {
-                  e.target.style.backgroundColor = "transparent";
-                  e.target.style.color = "#e0e0e0";
-                }
-              }}
-            >
-              <span style={{ fontSize: "16px" }}>{item.icon}</span>
-              {sidebarOpen && <span>{item.name}</span>}
-            </button>
-          ))}
+          {menuItems
+            .filter(
+              (item) =>
+                !item.adminOnly ||
+                user?.role === "ADMIN" ||
+                user?.data?.role === "ADMIN"
+            )
+            .map((item) => (
+              <button
+                key={item.path}
+                onClick={() => navigate(item.path)}
+                style={{
+                  width: "100%",
+                  padding: "12px 20px",
+                  backgroundColor: isActive(item.path)
+                    ? "#28392e"
+                    : "transparent",
+                  border: "none",
+                  color: isActive(item.path) ? "#4cbe00" : "#e0e0e0",
+                  fontSize: "14px",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  transition: "all 0.2s ease",
+                  textAlign: "left",
+                }}
+                onMouseOver={(e) => {
+                  if (!isActive(item.path)) {
+                    e.target.style.backgroundColor = "#28392e";
+                    e.target.style.color = "#4cbe00";
+                  }
+                }}
+                onMouseOut={(e) => {
+                  if (!isActive(item.path)) {
+                    e.target.style.backgroundColor = "transparent";
+                    e.target.style.color = "#e0e0e0";
+                  }
+                }}
+              >
+                <span style={{ fontSize: "16px" }}>{item.icon}</span>
+                {sidebarOpen && <span>{item.name}</span>}
+              </button>
+            ))}
         </nav>
 
         {/* Toggle Button */}
