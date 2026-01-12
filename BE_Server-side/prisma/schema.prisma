@@ -215,28 +215,5 @@ model ReportTemplate {
   @@index([userId])
 }
 
-model AuditLog {
-  id           Int      @id @default(autoincrement())
-  action       String
-  entityType   String?
-  entityId     String?
-  userId       Int?
-  changes      Json?
-  requestId    String?
-  ipAddress    String?
-  userAgent    String?
-  success      Boolean  @default(true)
-  errorMessage String?
-  timestamp    DateTime @default(now())
-
-  @@index([userId])
-  @@index([entityType, entityId])
-  @@index([action])
-  @@index([timestamp])
-  @@index([requestId])
-}
-
-enum Role {
-  USER
-  ADMIN
-}
+// NOTE: AuditLog & Role enum đã được định nghĩa ở phía trên.
+// Các định nghĩa trùng lặp phía dưới đã được xoá để tránh lỗi P1012 (duplicate model/enum).
