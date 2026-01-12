@@ -26,8 +26,9 @@ export class RolesGuard implements CanActivate {
     }
 
     const roleHierarchy = {
-      ADMIN : ['ADMIN', 'USER'],
-      USER : ['USER']
+      ADMIN : ['ADMIN', 'USER', 'CUSTOMER'],
+      USER : ['USER'],
+      CUSTOMER : ['CUSTOMER']
     }
 
     const userRoles = roleHierarchy[user.role] || [];

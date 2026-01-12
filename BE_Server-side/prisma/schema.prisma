@@ -10,6 +10,7 @@ datasource db {
 enum Role {
   USER
   ADMIN
+  CUSTOMER
 }
 
 enum PumpControlMode {
@@ -32,6 +33,10 @@ model User {
   totpSecret         String?
   gardens            Garden[]
   notifications      Notification[]
+  shops              Shop[]
+  cart               Cart?
+  orders             Order[]
+  shippingAddresses  ShippingAddress[]
 }
 
 model Vegetable {
@@ -42,11 +47,13 @@ model Vegetable {
   price         Float              @default(0)
   category      String?            // Loại rau: 'leafy', 'root', 'fruit', 'herb', etc.
   description   String?            // Mô tả
+  image         String?            // URL hình ảnh
   createdAt     DateTime           @default(now())
   updatedAt     DateTime           @updatedAt
   sales         Sale[]
   gardens       VegetableGarden[]
   priceHistory  PriceHistory[]
+  shopProducts  ShopProduct[]
 
   @@index([category])
   @@index([createdAt])
@@ -63,6 +70,7 @@ model Garden {
   sales       Sale[]
   vegetables  VegetableGarden[]
   alertRules  AlertRule[]
+  shopProducts ShopProduct[]
   temperature Float?
   humidity    Float?
   soil        Float?
@@ -213,6 +221,133 @@ model ReportTemplate {
 
   @@index([type])
   @@index([userId])
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+// E-commerce models
+model Shop {
+  id          Int          @id @default(autoincrement())
+  name        String
+  description String?
+  ownerId     Int
+  owner       User         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  products    ShopProduct[]
+  orders      Order[]
+
+  @@index([ownerId])
+  @@index([isActive])
+}
+
+model ShopProduct {
+  id          Int       @id @default(autoincrement())
+  shopId      Int
+  vegetableId Int
+  gardenId    Int
+  shop        Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  vegetable   Vegetable @relation(fields: [vegetableId], references: [id], onDelete: Cascade)
+  garden      Garden    @relation(fields: [gardenId], references: [id], onDelete: Cascade)
+  price       Float     // Giá bán tại shop (có thể khác giá gốc)
+  stock       Int       @default(0) // Số lượng có sẵn
+  isAvailable Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  cartItems   CartItem[]
+  orderItems  OrderItem[]
+
+  @@unique([shopId, vegetableId, gardenId])
+  @@index([shopId, isAvailable])
+  @@index([vegetableId])
+}
+
+model Cart {
+  id        Int        @id @default(autoincrement())
+  userId    Int        @unique
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     CartItem[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model CartItem {
+  id            Int          @id @default(autoincrement())
+  cartId        Int
+  shopProductId Int
+  cart          Cart         @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  shopProduct   ShopProduct  @relation(fields: [shopProductId], references: [id], onDelete: Cascade)
+  quantity      Int          @default(1)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@unique([cartId, shopProductId])
+  @@index([cartId])
+}
+
+model ShippingAddress {
+  id          Int       @id @default(autoincrement())
+  userId      Int
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fullName    String
+  phone       String
+  address     String
+  ward        String?   // Phường/Xã
+  district    String?   // Quận/Huyện
+  city        String    // Tỉnh/Thành phố
+  isDefault   Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  orders      Order[]
+
+  @@index([userId])
+}
+
+model Order {
+  id                Int           @id @default(autoincrement())
+  orderNumber       String        @unique // Mã đơn hàng
+  customerId        Int
+  customer          User          @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  shopId            Int
+  shop              Shop          @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  shippingAddressId Int
+  shippingAddress   ShippingAddress @relation(fields: [shippingAddressId], references: [id])
+  status            OrderStatus   @default(PENDING)
+  subtotal          Float         // Tổng tiền sản phẩm
+  shippingFee       Float         // Phí vận chuyển
+  total             Float         // Tổng cộng
+  notes             String?       // Ghi chú của khách hàng
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  items             OrderItem[]
+
+  @@index([customerId])
+  @@index([shopId])
+  @@index([status])
+  @@index([orderNumber])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id            Int          @id @default(autoincrement())
+  orderId       Int
+  shopProductId Int
+  order         Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  shopProduct   ShopProduct  @relation(fields: [shopProductId], references: [id])
+  quantity      Int
+  price         Float        // Giá tại thời điểm đặt hàng
+  subtotal      Float        // quantity * price
+  createdAt     DateTime     @default(now())
+
+  @@index([orderId])
 }
 
 // NOTE: AuditLog & Role enum đã được định nghĩa ở phía trên.

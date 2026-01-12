@@ -16,6 +16,11 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { DeviceModule } from './modules/device/device.module';
 import { AuditInterceptor } from './common/interceptor/audit.interceptor';
+import { ShopModule } from './modules/shop/shop.module';
+import { ProductModule } from './modules/product/product.module';
+import { CartModule } from './modules/cart/cart.module';
+import { OrderModule } from './modules/order/order.module';
+import { StorageModule } from './modules/storage/storage.module';
 
 
 @Module({
@@ -31,7 +36,8 @@ import { AuditInterceptor } from './common/interceptor/audit.interceptor';
       ttl: 60,
       limit: 60,
     }]),
-     GardenModule, VegetableModule, DeviceModule, NotificationModule, AlertModule, AnalyticsModule],
+     GardenModule, VegetableModule, DeviceModule, NotificationModule, AlertModule, AnalyticsModule,
+     ShopModule, ProductModule, CartModule, OrderModule, StorageModule],
   controllers: [],
   providers: [ 
     PrismaService, 

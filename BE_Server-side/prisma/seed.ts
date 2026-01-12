@@ -77,7 +77,37 @@ async function main() {
       role: Role.USER,
     },
   });
-  console.log(`✅ Đã tạo/cập nhật ${3} users\n`);
+
+  const customer1 = await prisma.user.upsert({
+    where: { email: 'customer1@example.com' },
+    update: {
+      password: defaultPassword,
+      name: 'Lê Văn C',
+      role: Role.CUSTOMER,
+    },
+    create: {
+      email: 'customer1@example.com',
+      password: defaultPassword,
+      name: 'Lê Văn C',
+      role: Role.CUSTOMER,
+    },
+  });
+
+  const customer2 = await prisma.user.upsert({
+    where: { email: 'customer2@example.com' },
+    update: {
+      password: defaultPassword,
+      name: 'Phạm Thị D',
+      role: Role.CUSTOMER,
+    },
+    create: {
+      email: 'customer2@example.com',
+      password: defaultPassword,
+      name: 'Phạm Thị D',
+      role: Role.CUSTOMER,
+    },
+  });
+  console.log(`✅ Đã tạo/cập nhật ${5} users\n`);
 
   // 2. Sensor Types đã được thay thế bằng Device model - bỏ qua phần này
 
@@ -448,6 +478,117 @@ async function main() {
   });
   console.log(`✅ Đã tạo report templates\n`);
 
+  // 14. Tạo Shops
+  console.log('🏪 Tạo shops...');
+  await prisma.shop.deleteMany({});
+  
+  const shop1 = await prisma.shop.create({
+    data: {
+      name: 'Cửa hàng Rau Sạch ABC',
+      description: 'Chuyên cung cấp rau sạch, an toàn từ vườn',
+      ownerId: user1.id,
+      isActive: true,
+    },
+  });
+
+  const shop2 = await prisma.shop.create({
+    data: {
+      name: 'Rau Hữu Cơ Xanh',
+      description: 'Rau hữu cơ 100%, không thuốc trừ sâu',
+      ownerId: user2.id,
+      isActive: true,
+    },
+  });
+  console.log(`✅ Đã tạo ${2} shops\n`);
+
+  // 15. Tạo Shop Products
+  console.log('🛒 Tạo shop products...');
+  await prisma.shopProduct.deleteMany({});
+  
+  await prisma.shopProduct.createMany({
+    data: [
+      {
+        shopId: shop1.id,
+        vegetableId: rauCai.id,
+        gardenId: garden1.id,
+        price: 35000,
+        stock: 50,
+        isAvailable: true,
+      },
+      {
+        shopId: shop1.id,
+        vegetableId: caRot.id,
+        gardenId: garden1.id,
+        price: 28000,
+        stock: 40,
+        isAvailable: true,
+      },
+      {
+        shopId: shop1.id,
+        vegetableId: rauMuong.id,
+        gardenId: garden2.id,
+        price: 22000,
+        stock: 60,
+        isAvailable: true,
+      },
+      {
+        shopId: shop2.id,
+        vegetableId: caChua.id,
+        gardenId: garden2.id,
+        price: 40000,
+        stock: 30,
+        isAvailable: true,
+      },
+      {
+        shopId: shop2.id,
+        vegetableId: rauThom.id,
+        gardenId: garden3.id,
+        price: 45000,
+        stock: 20,
+        isAvailable: true,
+      },
+      {
+        shopId: shop2.id,
+        vegetableId: rauCai.id,
+        gardenId: garden3.id,
+        price: 38000,
+        stock: 25,
+        isAvailable: true,
+      },
+    ],
+  });
+  console.log(`✅ Đã tạo shop products\n`);
+
+  // 16. Tạo Shipping Addresses cho customers
+  console.log('📍 Tạo shipping addresses...');
+  await prisma.shippingAddress.deleteMany({});
+  
+  await prisma.shippingAddress.createMany({
+    data: [
+      {
+        userId: customer1.id,
+        fullName: 'Lê Văn C',
+        phone: '0901234567',
+        address: '123 Đường ABC',
+        ward: 'Phường 1',
+        district: 'Quận 1',
+        city: 'Hồ Chí Minh',
+        isDefault: true,
+      },
+      {
+        userId: customer2.id,
+        fullName: 'Phạm Thị D',
+        phone: '0987654321',
+        address: '456 Đường XYZ',
+        ward: 'Phường 2',
+        district: 'Quận 3',
+        city: 'Hồ Chí Minh',
+        isDefault: true,
+      },
+    ],
+  });
+  console.log(`✅ Đã tạo shipping addresses\n`);
+
   console.log('✨ Seed dữ liệu hoàn tất!\n');
   console.log('📝 Thông tin đăng nhập:');
   console.log('   Admin:');
@@ -458,6 +599,12 @@ async function main() {
   console.log('     Password: password123');
   console.log('   User 2:');
   console.log('     Email: user2@example.com');
+  console.log('     Password: password123');
+  console.log('   Customer 1:');
+  console.log('     Email: customer1@example.com');
+  console.log('     Password: password123');
+  console.log('   Customer 2:');
+  console.log('     Email: customer2@example.com');
   console.log('     Password: password123\n');
 }
 
