@@ -181,6 +181,19 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Method to set auth state directly (for OAuth callback)
+  const setAuthState = (newToken, newUser) => {
+    console.log("Setting auth state:", { token: newToken ? "exists" : "none", user: newUser });
+    setToken(newToken);
+    setUser(newUser);
+    if (newToken) {
+      localStorage.setItem("token", newToken);
+    }
+    if (newUser) {
+      localStorage.setItem("user", JSON.stringify(newUser));
+    }
+  };
+
   const value = {
     user,
     token,
@@ -189,6 +202,7 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     refreshToken,
+    setAuthState,
     isAuthenticated: !!user && !!token,
   };
 

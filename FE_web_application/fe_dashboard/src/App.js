@@ -23,6 +23,7 @@ import ResetPassword from "./components/Security/ResetPassword";
 import TwoFactorAuth from "./components/Security/TwoFactorAuth";
 import SecuritySettings from "./components/Security/SecuritySettings";
 import AccountSettings from "./components/AccountSettings";
+import Controls from "./components/Controls";
 
 const theme = createTheme({
   palette: {
@@ -95,6 +96,16 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route path="/garden" element={<Navigate to="/gardens" replace />} />
+          <Route
+            path="/controls"
+            element={
+              <ProtectedRoute>
+                <Controls />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/plants" element={<Navigate to="/vegetables" replace />} />
           <Route
             path="/vegetables"
             element={

@@ -127,12 +127,13 @@ export class AuthController {
             // Lấy frontend URL từ environment variable hoặc dùng default
             const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3001';
             
-            // Encode user data để truyền qua URL
+            // Encode user data và tokens để truyền qua URL
             const userDataEncoded = encodeURIComponent(JSON.stringify(result.user));
             const tokenEncoded = encodeURIComponent(result.tokens.access_token);
+            const refreshTokenEncoded = encodeURIComponent(result.tokens.refresh_token);
             
             // Redirect về frontend với tokens và user data trong query params
-            const redirectUrl = `${frontendUrl}/auth/google/redirect?token=${tokenEncoded}&user=${userDataEncoded}`;
+            const redirectUrl = `${frontendUrl}/auth/google/redirect?token=${tokenEncoded}&refresh_token=${refreshTokenEncoded}&user=${userDataEncoded}`;
             
             console.log("🔄 Redirecting to frontend:", redirectUrl);
             return res.redirect(redirectUrl);
