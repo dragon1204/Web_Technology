@@ -29,37 +29,33 @@ echo "✅ PM2 version: $(pm2 -v)"
 echo "📦 Đang cài đặt dependencies..."
 npm install
 
-# Build project
-echo "🔨 Đang build project..."
-
 # Dọn sạch controller cũ nếu còn sót trên server (tránh lỗi GardenService)
 if [ -d "src/modules/garden/controler" ]; then
   echo "🧹 Xoá thư mục cũ: src/modules/garden/controler"
   rm -rf src/modules/garden/controler
 fi
 
-npm run build
-
-# Generate Prisma Client trước
-echo "🔧 Đang generate Prisma Client..."
+# Generate Prisma Client TRƯỚC KHI BUILD (quan trọng!)
+echo "🔧 Đang generate Prisma Client (trước khi build)..."
 npx prisma generate
 
 # Đồng bộ database schema
 echo "🗄️  Đang đồng bộ database schema..."
 echo "   Option 1: Dùng migrations (recommended)..."
-npx prisma migrate deploy
-
-# Nếu migrations fail, dùng db push
-if [ $? -ne 0 ]; then
+npx prisma migrate deploy || {
     echo ""
     echo "⚠️  Migrations failed. Dùng db push để đồng bộ trực tiếp..."
     npx prisma db push --accept-data-loss || echo "⚠️  Database sync có lỗi, kiểm tra lại"
-fi
+}
 
-# Generate lại Prisma Client sau khi sync
+# Generate lại Prisma Client sau khi sync (nếu schema thay đổi)
 echo ""
-echo "🔧 Đang generate lại Prisma Client..."
+echo "🔧 Đang generate lại Prisma Client sau khi sync..."
 npx prisma generate
+
+# Build project (SAU KHI đã có Prisma Client)
+echo "🔨 Đang build project..."
+npm run build
 
 # Dừng app cũ nếu đang chạy
 echo "🛑 Dừng app cũ (nếu có)..."
