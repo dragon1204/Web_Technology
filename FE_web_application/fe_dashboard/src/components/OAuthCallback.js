@@ -7,7 +7,7 @@ import toast from "react-hot-toast";
 const OAuthCallback = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { login } = useAuth();
+  const auth = useAuth();
 
   useEffect(() => {
     const handleCallback = async () => {
@@ -17,22 +17,37 @@ const OAuthCallback = () => {
 
         if (!token || !userParam) {
           toast.error("Thông tin đăng nhập không hợp lệ");
-          navigate("/login");
+          navigate("/login", { replace: true });
           return;
         }
 
         // Decode user data
         const userData = JSON.parse(decodeURIComponent(userParam));
 
-        // Handle OAuth callback - save to localStorage
-        await authService.handleOAuthCallback(token, userData);
+        // Save to localStorage
+        localStorage.setItem("token", token);
+        localStorage.setItem("user", JSON.stringify(userData));
+        
+        // Also save refresh_token if provided
+        const refreshToken = searchParams.get("refresh_token");
+        if (refreshToken) {
+          localStorage.setItem("refresh_token", refreshToken);
+        }
+
+        // Update AuthContext state immediately
+        if (auth && typeof auth.setAuthState === 'function') {
+          auth.setAuthState(token, userData);
+          console.log("✅ Auth state updated via setAuthState");
+        } else {
+          console.warn("⚠️ setAuthState not available, using fallback");
+        }
 
         toast.success("Đăng nhập Google thành công!");
         
-        // Wait a bit for AuthContext to re-initialize, then navigate
+        // Small delay to ensure state is updated before navigation
         setTimeout(() => {
           navigate("/dashboard", { replace: true });
-        }, 500);
+        }, 100);
       } catch (error) {
         console.error("OAuth callback error:", error);
         toast.error("Lỗi xử lý đăng nhập Google");
@@ -41,7 +56,8 @@ const OAuthCallback = () => {
     };
 
     handleCallback();
-  }, [searchParams, navigate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   return (
     <div
