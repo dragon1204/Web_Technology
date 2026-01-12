@@ -64,8 +64,27 @@ pm2 delete be-server || echo "App chưa tồn tại"
 
 # Khởi động app với PM2
 echo "▶️  Khởi động app với PM2..."
-# Nest build đang xuất file vào dist/src/main.js (theo cấu trúc dist hiện tại)
-pm2 start dist/src/main.js --name be-server
+# Kiểm tra file build tồn tại
+if [ ! -f "dist/main.js" ] && [ ! -f "dist/src/main.js" ]; then
+  echo "❌ Không tìm thấy file main.js trong dist/"
+  echo "   Đang kiểm tra cấu trúc thư mục dist..."
+  ls -la dist/ || echo "   Thư mục dist không tồn tại"
+  echo "   Vui lòng chạy: npm run build"
+  exit 1
+fi
+
+# Sử dụng ecosystem.config.js nếu có, nếu không thì dùng đường dẫn trực tiếp
+if [ -f "ecosystem.config.js" ]; then
+  echo "   Sử dụng ecosystem.config.js..."
+  pm2 start ecosystem.config.js
+else
+  echo "   Sử dụng đường dẫn trực tiếp..."
+  if [ -f "dist/main.js" ]; then
+    pm2 start dist/main.js --name be-server
+  else
+    pm2 start dist/src/main.js --name be-server
+  fi
+fi
 
 # Lưu cấu hình PM2
 pm2 save
