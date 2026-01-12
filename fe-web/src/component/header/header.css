@@ -1,0 +1,19 @@
+.header {
+  display: flex;
+  gap: 10px;
+  /* background-color: rgb(106, 113, 120); */
+  color: #010000;
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.home-icon, .next-icon {
+  filter: invert(0.3);
+}
+
+.header-title {
+  align-self: center;
+  font-size: 16px;
+  font-weight: 500;
+  color: #666; 
+}

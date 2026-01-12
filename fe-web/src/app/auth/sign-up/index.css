@@ -1,0 +1,137 @@
+/* MAIN BACKGROUND */
+.register-wrapper {
+  height: 100vh;
+  background: #eef3ff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px;
+}
+
+/* COLUMN LAYOUT */
+.register-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+/* FLOATING HEADER */
+.register-floating-header {
+  width: 75%;
+  max-width: 340px;
+  background: linear-gradient(135deg, #4f8ef7, #1a73e8);
+  color: white;
+  text-align: center;
+  padding: 22px 18px;
+  border-radius: 16px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.18);
+
+  position: relative;
+  top: 60px;
+  z-index: 2;
+}
+
+.register-floating-header h2 {
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.register-floating-header p {
+  font-size: 14px;
+  opacity: 0.95;
+}
+
+/* MAIN FORM CARD */
+.register-card {
+  width: 420px;
+  background: white;
+  border-radius: 20px;
+  padding: 70px 32px 32px; /* top padding để chừa chỗ cho header */
+  box-shadow: 0 12px 25px rgba(0,0,0,0.12);
+  margin-top: 20px;
+}
+
+/* INPUTS */
+.register-card input {
+  width: 100%;
+  padding: 14px;
+  margin-bottom: 16px;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  color: #3a3a3a;
+  background: white;
+}
+
+.register-card input::placeholder {
+  color: #cbd5e1;
+  opacity: 0.9;
+}
+
+.register-card input:focus {
+  border-color: #1a73e8;
+  outline: none;
+}
+
+/* BUTTON */
+.register-btn {
+  width: 100%;
+  padding: 14px;
+  background: #1a73e8;
+  color: white;
+  font-weight: 700;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.register-btn:hover {
+  background: #0f5fd6;
+}
+
+/* FOOTER */
+.register-footer {
+  text-align: center;
+  margin-top: 18px;
+  color: #475569;
+}
+
+.register-footer .link {
+  color: #1a73e8;
+  font-weight: 600;
+}
+
+/* ERROR BOX */
+.register-error {
+  background: #fee2e2;
+  color: #b91c1c;
+  padding: 10px;
+  border-radius: 10px;
+  margin-bottom: 16px;
+}
+
+
+.show-pass-row {
+  margin-top: 0;
+  margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  font-size: 14px;
+  color: #444;
+}
+
+.show-pass-row input {
+  cursor: pointer;
+  max-width: 20px;
+  margin: 0;
+  padding: 0;
+}
+
+.show-pass-row label {
+  /* cursor: pointer; */
+  min-width: 100px;
+}

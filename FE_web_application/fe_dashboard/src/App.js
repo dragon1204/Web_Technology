@@ -13,6 +13,7 @@ import Layout from "./components/Layout";
 import Dashboard from "./components/Dashboard";
 import UserList from "./components/Users/UserList";
 import GardenList from "./components/Gardens/GardenList";
+import GardenDashboard from "./components/Gardens/GardenDashboard";
 import VegetableList from "./components/Vegetables/VegetableList";
 import RevenuePage from "./components/Revenue/RevenuePage";
 import NotificationsPage from "./components/Notifications/NotificationsPage";
@@ -163,6 +164,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <GardenList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/gardens/:id"
+            element={
+              <ProtectedRoute>
+                <GardenDashboard />
               </ProtectedRoute>
             }
           />

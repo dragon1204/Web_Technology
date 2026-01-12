@@ -19,6 +19,9 @@ class WebSocketService {
       return;
     }
 
+    // Lấy token từ localStorage nếu không được truyền vào
+    const authToken = token || localStorage.getItem('token');
+
     const options = {
       path: '/socket.io',
       transports: ['websocket', 'polling'],
@@ -28,17 +31,18 @@ class WebSocketService {
       timeout: 20000,
     };
 
-    // Thêm token vào query nếu có
-    if (token) {
-      options.query = { token };
+    // Thêm token vào auth hoặc query
+    if (authToken) {
+      options.auth = { token: authToken };
+      options.query = { token: authToken };
     }
 
     this.socket = io(`${WS_URL}/devices`, options);
 
     this.socket.on('connect', () => {
-      console.log('✅ WebSocket connected:', this.socket.id);
+      console.log('✅ WebSocket connected:', this.socket?.id);
       this.isConnected = true;
-      this.emit('connected', { socketId: this.socket.id });
+      this.emit('connected', { socketId: this.socket?.id });
     });
 
     this.socket.on('disconnect', (reason) => {
@@ -52,7 +56,7 @@ class WebSocketService {
       this.emit('error', { error: error.message });
     });
 
-    // Lắng nghe dữ liệu sensor từ server
+    // Lắng nghe dữ liệu sensor từ server (theo spec: iot/sensor)
     this.socket.on('iot/sensor', (data) => {
       console.log('📡 Received sensor data:', data);
       this.emit('sensorData', data);
@@ -64,7 +68,7 @@ class WebSocketService {
       this.emit('pumpStatus', data);
     });
 
-    // Lắng nghe sự kiện pairing
+    // Event pairing từ server (giống fe-web)
     this.socket.on('iot/device/pair/success', (data) => {
       console.log('✅ Device paired successfully:', data);
       this.emit('pairSuccess', data);
@@ -131,12 +135,13 @@ class WebSocketService {
     }
 
     return new Promise((resolve, reject) => {
-      this.socket.emit('iot/device/pair', { gardenId }, (response) => {
-        if (response?.status === 'pairing_mode_active') {
+      // Emit pairing request (theo spec: iot/device/pair)
+      this.socket.emit('iot/device/pair', { gardenId: Number(gardenId) }, (response) => {
+        if (response?.status === 'pairing_mode_active' || response?.success) {
           console.log(`⏳ Pairing mode started for garden ${gardenId}`);
           resolve(response);
         } else {
-          reject(new Error('Failed to start pairing mode'));
+          reject(new Error(response?.message || 'Failed to start pairing mode'));
         }
       });
     });
@@ -144,18 +149,18 @@ class WebSocketService {
 
   /**
    * Điều khiển bơm
-   * @param {string} mac - MAC address của device
+   * @param {string} deviceMac - MAC address của device
    * @param {string} action - 'ON' | 'OFF' | 'AUTO'
    */
-  controlPump(mac, action) {
+  controlPump(deviceMac, action) {
     if (!this.socket?.connected) {
       return Promise.reject(new Error('WebSocket not connected'));
     }
 
     return new Promise((resolve, reject) => {
-      this.socket.emit('iot/device/pump', { mac, action }, (response) => {
-        if (response?.status === 'success') {
-          console.log(`💧 Pump control: ${action} for ${mac}`);
+      this.socket.emit('iot/device/pump', { mac: deviceMac, action }, (response) => {
+        if (response?.status === 'success' || response?.success) {
+          console.log(`💧 Pump control: ${action} for ${deviceMac}`);
           resolve(response);
         } else {
           reject(new Error(response?.message || 'Failed to control pump'));

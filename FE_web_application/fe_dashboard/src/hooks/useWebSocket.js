@@ -31,6 +31,12 @@ export function useWebSocket(options = {}) {
       const token = localStorage.getItem('token');
       websocketService.connect(token);
 
+      // Kiểm tra trạng thái kết nối hiện tại
+      const status = websocketService.getConnectionStatus();
+      if (status.connected) {
+        setConnected(true);
+      }
+
       // Lắng nghe sự kiện kết nối
       const onConnected = () => {
         setConnected(true);
@@ -47,14 +53,16 @@ export function useWebSocket(options = {}) {
         setConnected(false);
       };
 
-      // Lắng nghe dữ liệu sensor
+      // Lắng nghe dữ liệu sensor (theo spec: iot/sensor)
       const onSensorData = (data) => {
+        console.log('useWebSocket: Received sensor data', data);
         setSensorData(data);
         setError(null);
       };
 
       // Lắng nghe cập nhật trạng thái bơm
       const onPumpStatus = (data) => {
+        console.log('useWebSocket: Received pump status', data);
         setPumpStatus(data);
       };
 
@@ -81,17 +89,26 @@ export function useWebSocket(options = {}) {
   // Join garden room
   const joinGarden = useCallback(async (mac) => {
     if (!websocketService.isConnected) {
-      setError('WebSocket not connected');
-      return;
+      const errorMsg = 'WebSocket not connected';
+      setError(errorMsg);
+      throw new Error(errorMsg);
     }
 
     try {
       const response = await websocketService.joinGarden(mac);
-      setInitialData(response.initialData);
+      console.log('useWebSocket: Joined garden, initial data:', response);
+      if (response?.initialData) {
+        setInitialData(response.initialData);
+        // Set initial pump status if available
+        if (response.initialData.pumpStatus) {
+          setPumpStatus(response.initialData.pumpStatus);
+        }
+      }
       hasJoinedRef.current = true;
       setError(null);
       return response;
     } catch (err) {
+      console.error('useWebSocket: Failed to join garden:', err);
       setError(err.message);
       throw err;
     }
