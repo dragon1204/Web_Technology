@@ -24,15 +24,19 @@ const OAuthCallback = () => {
         // Decode user data
         const userData = JSON.parse(decodeURIComponent(userParam));
 
-        // Handle OAuth callback
+        // Handle OAuth callback - save to localStorage
         await authService.handleOAuthCallback(token, userData);
 
         toast.success("Đăng nhập Google thành công!");
-        navigate("/");
+        
+        // Wait a bit for AuthContext to re-initialize, then navigate
+        setTimeout(() => {
+          navigate("/dashboard", { replace: true });
+        }, 500);
       } catch (error) {
         console.error("OAuth callback error:", error);
         toast.error("Lỗi xử lý đăng nhập Google");
-        navigate("/login");
+        navigate("/login", { replace: true });
       }
     };
 

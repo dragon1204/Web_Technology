@@ -21,11 +21,15 @@ import { AtGuard } from "./guard/auth.guards";
 import { QrDto } from "./dto/qr.dto";
 import * as QRCode from "qrcode";
 import { Response } from "express";
+import { ConfigService } from "@nestjs/config";
 
 @ApiTags('Authentication Section')
 @Controller('auth')
 export class AuthController {
-    constructor(private authService: AuthService) {} 
+    constructor(
+        private authService: AuthService,
+        private configService: ConfigService
+    ) {} 
     
     @ApiOperation({summary:"Used to Register"})
     @Post("register")
@@ -106,16 +110,36 @@ export class AuthController {
     @ApiOperation({ summary: "Google redirect URL (Google returns here)" })
     @Get('google/redirect')
     @UseGuards(AuthGuard('google'))
-    async googleAuthRedirect(@Req() req) {
+    async googleAuthRedirect(@Req() req, @Res() res: Response) {
         // Kiểm tra xem req.user có tồn tại không
         if (!req.user) {
             console.error("❌ req.user is undefined");
-            throw new Error('User information not found from Google OAuth');
+            const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3001';
+            return res.redirect(`${frontendUrl}/login?error=oauth_failed`);
         }
         
         console.log("📥 Received user from Google OAuth:", JSON.stringify(req.user, null, 2));
         
-        // Lưu thông tin user vào database và trả về tokens
-        return this.authService.googleLogin(req.user);
+        try {
+            // Lưu thông tin user vào database và trả về tokens + user info
+            const result = await this.authService.googleLogin(req.user);
+            
+            // Lấy frontend URL từ environment variable hoặc dùng default
+            const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3001';
+            
+            // Encode user data để truyền qua URL
+            const userDataEncoded = encodeURIComponent(JSON.stringify(result.user));
+            const tokenEncoded = encodeURIComponent(result.tokens.access_token);
+            
+            // Redirect về frontend với tokens và user data trong query params
+            const redirectUrl = `${frontendUrl}/auth/google/redirect?token=${tokenEncoded}&user=${userDataEncoded}`;
+            
+            console.log("🔄 Redirecting to frontend:", redirectUrl);
+            return res.redirect(redirectUrl);
+        } catch (error) {
+            console.error("❌ Error in googleAuthRedirect:", error);
+            const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3001';
+            return res.redirect(`${frontendUrl}/login?error=oauth_error`);
+        }
     }
 }
