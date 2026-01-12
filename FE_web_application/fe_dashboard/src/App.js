@@ -15,9 +15,12 @@ import Controls from "./components/Controls";
 import GardenList from "./components/GardenList";
 import Layout from "./components/Layout";
 import OAuthCallback from "./components/OAuthCallback";
+import UserManagement from "./components/UserManagement";
+import AuditLogs from "./components/AuditLogs";
+import TwoFactorAuth from "./components/TwoFactorAuth";
 import "./App.css";
 
-function ProtectedRoute({ children }) {
+function ProtectedRoute({ children, adminOnly = false }) {
   const { user, loading, isAuthenticated } = useAuth();
 
   console.log(
@@ -58,6 +61,15 @@ function ProtectedRoute({ children }) {
   if (!user || !isAuthenticated) {
     console.log("Redirecting to login - no user or not authenticated"); // Debug log
     return <Navigate to="/login" replace />;
+  }
+
+  // Check admin access
+  if (adminOnly) {
+    const isAdmin = user?.role === "ADMIN" || user?.data?.role === "ADMIN";
+    if (!isAdmin) {
+      console.log("Access denied - admin only route"); // Debug log
+      return <Navigate to="/" replace />;
+    }
   }
 
   console.log(
@@ -105,6 +117,30 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <Controls />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/users"
+                element={
+                  <ProtectedRoute adminOnly={true}>
+                    <UserManagement />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/audit-logs"
+                element={
+                  <ProtectedRoute>
+                    <AuditLogs />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/2fa"
+                element={
+                  <ProtectedRoute>
+                    <TwoFactorAuth />
                   </ProtectedRoute>
                 }
               />
