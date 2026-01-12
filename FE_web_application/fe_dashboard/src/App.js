@@ -7,7 +7,9 @@ import {
 } from "react-router-dom";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
+import { useAuth } from "./contexts/AuthContext";
 import Login from "./components/Login";
+import OAuthCallback from "./components/OAuthCallback";
 import Layout from "./components/Layout";
 import Dashboard from "./components/Dashboard";
 import UserList from "./components/Users/UserList";
@@ -16,6 +18,11 @@ import VegetableList from "./components/Vegetables/VegetableList";
 import RevenuePage from "./components/Revenue/RevenuePage";
 import NotificationsPage from "./components/Notifications/NotificationsPage";
 import AlertsPage from "./components/Alerts/AlertsPage";
+import ForgotPassword from "./components/Security/ForgotPassword";
+import ResetPassword from "./components/Security/ResetPassword";
+import TwoFactorAuth from "./components/Security/TwoFactorAuth";
+import SecuritySettings from "./components/Security/SecuritySettings";
+import AccountSettings from "./components/AccountSettings";
 
 const theme = createTheme({
   palette: {
@@ -29,12 +36,26 @@ const theme = createTheme({
 });
 
 function App() {
-  const isAuthenticated = () => {
-    return localStorage.getItem("token") !== null;
-  };
-
   const ProtectedRoute = ({ children }) => {
-    return isAuthenticated() ? (
+    const { isAuthenticated, loading } = useAuth();
+    
+    if (loading) {
+      return (
+        <div
+          style={{
+            minHeight: "100vh",
+            backgroundColor: "#102216",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <div style={{ color: "#4cbe00", fontSize: "18px" }}>Loading...</div>
+        </div>
+      );
+    }
+    
+    return isAuthenticated ? (
       <Layout>{children}</Layout>
     ) : (
       <Navigate to="/login" />
@@ -47,6 +68,9 @@ function App() {
       <Router>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/auth/google/redirect" element={<OAuthCallback />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route
             path="/dashboard"
             element={
@@ -103,7 +127,31 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route path="/" element={<Navigate to="/dashboard" />} />
+          <Route
+            path="/security"
+            element={
+              <ProtectedRoute>
+                <SecuritySettings />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/security/2fa"
+            element={
+              <ProtectedRoute>
+                <TwoFactorAuth />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/account"
+            element={
+              <ProtectedRoute>
+                <AccountSettings />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </Router>
     </ThemeProvider>

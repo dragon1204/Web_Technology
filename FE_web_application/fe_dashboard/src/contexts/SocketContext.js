@@ -17,7 +17,7 @@ export const SocketProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
   const [connected, setConnected] = useState(false);
   const [sensorData, setSensorData] = useState({});
-  const [deviceMode, setDeviceMode] = useState("simulator"); // "simulator" or "real"
+  const [deviceMode, setDeviceMode] = useState("real"); // "simulator" or "real"
   const [simulatorWs, setSimulatorWs] = useState(null);
   const [simulatorConnected, setSimulatorConnected] = useState(false);
   const simulatorListenersRef = useRef([]); // Use ref instead of state
@@ -80,11 +80,19 @@ export const SocketProvider = ({ children }) => {
     }
   }, [user, token]);
 
-  // Simulator WebSocket connection
+  // Simulator WebSocket connection (only when deviceMode is "simulator")
   useEffect(() => {
+    if (deviceMode !== "simulator") {
+      // Ensure any existing simulator connection is closed
+      if (simulatorWs) {
+        simulatorWs.close();
+      }
+      return;
+    }
+
     const connectToSimulator = () => {
       try {
-        const ws = new WebSocket("ws://localhost:8080");
+        const ws = new WebSocket(config.SIMULATOR_WS_URL);
 
         ws.onopen = () => {
           console.log("Connected to device simulator");
@@ -128,7 +136,7 @@ export const SocketProvider = ({ children }) => {
         simulatorWs.close();
       }
     };
-  }, []);
+  }, [deviceMode]);
 
   const subscribeTo = (event, callback) => {
     if (event === "simulatorData") {

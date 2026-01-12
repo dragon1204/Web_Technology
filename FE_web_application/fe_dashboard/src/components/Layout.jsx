@@ -23,6 +23,8 @@ import {
   Grass as GrassIcon,
   Logout as LogoutIcon,
   AttachMoney as MoneyIcon,
+  AccountCircle as AccountIcon,
+  Security as SecurityIcon,
 } from "@mui/icons-material";
 import { authAPI } from "../services/api";
 
@@ -52,6 +54,11 @@ function Layout({ children }) {
     { text: "Alerts", icon: <DashboardIcon />, path: "/alerts" },
   ];
 
+  const bottomMenuItems = [
+    { text: "Account", icon: <AccountIcon />, path: "/account" },
+    { text: "Security", icon: <SecurityIcon />, path: "/security" },
+  ];
+
   const drawer = (
     <div>
       <Toolbar>
@@ -62,6 +69,20 @@ function Layout({ children }) {
       <Divider />
       <List>
         {menuItems.map((item) => (
+          <ListItem key={item.text} disablePadding>
+            <ListItemButton
+              selected={location.pathname === item.path}
+              onClick={() => navigate(item.path)}
+            >
+              <ListItemIcon>{item.icon}</ListItemIcon>
+              <ListItemText primary={item.text} />
+            </ListItemButton>
+          </ListItem>
+        ))}
+      </List>
+      <Divider />
+      <List>
+        {bottomMenuItems.map((item) => (
           <ListItem key={item.text} disablePadding>
             <ListItemButton
               selected={location.pathname === item.path}

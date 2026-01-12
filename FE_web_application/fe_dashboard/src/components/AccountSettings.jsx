@@ -41,7 +41,7 @@ import {
   LocationOn as LocationIcon,
   AccessTime as AccessTimeIcon,
 } from "@mui/icons-material";
-import { authAPI } from "../../services/api";
+import { authAPI } from "../services/api";
 
 function AccountSettings() {
   const [tabValue, setTabValue] = useState(0);

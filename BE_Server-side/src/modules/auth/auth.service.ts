@@ -266,7 +266,18 @@ export class AuthService {
             const tokens = await this.getTokens(payload);
             await this.saveRefreshToken(finalUser.id, tokens.refresh_token);
             console.log("🎫 Tokens generated successfully for:", finalUser.email);
-            return tokens;
+            
+            // Return both tokens and user info for redirect
+            return {
+                tokens,
+                user: {
+                    id: finalUser.id,
+                    email: finalUser.email,
+                    name: finalUser.name,
+                    role: finalUser.role,
+                    avatar: finalUser.avatar,
+                }
+            };
         } catch (error) {
             console.error("❌ Error in googleLogin:", error);
             throw error;
