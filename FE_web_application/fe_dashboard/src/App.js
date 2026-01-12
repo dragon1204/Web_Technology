@@ -25,6 +25,7 @@ import SecuritySettings from "./components/Security/SecuritySettings";
 import AccountSettings from "./components/AccountSettings";
 
 import AuditLogs from "./components/AuditLogs.jsx";
+import Controls from "./components/Controls";
 import { 
   ShopList, 
   ProductList, 
@@ -155,21 +156,14 @@ function RoleBasedRedirect() {
 }
 
 function App() {
-<<<<<<< HEAD
-  const ProtectedRoute = ({ children }) => {
-    const { isAuthenticated, loading } = useAuth();
-
-=======
   const ProtectedRoute = ({ children, allowedRoles = [] }) => {
     const { isAuthenticated, loading, user } = useAuth();
-    
->>>>>>> 542a81b (sale module)
     if (loading) {
       return (
         <div
           style={{
             minHeight: "100vh",
-            backgroundColor: "#102216",
+            backgroundColor: "#1a3a2a",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -179,14 +173,6 @@ function App() {
         </div>
       );
     }
-<<<<<<< HEAD
-
-    return isAuthenticated ? (
-      <Layout>{children}</Layout>
-    ) : (
-      <Navigate to="/login" />
-    );
-=======
     
     if (!isAuthenticated) {
       return <Navigate to="/login" />;
@@ -205,7 +191,6 @@ function App() {
     }
     
     return <RoleBasedLayout>{children}</RoleBasedLayout>;
->>>>>>> 542a81b (sale module)
   };
 
   return (
@@ -244,13 +229,16 @@ function App() {
           <Route
             path="/gardens/:id"
             element={
-<<<<<<< HEAD
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={["ADMIN", "USER"]}>
                 <GardenDashboard />
-=======
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/controls"
+            element={
               <ProtectedRoute allowedRoles={["ADMIN", "USER"]}>
                 <Controls />
->>>>>>> 542a81b (sale module)
               </ProtectedRoute>
             }
           />
