@@ -1,0 +1,543 @@
+{
+	"info": {
+		"_postman_id": "storage-api-collection",
+		"name": "Storage API - File Management",
+		"description": "Collection để test các API xử lý file với MinIO\n\n**Cấu hình:**\n- Base URL: {{base_url}}\n- Bucket: files\n- Token: {{access_token}}\n\n**Setup:**\n1. Tạo environment variables:\n   - base_url: http://localhost:3000\n   - access_token: YOUR_TOKEN_HERE\n2. Đăng nhập để lấy access_token từ /auth/login",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "1. Upload Single File",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{access_token}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "file",
+							"type": "file",
+							"src": [],
+							"description": "File cần upload"
+						},
+						{
+							"key": "folder",
+							"value": "uploads",
+							"type": "text",
+							"description": "Thư mục lưu trữ (avatars, products, documents, uploads)"
+						},
+						{
+							"key": "fileName",
+							"value": "",
+							"type": "text",
+							"description": "Tên file tùy chỉnh (optional)"
+						}
+					]
+				},
+				"url": {
+					"raw": "{{base_url}}/storage/upload?folder=uploads",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"storage",
+						"upload"
+					],
+					"query": [
+						{
+							"key": "folder",
+							"value": "uploads",
+							"description": "Thư mục lưu trữ"
+						}
+					]
+				},
+				"description": "Upload một file lên MinIO storage\n\n**Parameters:**\n- file: File cần upload (required)\n- folder: Thư mục lưu trữ (optional, default: uploads)\n- fileName: Tên file tùy chỉnh (optional)"
+			},
+			"response": []
+		},
+		{
+			"name": "2. Upload Multiple Files",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{access_token}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "files",
+							"type": "file",
+							"src": [],
+							"description": "File 1"
+						},
+						{
+							"key": "files",
+							"type": "file",
+							"src": [],
+							"description": "File 2 (optional)"
+						},
+						{
+							"key": "files",
+							"type": "file",
+							"src": [],
+							"description": "File 3 (optional)"
+						},
+						{
+							"key": "folder",
+							"value": "products",
+							"type": "text",
+							"description": "Thư mục lưu trữ"
+						}
+					]
+				},
+				"url": {
+					"raw": "{{base_url}}/storage/upload/multiple?folder=products",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"storage",
+						"upload",
+						"multiple"
+					],
+					"query": [
+						{
+							"key": "folder",
+							"value": "products",
+							"description": "Thư mục lưu trữ"
+						}
+					]
+				},
+				"description": "Upload nhiều files cùng lúc (tối đa 10 files)\n\n**Parameters:**\n- files: Danh sách files (required, có thể thêm nhiều files)\n- folder: Thư mục lưu trữ (optional)"
+			},
+			"response": []
+		},
+		{
+			"name": "3. Download File",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{access_token}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/storage/download/{{test_file_name}}",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"storage",
+						"download",
+						"{{test_file_name}}"
+					]
+				},
+				"description": "Download file từ storage\n\n**Path:** Đường dẫn file (ví dụ: uploads/1704067200000-test.jpg hoặc avatars/user-1.jpg)\n\n**Lưu ý:** URL encode đường dẫn nếu có ký tự đặc biệt\n\n**Response:** File stream (binary)"
+			},
+			"response": []
+		},
+		{
+			"name": "4. Get Presigned URL",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{access_token}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/storage/url/{{test_file_name}}?expiry=604800",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"storage",
+						"url",
+						"{{test_file_name}}"
+					],
+					"query": [
+						{
+							"key": "expiry",
+							"value": "604800",
+							"description": "Thời gian hết hạn (giây). Mặc định: 604800 (7 ngày)"
+						}
+					]
+				},
+				"description": "Lấy presigned URL để truy cập file (dùng để hiển thị ảnh trong frontend)\n\n**Path:** Đường dẫn file\n\n**Query Parameter:**\n- expiry: Thời gian hết hạn (giây), mặc định 7 ngày"
+			},
+			"response": []
+		},
+		{
+			"name": "5. Get File Info",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{access_token}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/storage/info/{{test_file_name}}",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"storage",
+						"info",
+						"{{test_file_name}}"
+					]
+				},
+				"description": "Lấy thông tin chi tiết của file\n\n**Path:** Đường dẫn file\n\n**Response:** Thông tin file (size, contentType, lastModified, etc.)"
+			},
+			"response": []
+		},
+		{
+			"name": "6. List Files",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{access_token}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/storage/list?folder=uploads&recursive=true",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"storage",
+						"list"
+					],
+					"query": [
+						{
+							"key": "folder",
+							"value": "uploads",
+							"description": "Lọc theo thư mục (optional)"
+						},
+						{
+							"key": "recursive",
+							"value": "true",
+							"description": "Tìm kiếm đệ quy (optional, default: true)"
+						}
+					]
+				},
+				"description": "Lấy danh sách files trong storage\n\n**Query Parameters:**\n- folder: Lọc theo thư mục (optional)\n- recursive: Tìm kiếm đệ quy trong thư mục con (optional, default: true)"
+			},
+			"response": []
+		},
+		{
+			"name": "7. Delete File",
+			"request": {
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{access_token}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/storage/delete/{{test_file_name}}",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"storage",
+						"delete",
+						"{{test_file_name}}"
+					]
+				},
+				"description": "Xóa một file\n\n**Role Required:** USER, ADMIN\n\n**Path:** Đường dẫn file cần xóa"
+			},
+			"response": []
+		},
+		{
+			"name": "8. Delete Multiple Files",
+			"request": {
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{access_token}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/storage/delete/multiple?fileNames=uploads/file1.jpg&fileNames=uploads/file2.jpg",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"storage",
+						"delete",
+						"multiple"
+					],
+					"query": [
+						{
+							"key": "fileNames",
+							"value": "uploads/file1.jpg",
+							"description": "File 1"
+						},
+						{
+							"key": "fileNames",
+							"value": "uploads/file2.jpg",
+							"description": "File 2"
+						}
+					]
+				},
+				"description": "Xóa nhiều files cùng lúc\n\n**Role Required:** USER, ADMIN\n\n**Query Parameters:**\n- fileNames: Danh sách tên files (có thể thêm nhiều fileNames)"
+			},
+			"response": []
+		},
+		{
+			"name": "9. Check File Exists",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{access_token}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/storage/exists/{{test_file_name}}",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"storage",
+						"exists",
+						"{{test_file_name}}"
+					]
+				},
+				"description": "Kiểm tra file có tồn tại không\n\n**Path:** Đường dẫn file\n\n**Response:** { exists: true/false }"
+			},
+			"response": []
+		},
+		{
+			"name": "Examples - Upload Avatar",
+			"item": [
+				{
+					"name": "Upload User Avatar",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": []
+								},
+								{
+									"key": "folder",
+									"value": "avatars",
+									"type": "text"
+								},
+								{
+									"key": "fileName",
+									"value": "user-{{user_id}}.jpg",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/storage/upload?folder=avatars&fileName=user-{{user_id}}.jpg",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"storage",
+								"upload"
+							],
+							"query": [
+								{
+									"key": "folder",
+									"value": "avatars"
+								},
+								{
+									"key": "fileName",
+									"value": "user-{{user_id}}.jpg"
+								}
+							]
+						},
+						"description": "Upload avatar cho user"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Avatar URL",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/storage/url/avatars/user-{{user_id}}.jpg?expiry=3600",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"storage",
+								"url",
+								"avatars/user-{{user_id}}.jpg"
+							],
+							"query": [
+								{
+									"key": "expiry",
+									"value": "3600",
+									"description": "1 giờ"
+								}
+							]
+						},
+						"description": "Lấy URL avatar để hiển thị"
+					},
+					"response": []
+				}
+			],
+			"description": "Ví dụ upload và lấy avatar"
+		},
+		{
+			"name": "Examples - Product Images",
+			"item": [
+				{
+					"name": "Upload Product Images",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "files",
+									"type": "file",
+									"src": []
+								},
+								{
+									"key": "files",
+									"type": "file",
+									"src": []
+								},
+								{
+									"key": "folder",
+									"value": "products",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/storage/upload/multiple?folder=products",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"storage",
+								"upload",
+								"multiple"
+							],
+							"query": [
+								{
+									"key": "folder",
+									"value": "products"
+								}
+							]
+						},
+						"description": "Upload nhiều ảnh sản phẩm"
+					},
+					"response": []
+				},
+				{
+					"name": "List Product Images",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/storage/list?folder=products&recursive=true",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"storage",
+								"list"
+							],
+							"query": [
+								{
+									"key": "folder",
+									"value": "products"
+								},
+								{
+									"key": "recursive",
+									"value": "true"
+								}
+							]
+						},
+						"description": "Lấy danh sách ảnh sản phẩm"
+					},
+					"response": []
+				}
+			],
+			"description": "Ví dụ upload và quản lý ảnh sản phẩm"
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:3000",
+			"type": "string"
+		},
+		{
+			"key": "access_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "user_id",
+			"value": "1",
+			"type": "string"
+		}
+	]
+}

@@ -27,9 +27,10 @@ import {
   AttachMoney as MoneyIcon,
   AccountCircle as AccountIcon,
   Security as SecurityIcon,
-  ExpandMore as ExpandMoreIcon,
-  ExpandLess as ExpandLessIcon,
-  Settings as SettingsIcon,
+  ShoppingCart as ShoppingCartIcon,
+  Store as StoreIcon,
+  Inventory as InventoryIcon,
+  History as HistoryIcon,
 } from "@mui/icons-material";
 import { authAPI, gardenAPI } from "../services/api";
 import toast from "react-hot-toast";
@@ -81,6 +82,13 @@ function Layout({ children }) {
     { text: "Alerts", icon: <DashboardIcon />, path: "/alerts" },
   ];
 
+  const customerMenuItems = [
+    { text: "Danh sách Shop", icon: <StoreIcon />, path: "/customer/shops" },
+    { text: "Sản phẩm", icon: <InventoryIcon />, path: "/customer/products" },
+    { text: "Giỏ hàng", icon: <ShoppingCartIcon />, path: "/customer/cart" },
+    { text: "Lịch sử đơn hàng", icon: <HistoryIcon />, path: "/customer/orders" },
+  ];
+
   const bottomMenuItems = [
     { text: "Account", icon: <AccountIcon />, path: "/account" },
     { text: "Security", icon: <SecurityIcon />, path: "/security" },
@@ -110,59 +118,35 @@ function Layout({ children }) {
       <Divider />
       <List>
         <ListItem disablePadding>
-          <ListItemButton onClick={() => setGardensExpanded(!gardensExpanded)}>
-            <ListItemIcon>
-              <YardIcon />
-            </ListItemIcon>
-            <ListItemText primary="Gardens" />
-            {gardensExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-          </ListItemButton>
+          <ListItemText 
+            primary="Customer" 
+            primaryTypographyProps={{
+              variant: "subtitle2",
+              sx: { 
+                fontWeight: 600, 
+                color: "primary.main",
+                px: 2,
+                py: 1
+              }
+            }}
+          />
         </ListItem>
-        <Collapse in={gardensExpanded} timeout="auto" unmountOnExit>
-          <List component="div" disablePadding>
-            {gardens.length === 0 ? (
-              <ListItem>
-                <ListItemText 
-                  primary="Không có garden" 
-                  secondary="Tạo garden mới trong trang Gardens"
-                  primaryTypographyProps={{ variant: "body2", color: "textSecondary" }}
-                />
-              </ListItem>
-            ) : (
-              gardens.map((garden) => (
-                <ListItem key={garden.id} disablePadding>
-                  <ListItemButton
-                    onClick={() => handleSelectGarden(garden)}
-                    sx={{ pl: 4 }}
-                  >
-                    <ListItemIcon>
-                      {garden.deviceMac ? (
-                        <SettingsIcon fontSize="small" color="success" />
-                      ) : (
-                        <YardIcon fontSize="small" />
-                      )}
-                    </ListItemIcon>
-                    <ListItemText 
-                      primary={garden.name}
-                      secondary={
-                        garden.deviceMac ? (
-                          <Chip 
-                            label={garden.deviceMac} 
-                            size="small" 
-                            color="success"
-                            sx={{ height: 18, fontSize: '0.65rem', mt: 0.5 }}
-                          />
-                        ) : (
-                          "Chưa có thiết bị"
-                        )
-                      }
-                    />
-                  </ListItemButton>
-                </ListItem>
-              ))
-            )}
-          </List>
-        </Collapse>
+        {customerMenuItems.map((item) => (
+          <ListItem key={item.text} disablePadding>
+            <ListItemButton
+              selected={
+                location.pathname === item.path ||
+                (item.path === "/customer/products" && location.pathname.startsWith("/customer/products")) ||
+                (item.path === "/customer/orders" && location.pathname.startsWith("/customer/orders"))
+              }
+              onClick={() => navigate(item.path)}
+              sx={{ pl: 4 }}
+            >
+              <ListItemIcon>{item.icon}</ListItemIcon>
+              <ListItemText primary={item.text} />
+            </ListItemButton>
+          </ListItem>
+        ))}
       </List>
       <Divider />
       <List>
