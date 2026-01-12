@@ -113,9 +113,9 @@ function Dashboard() {
         // Calculate quantity from imported and sold (inventory = imported - sold)
         const quantity = v.quantity ?? (v.imported ?? 0) - (v.sold ?? 0);
         return {
-          name: v.name || "Unknown",
+        name: v.name || "Unknown",
           quantity: quantity,
-          price: v.price || 0,
+        price: v.price || 0,
         };
       });
 

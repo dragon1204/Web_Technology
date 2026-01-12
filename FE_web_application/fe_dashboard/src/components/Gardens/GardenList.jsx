@@ -18,11 +18,13 @@ import {
   Typography,
   Alert,
   Chip,
+  Tooltip,
 } from "@mui/material";
 import {
   Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
+  Grass as GrassIcon,
 } from "@mui/icons-material";
 import { gardenAPI } from "../../services/api";
 
@@ -126,33 +128,89 @@ function GardenList() {
   };
 
   return (
-    <Box>
-      <Box sx={{ display: "flex", justifyContent: "space-between", mb: 3 }}>
-        <Typography variant="h4">Gardens Management</Typography>
+    <Box sx={{ p: 3 }}>
+      {/* Header */}
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          mb: 4,
+          pb: 2,
+          borderBottom: "2px solid",
+          borderColor: "primary.main",
+        }}
+      >
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <GrassIcon sx={{ fontSize: 32, color: "primary.main" }} />
+          <Typography variant="h4" sx={{ fontWeight: 700, color: "#ffffff" }}>
+            Gardens Management
+          </Typography>
+        </Box>
         <Button
           variant="contained"
           startIcon={<AddIcon />}
           onClick={() => handleOpen()}
+          size="large"
+          sx={{
+            backgroundColor: "primary.main",
+            "&:hover": {
+              backgroundColor: "primary.dark",
+            },
+          }}
         >
-          Add Garden
+          ADD GARDEN
         </Button>
       </Box>
 
       {success && (
-        <Alert severity="success" sx={{ mb: 2 }}>
+        <Alert
+          severity="success"
+          sx={{
+            mb: 2,
+            backgroundColor: "#d4edda",
+            color: "#155724",
+          }}
+        >
           {success}
         </Alert>
       )}
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
+        <Alert
+          severity="error"
+          sx={{
+            mb: 2,
+            backgroundColor: "#f8d7da",
+            color: "#721c24",
+          }}
+        >
           {error}
         </Alert>
       )}
 
-      <TableContainer component={Paper}>
+      <TableContainer
+        component={Paper}
+        sx={{
+          boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
+          borderRadius: 2,
+          overflow: "hidden",
+        }}
+      >
         <Table>
           <TableHead>
-            <TableRow>
+            <TableRow
+              sx={{
+                backgroundColor: "#1a3a3a",
+                "& th": {
+                  backgroundColor: "#1a3a3a",
+                  color: "#fff",
+                  fontWeight: 700,
+                  fontSize: "14px",
+                  border: "none",
+                  padding: "16px",
+                },
+              }}
+            >
               <TableCell>Name</TableCell>
               <TableCell>Location</TableCell>
               <TableCell>Area (m²)</TableCell>
@@ -161,44 +219,100 @@ function GardenList() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {gardens.map((garden) => (
-              <TableRow key={garden.id}>
-                <TableCell>
-                  <Chip
-                    label={garden.name}
-                    color="primary"
-                    variant="outlined"
-                  />
-                </TableCell>
-                <TableCell>{garden.location}</TableCell>
-                <TableCell>{garden.area} m²</TableCell>
-                <TableCell>{garden.description || "N/A"}</TableCell>
-                <TableCell align="right">
-                  <IconButton
-                    onClick={() => handleOpen(garden)}
-                    color="primary"
-                  >
-                    <EditIcon />
-                  </IconButton>
-                  <IconButton
-                    onClick={() => handleDelete(garden.id)}
-                    color="error"
-                  >
-                    <DeleteIcon />
-                  </IconButton>
+            {gardens && gardens.length > 0 ? (
+              gardens.map((garden) => (
+                <TableRow
+                  key={garden.id}
+                  sx={{
+                    "&:hover": {
+                      backgroundColor: "#f5f5f5",
+                    },
+                    "& td": {
+                      padding: "16px",
+                      borderBottom: "1px solid #e0e0e0",
+                    },
+                  }}
+                >
+                  <TableCell>
+                    <Chip
+                      label={garden.name}
+                      color="primary"
+                      variant="filled"
+                      sx={{
+                        fontWeight: 600,
+                        fontSize: "13px",
+                      }}
+                    />
+                  </TableCell>
+                  <TableCell sx={{ color: "#f0f0f0" }}>
+                    {garden.location || "N/A"}
+                  </TableCell>
+                  <TableCell sx={{ color: "#f0f0f0", fontWeight: 500 }}>
+                    {garden.area || "N/A"} m²
+                  </TableCell>
+                  <TableCell sx={{ color: "#d0d0d0", maxWidth: 200 }}>
+                    {garden.description || "N/A"}
+                  </TableCell>
+                  <TableCell align="right">
+                    <Tooltip title="Edit Garden">
+                      <IconButton
+                        onClick={() => handleOpen(garden)}
+                        color="primary"
+                        size="small"
+                        sx={{
+                          "&:hover": {
+                            backgroundColor: "rgba(76, 190, 0, 0.08)",
+                          },
+                        }}
+                      >
+                        <EditIcon />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Delete Garden">
+                      <IconButton
+                        onClick={() => handleDelete(garden.id)}
+                        color="error"
+                        size="small"
+                        sx={{
+                          "&:hover": {
+                            backgroundColor: "rgba(220, 38, 38, 0.08)",
+                          },
+                        }}
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </Tooltip>
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
+                  <Typography color="textSecondary">
+                    No gardens found. Create one to get started!
+                  </Typography>
                 </TableCell>
               </TableRow>
-            ))}
+            )}
           </TableBody>
         </Table>
       </TableContainer>
 
       {/* Add/Edit Dialog */}
       <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-        <DialogTitle>{editMode ? "Edit Garden" : "Add New Garden"}</DialogTitle>
-        <DialogContent>
+        <DialogTitle
+          sx={{
+            backgroundColor: "#1a3a3a",
+            color: "white",
+            fontWeight: 700,
+            fontSize: "18px",
+          }}
+        >
+          {editMode ? "Edit Garden" : "Add New Garden"}
+        </DialogTitle>
+        <DialogContent sx={{ pt: 3 }}>
           <TextField
-            margin="dense"
+            margin="normal"
             label="Garden Name"
             fullWidth
             value={currentGarden.name}
@@ -206,9 +320,17 @@ function GardenList() {
               setCurrentGarden({ ...currentGarden, name: e.target.value })
             }
             required
+            variant="outlined"
+            sx={{
+              "& .MuiOutlinedInput-root": {
+                "&:hover fieldset": {
+                  borderColor: "primary.main",
+                },
+              },
+            }}
           />
           <TextField
-            margin="dense"
+            margin="normal"
             label="Location"
             fullWidth
             value={currentGarden.location}
@@ -216,9 +338,17 @@ function GardenList() {
               setCurrentGarden({ ...currentGarden, location: e.target.value })
             }
             required
+            variant="outlined"
+            sx={{
+              "& .MuiOutlinedInput-root": {
+                "&:hover fieldset": {
+                  borderColor: "primary.main",
+                },
+              },
+            }}
           />
           <TextField
-            margin="dense"
+            margin="normal"
             label="Area (m²)"
             type="number"
             fullWidth
@@ -227,9 +357,17 @@ function GardenList() {
               setCurrentGarden({ ...currentGarden, area: e.target.value })
             }
             required
+            variant="outlined"
+            sx={{
+              "& .MuiOutlinedInput-root": {
+                "&:hover fieldset": {
+                  borderColor: "primary.main",
+                },
+              },
+            }}
           />
           <TextField
-            margin="dense"
+            margin="normal"
             label="Description"
             fullWidth
             multiline
@@ -241,11 +379,27 @@ function GardenList() {
                 description: e.target.value,
               })
             }
+            variant="outlined"
+            sx={{
+              "& .MuiOutlinedInput-root": {
+                "&:hover fieldset": {
+                  borderColor: "primary.main",
+                },
+              },
+            }}
           />
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleClose}>Cancel</Button>
-          <Button onClick={handleSave} variant="contained">
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={handleClose} variant="outlined">
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSave}
+            variant="contained"
+            sx={{
+              backgroundColor: "primary.main",
+            }}
+          >
             {editMode ? "Update" : "Create"}
           </Button>
         </DialogActions>

@@ -1,0 +1,611 @@
+{
+  "info": {
+    "_postman_id": "e4e2a4f0-0d23-4a8c-8f9b-collection",
+    "name": "Web Technology Backend APIs",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Collection chứa các API backend để tiện test. Sử dụng biến {{base_url}} (ví dụ: http://localhost:3000)."
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"Password123!\",\n  \"name\": \"User Name\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/auth/register", "host": ["{{base_url}}"], "path": ["auth", "register"] }
+          }
+        },
+        {
+          "name": "Login (Step 1 - Password Only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"Password123!\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/auth/login", "host": ["{{base_url}}"], "path": ["auth", "login"] }
+          }
+        },
+        {
+          "name": "Login (Step 2 - Password + 2FA Code)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"Password123!\",\n  \"totpCode\": \"123456\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/auth/login", "host": ["{{base_url}}"], "path": ["auth", "login"] }
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh_token\": \"{{refresh_token}}\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/auth/refresh", "host": ["{{base_url}}"], "path": ["auth", "refresh"] }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/auth/logout", "host": ["{{base_url}}"], "path": ["auth", "logout"] }
+          }
+        },
+        {
+          "name": "Forgot Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/auth/forgot-password", "host": ["{{base_url}}"], "path": ["auth", "forgot-password"] }
+          }
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{reset_token}}\",\n  \"newPassword\": \"NewPassword123!\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/auth/reset-password", "host": ["{{base_url}}"], "path": ["auth", "reset-password"] }
+          }
+        },
+        {
+          "name": "Generate 2FA Secret",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/auth/2fa/generate", "host": ["{{base_url}}"], "path": ["auth", "2fa", "generate"] }
+          }
+        },
+        {
+          "name": "Get 2FA QR (PNG)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"otpauthUrl\": \"{{otpauthUrl}}\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/auth/2fa/qrcode", "host": ["{{base_url}}"], "path": ["auth", "2fa", "qrcode"] }
+          }
+        },
+        {
+          "name": "Enable 2FA",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"123456\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/auth/2fa/enable", "host": ["{{base_url}}"], "path": ["auth", "2fa", "enable"] }
+          }
+        },
+        {
+          "name": "Disable 2FA",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/auth/2fa/disable", "host": ["{{base_url}}"], "path": ["auth", "2fa", "disable"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Get All Users (ADMIN)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/users", "host": ["{{base_url}}"], "path": ["users"] }
+          }
+        },
+        {
+          "name": "Get My Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/users/me", "host": ["{{base_url}}"], "path": ["users", "me"] }
+          }
+        },
+        {
+          "name": "Get User By ID (ADMIN/SELF)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/users/{{user_id}}", "host": ["{{base_url}}"], "path": ["users", "{{user_id}}"] }
+          }
+        },
+        {
+          "name": "Create User (ADMIN)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"new@example.com\",\n  \"password\": \"Password123!\",\n  \"name\": \"New User\",\n  \"role\": \"USER\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/users", "host": ["{{base_url}}"], "path": ["users"] }
+          }
+        },
+        {
+          "name": "Update User (ADMIN)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Name\",\n  \"role\": \"USER\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/users/{{user_id}}", "host": ["{{base_url}}"], "path": ["users", "{{user_id}}"] }
+          }
+        },
+        {
+          "name": "Delete User (ADMIN)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/users/{{user_id}}", "host": ["{{base_url}}"], "path": ["users", "{{user_id}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Audit",
+      "item": [
+        {
+          "name": "Recent Logs (ADMIN)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/audit/recent?limit=50",
+              "host": ["{{base_url}}"],
+              "path": ["audit", "recent"],
+              "query": [{ "key": "limit", "value": "50" }]
+            }
+          }
+        },
+        {
+          "name": "My Logs",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/audit/my-logs?limit=50",
+              "host": ["{{base_url}}"],
+              "path": ["audit", "my-logs"],
+              "query": [{ "key": "limit", "value": "50" }]
+            }
+          }
+        },
+        {
+          "name": "Logs By Entity (ADMIN)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/audit/by-entity?entityType=Vegetable&entityId=1&limit=50",
+              "host": ["{{base_url}}"],
+              "path": ["audit", "by-entity"],
+              "query": [
+                { "key": "entityType", "value": "Vegetable" },
+                { "key": "entityId", "value": "1" },
+                { "key": "limit", "value": "50" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Logs By Request ID (ADMIN)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/audit/by-request?requestId=req-123",
+              "host": ["{{base_url}}"],
+              "path": ["audit", "by-request"],
+              "query": [{ "key": "requestId", "value": "req-123" }]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Garden",
+      "item": [
+        {
+          "name": "List Gardens",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/garden?page=1&limit=10", "host": ["{{base_url}}"], "path": ["garden"], "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "10" }] }
+          }
+        },
+        {
+          "name": "Create Garden",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Garden A\",\n  \"ownerId\": 1,\n  \"deviceMac\": \"AA:BB:CC:DD:EE:FF\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/garden", "host": ["{{base_url}}"], "path": ["garden"] }
+          }
+        },
+        {
+          "name": "Update Garden",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Garden A Updated\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/garden/{{garden_id}}", "host": ["{{base_url}}"], "path": ["garden", "{{garden_id}}"] }
+          }
+        },
+        {
+          "name": "Delete Garden",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/garden/{{garden_id}}", "host": ["{{base_url}}"], "path": ["garden", "{{garden_id}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Vegetable",
+      "item": [
+        {
+          "name": "List Vegetables",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/vegetable?page=1&limit=10", "host": ["{{base_url}}"], "path": ["vegetable"], "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "10" }] }
+          }
+        },
+        {
+          "name": "Create Vegetable",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Tomato\",\n  \"price\": 3.5,\n  \"imported\": 100,\n  \"sold\": 10\n}"
+            },
+            "url": { "raw": "{{base_url}}/vegetable", "host": ["{{base_url}}"], "path": ["vegetable"] }
+          }
+        },
+        {
+          "name": "Update Price",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"price\": 4.0\n}"
+            },
+            "url": { "raw": "{{base_url}}/vegetable/price/{{vegetable_id}}", "host": ["{{base_url}}"], "path": ["vegetable", "price", "{{vegetable_id}}"] }
+          }
+        },
+        {
+          "name": "Update Imported",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"imported\": 120\n}"
+            },
+            "url": { "raw": "{{base_url}}/vegetable/imported/{{vegetable_id}}", "host": ["{{base_url}}"], "path": ["vegetable", "imported", "{{vegetable_id}}"] }
+          }
+        },
+        {
+          "name": "Update Sold",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sold\": 15\n}"
+            },
+            "url": { "raw": "{{base_url}}/vegetable/sold/{{vegetable_id}}", "host": ["{{base_url}}"], "path": ["vegetable", "sold", "{{vegetable_id}}"] }
+          }
+        },
+        {
+          "name": "Soft Delete Vegetable",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/vegetable/delete/{{vegetable_id}}", "host": ["{{base_url}}"], "path": ["vegetable", "delete", "{{vegetable_id}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        {
+          "name": "List Notifications",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/notifications", "host": ["{{base_url}}"], "path": ["notifications"] }
+          }
+        },
+        {
+          "name": "Unread Count",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/notifications/unread/count", "host": ["{{base_url}}"], "path": ["notifications", "unread", "count"] }
+          }
+        },
+        {
+          "name": "Mark Read",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/notifications/{{notification_id}}/read", "host": ["{{base_url}}"], "path": ["notifications", "{{notification_id}}", "read"] }
+          }
+        },
+        {
+          "name": "Mark All Read",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/notifications/read-all", "host": ["{{base_url}}"], "path": ["notifications", "read-all"] }
+          }
+        },
+        {
+          "name": "Delete Notification",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/notifications/{{notification_id}}", "host": ["{{base_url}}"], "path": ["notifications", "{{notification_id}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Alerts",
+      "item": [
+        {
+          "name": "List Alerts",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/alerts", "host": ["{{base_url}}"], "path": ["alerts"] }
+          }
+        },
+        {
+          "name": "Active Count",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/alerts/active/count", "host": ["{{base_url}}"], "path": ["alerts", "active", "count"] }
+          }
+        },
+        {
+          "name": "Resolve Alert",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/alerts/{{alert_id}}/resolve", "host": ["{{base_url}}"], "path": ["alerts", "{{alert_id}}", "resolve"] }
+          }
+        },
+        {
+          "name": "Create Alert Rule",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sensorType\": \"temperature\",\n  \"minValue\": 18,\n  \"maxValue\": 30,\n  \"severity\": \"warning\",\n  \"gardenId\": 1\n}"
+            },
+            "url": { "raw": "{{base_url}}/alerts/rules", "host": ["{{base_url}}"], "path": ["alerts", "rules"] }
+          }
+        },
+        {
+          "name": "List Alert Rules",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/alerts/rules", "host": ["{{base_url}}"], "path": ["alerts", "rules"] }
+          }
+        },
+        {
+          "name": "Update Alert Rule",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"minValue\": 20,\n  \"maxValue\": 28\n}"
+            },
+            "url": { "raw": "{{base_url}}/alerts/rules/{{rule_id}}", "host": ["{{base_url}}"], "path": ["alerts", "rules", "{{rule_id}}"] }
+          }
+        },
+        {
+          "name": "Delete Alert Rule",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/alerts/rules/{{rule_id}}", "host": ["{{base_url}}"], "path": ["alerts", "rules", "{{rule_id}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notifications & Analytics (Optional Samples)",
+      "item": [
+        {
+          "name": "Analytics - Revenue by Period",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/analytics/revenue/period?start=2024-01-01&end=2024-12-31", "host": ["{{base_url}}"], "path": ["analytics", "revenue", "period"], "query": [{ "key": "start", "value": "2024-01-01" }, { "key": "end", "value": "2024-12-31" }] }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:3000" },
+    { "key": "access_token", "value": "" },
+    { "key": "refresh_token", "value": "" },
+    { "key": "reset_token", "value": "" },
+    { "key": "user_id", "value": "1" },
+    { "key": "garden_id", "value": "1" },
+    { "key": "vegetable_id", "value": "1" },
+    { "key": "notification_id", "value": "1" },
+    { "key": "alert_id", "value": "1" },
+    { "key": "rule_id", "value": "1" },
+    { "key": "otpauthUrl", "value": "otpauth://totp/WebTechnology:user@example.com?secret=NB2W45DFOIZA====&issuer=WebTechnology" }
+  ]
+}

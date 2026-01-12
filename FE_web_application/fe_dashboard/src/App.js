@@ -23,14 +23,85 @@ import TwoFactorAuth from "./components/Security/TwoFactorAuth";
 import SecuritySettings from "./components/Security/SecuritySettings";
 import AccountSettings from "./components/AccountSettings";
 import Controls from "./components/Controls";
+import AuditLogs from "./components/AuditLogs.jsx";
 
 const theme = createTheme({
   palette: {
+    mode: "light",
     primary: {
-      main: "#4CAF50",
+      main: "#4cbe00",
+      dark: "#2d8e00",
+      light: "#7dd62f",
+      contrastText: "#fff",
     },
     secondary: {
-      main: "#2196F3",
+      main: "#102216",
+      dark: "#0a1410",
+      light: "#1a3a3a",
+      contrastText: "#fff",
+    },
+    background: {
+      default: "#f5f5f5",
+      paper: "#ffffff",
+    },
+    text: {
+      primary: "#212121",
+      secondary: "#666666",
+    },
+    success: {
+      main: "#4cbe00",
+    },
+    error: {
+      main: "#dc2626",
+    },
+    warning: {
+      main: "#f59e0b",
+    },
+    info: {
+      main: "#0ea5e9",
+    },
+  },
+  typography: {
+    fontFamily: "'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell'",
+    h4: {
+      fontWeight: 700,
+      color: "#ffffff",
+    },
+    h5: {
+      fontWeight: 700,
+      color: "#f0f0f0",
+    },
+    body1: {
+      color: "#ffffff",
+    },
+    body2: {
+      color: "#e0e0e0",
+    },
+  },
+  components: {
+    MuiButton: {
+      styleOverrides: {
+        contained: {
+          boxShadow: "0 2px 8px rgba(76, 190, 0, 0.3)",
+          "&:hover": {
+            boxShadow: "0 4px 12px rgba(76, 190, 0, 0.4)",
+          },
+        },
+      },
+    },
+    MuiPaper: {
+      styleOverrides: {
+        root: {
+          backgroundImage: "none",
+        },
+      },
+    },
+    MuiTableHead: {
+      styleOverrides: {
+        root: {
+          backgroundColor: "#1a3a3a",
+        },
+      },
     },
   },
 });
@@ -153,11 +224,20 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route path="/2fa" element={<Navigate to="/security/2fa" replace />} />
           <Route
             path="/account"
             element={
               <ProtectedRoute>
                 <AccountSettings />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/audit-logs"
+            element={
+              <ProtectedRoute>
+                <AuditLogs />
               </ProtectedRoute>
             }
           />

@@ -1,14 +1,11 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect, useMemo } from "react";
 import {
-  Container,
   Box,
   Card,
   CardContent,
   Button,
   Typography,
   Alert,
-  Avatar,
   TextField,
   CircularProgress,
   Stepper,
@@ -16,516 +13,553 @@ import {
   StepLabel,
   Divider,
   Chip,
+  Stack,
+  Grid,
+  Avatar,
+  Paper,
 } from "@mui/material";
 import {
   SecurityOutlined as SecurityIcon,
   CheckCircle as CheckCircleIcon,
-  PhoneAndroid as PhoneIcon,
-  Key as KeyIcon,
   QrCode2 as QrCodeIcon,
+  Shield as ShieldIcon,
+  CloudDownload as DownloadIcon,
+  ContentCopy as CopyIcon,
+  Refresh as RefreshIcon,
+  PowerSettingsNew as PowerIcon,
 } from "@mui/icons-material";
-import { authAPI } from "../../services/api";
+import { authService } from "../../services/authService";
+import { useAuth } from "../../contexts/AuthContext";
 
-function TwoFactorAuth() {
+const STEPS = ["Chọn phương thức", "Quét mã", "Nhập mã", "Lưu mã dự phòng"];
+
+const TwoFactorAuth = () => {
+  const { user, setUser } = useAuth();
+
   const [activeStep, setActiveStep] = useState(0);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
-  const [qrCode, setQrCode] = useState("");
+  const [qrCodeUrl, setQrCodeUrl] = useState("");
   const [secret, setSecret] = useState("");
-  const [verificationCode, setVerificationCode] = useState("");
+  const [totpCode, setTotpCode] = useState("");
   const [backupCodes, setBackupCodes] = useState([]);
-  const [twoFAEnabled, setTwoFAEnabled] = useState(false);
-  const navigate = useNavigate();
+  const [isEnabled, setIsEnabled] = useState(false);
 
-  const steps = ["Choose Method", "Setup", "Verify", "Save Codes"];
+  const isDarkHeader = true;
 
-  // Check if 2FA is already enabled
+  const statusColor = useMemo(
+    () => (isEnabled ? "success" : "warning"),
+    [isEnabled]
+  );
+
   useEffect(() => {
-    checkTwoFAStatus();
-  }, []);
+    setIsEnabled(Boolean(user?.isTwoFactorEnabled));
+  }, [user]);
 
-  const checkTwoFAStatus = async () => {
-    try {
-      // Assuming your backend has a method to check 2FA status
-      // const response = await authAPI.getTwoFAStatus();
-      // setTwoFAEnabled(response.data?.data?.enabled || false);
-    } catch (err) {
-      console.error("Failed to check 2FA status:", err);
-    }
+  const clearMessages = () => {
+    setError("");
+    setSuccess("");
   };
 
-  const handleSetupQR = async () => {
-    setLoading(true);
-    setError("");
-
+  const handleGenerate = async () => {
     try {
-      // Assuming your backend has a method to generate QR code
-      // const response = await authAPI.generateTwoFAQR();
-      // setQrCode(response.data?.data?.qrCode);
-      // setSecret(response.data?.data?.secret);
-
-      // Mock data for demo
-      setQrCode(
-        "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFQAAABUCAYAAAAcaxDBAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAAOxAAADsQBlSsOGwAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAALUSURBVHic7doxbsIwEAbgv3FhYGIAhMQG3bswwMgBGBkQE0wMMMEJnCAn6EyxwMiOxMTGhJgQEiVuaRlSYkRqHBz5nn++N4nfXdx3n+V/d//PGxk="
-      );
-      setSecret("JBSWY3DPEBLW64TMMQ======");
-
+      clearMessages();
+      setLoading(true);
+      const { data } = await authService.generate2FA();
+      if (data?.secret) setSecret(data.secret);
+      if (data?.otpauthUrl) {
+        const blob = await authService.get2FAQRCode(data.otpauthUrl);
+        const url = URL.createObjectURL(blob);
+        setQrCodeUrl(url);
+      }
       setActiveStep(1);
     } catch (err) {
-      setError("Failed to generate QR code. Please try again.");
+      setError(err.message || "Không thể tạo QR code");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleVerifyCode = async () => {
-    setLoading(true);
-    setError("");
-
-    if (!verificationCode || verificationCode.length !== 6) {
-      setError("Please enter a valid 6-digit code.");
-      setLoading(false);
+  const handleVerify = async () => {
+    if (!totpCode || totpCode.length !== 6) {
+      setError("Vui lòng nhập đủ 6 chữ số");
       return;
     }
-
     try {
-      // Assuming your backend has a method to verify the code
-      // const response = await authAPI.verifyTwoFACode(verificationCode, secret);
-      // setBackupCodes(response.data?.data?.backupCodes || []);
-
-      // Mock backup codes for demo
-      setBackupCodes([
-        "ABC123-XXXX",
-        "DEF456-XXXX",
-        "GHI789-XXXX",
-        "JKL012-XXXX",
-        "MNO345-XXXX",
-        "PQR678-XXXX",
-      ]);
-
-      setActiveStep(2);
+      clearMessages();
+      setLoading(true);
+      const response = await authService.enable2FA(totpCode);
+      // Nếu backend trả backup codes thì lấy, nếu không thì để trống
+      const codes = response?.data?.backupCodes || [];
+      setBackupCodes(codes);
+      setIsEnabled(true);
+      setSuccess("Đã bật xác thực 2 bước thành công");
+      setActiveStep(codes.length ? 3 : 3);
+      // Cập nhật user local
+      if (user) {
+        const updated = { ...user, isTwoFactorEnabled: true };
+        setUser(updated);
+        localStorage.setItem("user", JSON.stringify(updated));
+      }
     } catch (err) {
-      setError("Verification code is invalid. Please try again.");
+      setError(err.message || "Mã xác thực không đúng");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSaveBackupCodes = async () => {
-    setLoading(true);
-    setError("");
-
+  const handleDisable = async () => {
+    const ok = window.confirm("Bạn có chắc muốn tắt 2FA? Điều này giảm bảo mật tài khoản.");
+    if (!ok) return;
     try {
-      // Assuming your backend has a method to confirm 2FA setup
-      // await authAPI.confirmTwoFASetup(backupCodes);
-
-      setSuccess("Two-factor authentication has been enabled successfully!");
-      setTwoFAEnabled(true);
-      setActiveStep(3);
-
-      setTimeout(() => {
-        navigate("/dashboard");
-      }, 2000);
-    } catch (err) {
-      setError("Failed to save backup codes. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDisable2FA = async () => {
-    if (!window.confirm("Are you sure you want to disable 2FA? This reduces your account security.")) {
-      return;
-    }
-
-    setLoading(true);
-    setError("");
-
-    try {
-      // await authAPI.disableTwoFA();
-      setSuccess("Two-factor authentication has been disabled.");
-      setTwoFAEnabled(false);
+      clearMessages();
+      setLoading(true);
+      await authService.disable2FA();
+      setIsEnabled(false);
+      setSuccess("Đã tắt xác thực 2 bước");
       setActiveStep(0);
+      if (user) {
+        const updated = { ...user, isTwoFactorEnabled: false };
+        setUser(updated);
+        localStorage.setItem("user", JSON.stringify(updated));
+      }
     } catch (err) {
-      setError("Failed to disable 2FA. Please try again.");
+      setError(err.message || "Không thể tắt 2FA");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCopyBackup = () => {
+    if (!backupCodes.length) return;
+    navigator.clipboard.writeText(backupCodes.join("\n"));
+    setSuccess("Đã copy mã dự phòng");
+  };
+
+  const handleDownloadBackup = () => {
+    if (!backupCodes.length) return;
+    const element = document.createElement("a");
+    element.setAttribute(
+      "href",
+      "data:text/plain;charset=utf-8," + encodeURIComponent(backupCodes.join("\n"))
+    );
+    element.setAttribute("download", "backup-codes.txt");
+    element.style.display = "none";
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+  };
+
+  const resetFlow = () => {
+    clearMessages();
+    setQrCodeUrl("");
+    setSecret("");
+    setTotpCode("");
+    setBackupCodes([]);
+    setActiveStep(0);
   };
 
   return (
-    <Container component="main" maxWidth="md">
-      <Box
+    <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1080, mx: "auto" }}>
+      {/* Hero */}
+      <Card
         sx={{
-          marginTop: 4,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          minHeight: "90vh",
+          mb: 3,
+          borderRadius: 3,
+          background: "linear-gradient(135deg, #102216 0%, #1a3a3a 60%, #4cbe00 120%)",
+          color: "#fff",
+          boxShadow: "0 12px 40px rgba(0,0,0,0.18)",
         }}
       >
-        {/* Header */}
-        <Box sx={{ textAlign: "center", mb: 4 }}>
-          <Avatar
-            sx={{
-              width: 80,
-              height: 80,
-              bgcolor: "primary.main",
-              mx: "auto",
-              mb: 2,
-            }}
-          >
-            <SecurityIcon sx={{ fontSize: 48 }} />
-          </Avatar>
-          <Typography variant="h4" sx={{ fontWeight: 700 }}>
-            Two-Factor Authentication
-          </Typography>
-          <Typography variant="body1" color="textSecondary" sx={{ mt: 1 }}>
-            Protect your account with an extra layer of security
-          </Typography>
-        </Box>
+        <CardContent sx={{ p: { xs: 3, md: 4 } }}>
+          <Stack direction={{ xs: "column", md: "row" }} spacing={3} alignItems="center">
+            <Avatar
+              sx={{
+                width: 76,
+                height: 76,
+                bgcolor: "rgba(255,255,255,0.12)",
+                border: "1px solid rgba(255,255,255,0.2)",
+              }}
+            >
+              <ShieldIcon sx={{ fontSize: 40, color: "#fff" }} />
+            </Avatar>
+            <Box flex={1}>
+              <Typography variant="h4" sx={{ fontWeight: 700, color: "#fff" }}>
+                Xác thực 2 bước (2FA)
+              </Typography>
+              <Typography variant="body1" sx={{ color: "rgba(255,255,255,0.75)", mt: 0.5 }}>
+                Bảo vệ tài khoản bằng mã TOTP từ ứng dụng Authenticator (Google, Authy,...)
+              </Typography>
+            </Box>
+            <Chip
+              label={isEnabled ? "Đã bật" : "Chưa bật"}
+              color={statusColor}
+              variant="filled"
+              sx={{
+                fontWeight: 700,
+                backgroundColor: isEnabled ? "#22c55e" : "#f59e0b",
+                color: "#fff",
+                px: 1.5,
+              }}
+            />
+          </Stack>
+        </CardContent>
+      </Card>
 
-        {/* Status Alert */}
-        {twoFAEnabled && !error && !success && (
-          <Alert severity="success" sx={{ width: "100%", mb: 3 }}>
-            ✓ Two-factor authentication is enabled on your account
-          </Alert>
-        )}
-
+      {/* Alerts */}
+      <Stack spacing={2} sx={{ mb: 2 }}>
         {error && (
-          <Alert severity="error" sx={{ width: "100%", mb: 3 }}>
-            {error}
-          </Alert>
+          <Alert severity="error" onClose={() => setError("")}>{error}</Alert>
         )}
-
         {success && (
-          <Alert severity="success" sx={{ width: "100%", mb: 3 }}>
-            {success}
-          </Alert>
+          <Alert severity="success" onClose={() => setSuccess("")}>{success}</Alert>
         )}
+      </Stack>
 
-        <Card sx={{ width: "100%", maxWidth: 600, boxShadow: "0 4px 20px rgba(0, 0, 0, 0.1)" }}>
-          <CardContent sx={{ p: 4 }}>
-            {/* Stepper */}
-            <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
-              {steps.map((label) => (
-                <Step key={label}>
-                  <StepLabel>{label}</StepLabel>
-                </Step>
-              ))}
-            </Stepper>
+      <Grid container spacing={3}>
+        {/* Left: Steps & actions */}
+        <Grid item xs={12} md={7}>
+          <Card sx={{ borderRadius: 2, boxShadow: "0 8px 24px rgba(0,0,0,0.08)" }}>
+            <CardContent sx={{ p: { xs: 3, md: 4 } }}>
+              <Stepper activeStep={activeStep} alternativeLabel sx={{ mb: 3 }}>
+                {STEPS.map((label) => (
+                  <Step key={label}>
+                    <StepLabel>{label}</StepLabel>
+                  </Step>
+                ))}
+              </Stepper>
 
-            {/* Step 0: Choose Method */}
-            {activeStep === 0 && !twoFAEnabled && (
-              <Box>
-                <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
-                  Choose Your Verification Method
-                </Typography>
-
-                <Box sx={{ mb: 3 }}>
-                  <Box
-                    sx={{
-                      p: 2,
-                      border: "2px solid",
-                      borderColor: "primary.main",
-                      borderRadius: 2,
-                      cursor: "pointer",
-                      mb: 2,
-                      transition: "all 0.3s ease",
-                      "&:hover": {
-                        bgcolor: "primary.light",
-                      },
-                    }}
-                  >
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                      <QrCodeIcon sx={{ fontSize: 40, color: "primary.main" }} />
-                      <Box>
-                        <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                          Authenticator App
-                        </Typography>
-                        <Typography variant="body2" color="textSecondary">
-                          Use Google Authenticator, Microsoft Authenticator, or Authy
-                        </Typography>
-                      </Box>
-                    </Box>
-                  </Box>
-
-                  <Box
-                    sx={{
-                      p: 2,
-                      border: "2px solid",
-                      borderColor: "grey.300",
-                      borderRadius: 2,
-                      cursor: "not-allowed",
-                      opacity: 0.6,
-                    }}
-                  >
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                      <PhoneIcon sx={{ fontSize: 40, color: "grey.400" }} />
-                      <Box>
-                        <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                          SMS (Coming Soon)
-                        </Typography>
-                        <Typography variant="body2" color="textSecondary">
-                          Receive codes via text message
-                        </Typography>
-                      </Box>
-                    </Box>
-                  </Box>
-                </Box>
-
-                <Button
-                  fullWidth
-                  variant="contained"
-                  size="large"
-                  onClick={handleSetupQR}
-                  disabled={loading}
-                  sx={{ fontWeight: 600 }}
-                >
-                  {loading ? <CircularProgress size={24} color="inherit" /> : "Continue with Authenticator"}
-                </Button>
-              </Box>
-            )}
-
-            {/* Step 1: Setup QR Code */}
-            {activeStep === 1 && (
-              <Box>
-                <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
-                  Scan QR Code
-                </Typography>
-
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "center",
-                    mb: 3,
-                    p: 2,
-                    bgcolor: "grey.50",
-                    borderRadius: 2,
-                  }}
-                >
-                  <Box
-                    component="img"
-                    src={qrCode}
-                    sx={{ maxWidth: 250, height: "auto" }}
-                  />
-                </Box>
-
-                <Alert severity="info" sx={{ mb: 3 }}>
-                  <Typography variant="body2" sx={{ mb: 1, fontWeight: 600 }}>
-                    Can't scan? Enter this code manually:
+              {/* Step 0 */}
+              {activeStep === 0 && (
+                <Box>
+                  <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
+                    Chọn phương thức
                   </Typography>
-                  <Typography
-                    variant="body2"
+                  <Typography variant="body2" sx={{ color: "#444", mb: 3 }}>
+                    Sử dụng ứng dụng Authenticator để tạo mã 6 chữ số đổi mỗi 30 giây.
+                  </Typography>
+                  <Paper
+                    variant="outlined"
                     sx={{
-                      fontFamily: "monospace",
-                      bgcolor: "grey.100",
-                      p: 1,
-                      borderRadius: 1,
-                      wordBreak: "break-all",
-                    }}
-                  >
-                    {secret}
-                  </Typography>
-                </Alert>
-
-                <Button
-                  fullWidth
-                  variant="contained"
-                  size="large"
-                  onClick={() => setActiveStep(1.5)}
-                  sx={{ fontWeight: 600 }}
-                >
-                  Next: Enter Code
-                </Button>
-              </Box>
-            )}
-
-            {/* Step 1.5: Enter Verification Code */}
-            {activeStep === 1.5 && (
-              <Box>
-                <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
-                  Enter Verification Code
-                </Typography>
-
-                <Typography variant="body2" color="textSecondary" sx={{ mb: 3 }}>
-                  Enter the 6-digit code from your authenticator app
-                </Typography>
-
-                <TextField
-                  fullWidth
-                  label="6-Digit Code"
-                  placeholder="000000"
-                  value={verificationCode}
-                  onChange={(e) =>
-                    setVerificationCode(e.target.value.replace(/\D/g, "").slice(0, 6))
-                  }
-                  inputProps={{
-                    maxLength: 6,
-                    style: { textAlign: "center", fontSize: 24, letterSpacing: 8 },
-                  }}
-                  disabled={loading}
-                  sx={{ mb: 3 }}
-                />
-
-                <Button
-                  fullWidth
-                  variant="contained"
-                  size="large"
-                  onClick={handleVerifyCode}
-                  disabled={loading || verificationCode.length !== 6}
-                  sx={{ fontWeight: 600 }}
-                >
-                  {loading ? <CircularProgress size={24} color="inherit" /> : "Verify Code"}
-                </Button>
-              </Box>
-            )}
-
-            {/* Step 2: Save Backup Codes */}
-            {activeStep === 2 && (
-              <Box>
-                <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                  Save Your Backup Codes
-                </Typography>
-
-                <Alert severity="warning" sx={{ mb: 3 }}>
-                  <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
-                    ⚠️ Important: Save these backup codes in a safe place
-                  </Typography>
-                  <Typography variant="caption">
-                    If you lose access to your authenticator app, you can use these codes
-                    to regain access to your account.
-                  </Typography>
-                </Alert>
-
-                <Box
-                  sx={{
-                    p: 3,
-                    bgcolor: "grey.50",
-                    borderRadius: 2,
-                    mb: 3,
-                    border: "1px solid",
-                    borderColor: "grey.200",
-                  }}
-                >
-                  <Box
-                    sx={{
-                      display: "grid",
-                      gridTemplateColumns: "1fr 1fr",
+                      p: 2.5,
+                      borderColor: "#4cbe00",
+                      backgroundColor: "#f7fbf4",
+                      display: "flex",
                       gap: 2,
+                      alignItems: "center",
                     }}
                   >
-                    {backupCodes.map((code, index) => (
-                      <Box
-                        key={index}
+                    <QrCodeIcon sx={{ fontSize: 42, color: "#4cbe00" }} />
+                    <Box>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                        Ứng dụng Authenticator
+                      </Typography>
+                      <Typography variant="body2" sx={{ color: "#4d4d4d" }}>
+                        Hỗ trợ Google Authenticator, Microsoft Authenticator, Authy...
+                      </Typography>
+                    </Box>
+                  </Paper>
+
+                  <Button
+                    fullWidth
+                    variant="contained"
+                    size="large"
+                    startIcon={loading ? null : <RefreshIcon />}
+                    onClick={handleGenerate}
+                    disabled={loading}
+                    sx={{ mt: 3, fontWeight: 700, textTransform: "none" }}
+                  >
+                    {loading ? <CircularProgress size={22} color="inherit" /> : "Bắt đầu thiết lập"}
+                  </Button>
+                </Box>
+              )}
+
+              {/* Step 1 */}
+              {activeStep === 1 && (
+                <Box>
+                  <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
+                    Quét mã QR
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: "#4d4d4d", mb: 2 }}>
+                    Mở ứng dụng Authenticator và quét mã dưới đây.
+                  </Typography>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "center",
+                      mb: 3,
+                      p: 2,
+                      backgroundColor: "#f8fafc",
+                      borderRadius: 2,
+                      border: "1px solid #e2e8f0",
+                    }}
+                  >
+                    {qrCodeUrl ? (
+                      <Box component="img" src={qrCodeUrl} sx={{ maxWidth: 240, height: "auto" }} />
+                    ) : (
+                      <Typography>Đang tải QR...</Typography>
+                    )}
+                  </Box>
+                  {secret && (
+                    <Alert severity="info" sx={{ mb: 3 }}>
+                      <Typography variant="body2" sx={{ fontWeight: 700, mb: 1 }}>
+                        Không quét được? Nhập thủ công:
+                      </Typography>
+                      <Typography
+                        variant="body2"
                         sx={{
-                          p: 2,
-                          bgcolor: "white",
-                          border: "1px solid",
-                          borderColor: "grey.300",
-                          borderRadius: 1,
                           fontFamily: "monospace",
-                          fontSize: 13,
-                          textAlign: "center",
+                          p: 1,
+                          borderRadius: 1,
+                          backgroundColor: "#f1f5f9",
+                          color: "#0f172a",
                           wordBreak: "break-all",
                         }}
                       >
-                        {code}
-                      </Box>
-                    ))}
-                  </Box>
-                </Box>
-
-                <Box sx={{ display: "flex", gap: 2 }}>
-                  <Button
-                    fullWidth
-                    variant="outlined"
-                    onClick={() => {
-                      const text = backupCodes.join("\n");
-                      navigator.clipboard.writeText(text);
-                      alert("Backup codes copied to clipboard!");
-                    }}
-                  >
-                    Copy Codes
-                  </Button>
-                  <Button
-                    fullWidth
-                    variant="outlined"
-                    onClick={() => {
-                      const element = document.createElement("a");
-                      element.setAttribute(
-                        "href",
-                        "data:text/plain;charset=utf-8," +
-                          encodeURIComponent(backupCodes.join("\n"))
-                      );
-                      element.setAttribute("download", "backup-codes.txt");
-                      element.style.display = "none";
-                      document.body.appendChild(element);
-                      element.click();
-                      document.body.removeChild(element);
-                    }}
-                  >
-                    Download
-                  </Button>
-                </Box>
-
-                <Button
-                  fullWidth
-                  variant="contained"
-                  size="large"
-                  onClick={handleSaveBackupCodes}
-                  disabled={loading}
-                  sx={{ fontWeight: 600, mt: 3 }}
-                >
-                  {loading ? (
-                    <CircularProgress size={24} color="inherit" />
-                  ) : (
-                    "Complete Setup"
+                        {secret}
+                      </Typography>
+                    </Alert>
                   )}
-                </Button>
-              </Box>
-            )}
+                  <Button
+                    fullWidth
+                    variant="contained"
+                    size="large"
+                    onClick={() => setActiveStep(2)}
+                    sx={{ fontWeight: 700, textTransform: "none" }}
+                  >
+                    Tiếp tục: Nhập mã
+                  </Button>
+                </Box>
+              )}
 
-            {/* Step 3: Complete */}
-            {activeStep === 3 && (
-              <Box sx={{ textAlign: "center" }}>
-                <CheckCircleIcon
-                  sx={{ fontSize: 80, color: "success.main", mb: 2 }}
-                />
-                <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
-                  Setup Complete!
-                </Typography>
-                <Typography variant="body2" color="textSecondary" sx={{ mb: 3 }}>
-                  Two-factor authentication is now enabled on your account.
-                  You will be asked to enter a code when you log in next time.
-                </Typography>
-              </Box>
-            )}
+              {/* Step 2 */}
+              {activeStep === 2 && (
+                <Box>
+                  <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
+                    Nhập mã 6 chữ số
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: "#4d4d4d", mb: 3 }}>
+                    Lấy mã từ ứng dụng Authenticator, nhập đủ 6 số.
+                  </Typography>
 
-            {/* Disable 2FA Button */}
-            {twoFAEnabled && (
-              <>
-                <Divider sx={{ my: 3 }} />
-                <Box sx={{ textAlign: "center" }}>
-                  <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
-                    Want to disable 2FA?
+                  <TextField
+                    fullWidth
+                    label="Mã TOTP"
+                    placeholder="000000"
+                    value={totpCode}
+                    onChange={(e) =>
+                      setTotpCode(e.target.value.replace(/\D/g, "").slice(0, 6))
+                    }
+                    inputProps={{
+                      maxLength: 6,
+                      style: { textAlign: "center", fontSize: 24, letterSpacing: 8 },
+                    }}
+                    disabled={loading}
+                    sx={{ mb: 3 }}
+                  />
+
+                  <Button
+                    fullWidth
+                    variant="contained"
+                    size="large"
+                    onClick={handleVerify}
+                    disabled={loading || totpCode.length !== 6}
+                    sx={{ fontWeight: 700, textTransform: "none" }}
+                  >
+                    {loading ? <CircularProgress size={22} color="inherit" /> : "Xác nhận & bật 2FA"}
+                  </Button>
+                </Box>
+              )}
+
+              {/* Step 3: Backup codes (optional) */}
+              {activeStep === 3 && (
+                <Box>
+                  <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
+                    Lưu mã dự phòng
+                  </Typography>
+                  <Alert severity="warning" sx={{ mb: 3 }}>
+                    Nếu mất điện thoại, bạn dùng các mã này để đăng nhập. Lưu chúng ở nơi an toàn.
+                  </Alert>
+
+                  {backupCodes.length > 0 ? (
+                    <Box
+                      sx={{
+                        p: 3,
+                        bgcolor: "#f8fafc",
+                        borderRadius: 2,
+                        border: "1px solid #e2e8f0",
+                        mb: 2,
+                      }}
+                    >
+                      <Grid container spacing={1.5}>
+                        {backupCodes.map((code, idx) => (
+                          <Grid item xs={12} sm={6} key={idx}>
+                            <Paper
+                              elevation={0}
+                              sx={{
+                                p: 1.5,
+                                border: "1px dashed #cbd5e1",
+                                borderRadius: 1,
+                                textAlign: "center",
+                                fontFamily: "monospace",
+                                fontWeight: 700,
+                                color: "#0f172a",
+                              }}
+                            >
+                              {code}
+                            </Paper>
+                          </Grid>
+                        ))}
+                      </Grid>
+                      <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ mt: 2 }}>
+                        <Button
+                          variant="outlined"
+                          startIcon={<CopyIcon />}
+                          onClick={handleCopyBackup}
+                        >
+                          Copy
+                        </Button>
+                        <Button
+                          variant="outlined"
+                          startIcon={<DownloadIcon />}
+                          onClick={handleDownloadBackup}
+                        >
+                          Tải txt
+                        </Button>
+                      </Stack>
+                    </Box>
+                  ) : (
+                    <Typography variant="body2" sx={{ color: "#4d4d4d" }}>
+                      Không nhận được mã dự phòng từ backend.
+                    </Typography>
+                  )}
+
+                  <Button
+                    fullWidth
+                    variant="contained"
+                    size="large"
+                    onClick={() => setActiveStep(3)}
+                    sx={{ fontWeight: 700, textTransform: "none", mt: 2 }}
+                  >
+                    Hoàn tất
+                  </Button>
+                </Box>
+              )}
+
+              {/* Enabled state action */}
+              {isEnabled && (
+                <>
+                  <Divider sx={{ my: 3 }} />
+                  <Stack spacing={1.5}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                      2FA đang bật
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: "#4d4d4d" }}>
+                      Bạn sẽ cần mã TOTP khi đăng nhập. Chỉ tắt 2FA khi thực sự cần thiết.
+                    </Typography>
+                    <Button
+                      variant="outlined"
+                      color="error"
+                      startIcon={<PowerIcon />}
+                      onClick={handleDisable}
+                      disabled={loading}
+                      sx={{ textTransform: "none", fontWeight: 700 }}
+                    >
+                      Tắt xác thực 2 bước
+                    </Button>
+                  </Stack>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Right: tips */}
+        <Grid item xs={12} md={5}>
+          <Stack spacing={2}>
+            <Card sx={{ borderRadius: 2, border: "1px solid #e2e8f0" }}>
+              <CardContent>
+                <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 1 }}>
+                  <SecurityIcon color="primary" />
+                  <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                    Lưu ý bảo mật
+                  </Typography>
+                </Stack>
+                <Typography variant="body2" sx={{ color: "#4d4d4d", mb: 1 }}>
+                  • Không chia sẻ secret hoặc mã dự phòng.
+                </Typography>
+                <Typography variant="body2" sx={{ color: "#4d4d4d", mb: 1 }}>
+                  • Sao lưu mã dự phòng ở nơi an toàn (password manager).
+                </Typography>
+                <Typography variant="body2" sx={{ color: "#4d4d4d", mb: 1 }}>
+                  • Mã TOTP thay đổi mỗi 30 giây; nhập mã mới nhất.
+                </Typography>
+              </CardContent>
+            </Card>
+
+            <Card sx={{ borderRadius: 2, border: "1px solid #e2e8f0" }}>
+              <CardContent>
+                <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 1 }}>
+                  <CheckCircleIcon color="success" />
+                  <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                    Khi nào cần 2FA?
+                  </Typography>
+                </Stack>
+                <Typography variant="body2" sx={{ color: "#4d4d4d", mb: 1 }}>
+                  • Đăng nhập từ thiết bị mới hoặc lạ.
+                </Typography>
+                <Typography variant="body2" sx={{ color: "#4d4d4d", mb: 1 }}>
+                  • Thao tác thay đổi bảo mật quan trọng.
+                </Typography>
+                <Typography variant="body2" sx={{ color: "#4d4d4d" }}>
+                  • Khi nghi ngờ tài khoản bị xâm nhập.
+                </Typography>
+              </CardContent>
+            </Card>
+
+            {!isEnabled && (
+              <Card sx={{ borderRadius: 2, border: "1px solid #e2e8f0", backgroundColor: "#f7fbf4" }}>
+                <CardContent>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
+                    Chưa bật 2FA?
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: "#4d4d4d", mb: 2 }}>
+                    Chỉ mất khoảng 1 phút để tăng gấp đôi lớp bảo vệ.
                   </Typography>
                   <Button
-                    color="error"
-                    onClick={handleDisable2FA}
+                    variant="contained"
+                    onClick={handleGenerate}
                     disabled={loading}
+                    sx={{ textTransform: "none", fontWeight: 700 }}
                   >
-                    Disable Two-Factor Authentication
+                    Bắt đầu ngay
                   </Button>
-                </Box>
-              </>
+                </CardContent>
+              </Card>
             )}
-          </CardContent>
-        </Card>
-      </Box>
-    </Container>
+          </Stack>
+        </Grid>
+      </Grid>
+
+      {/* Footer actions */}
+      <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ mt: 3 }}>
+        <Button variant="outlined" onClick={resetFlow} disabled={loading} sx={{ textTransform: "none" }}>
+          Làm mới quy trình
+        </Button>
+        {activeStep > 0 && activeStep < 2 && (
+          <Button
+            variant="text"
+            onClick={() => setActiveStep((s) => Math.max(0, s - 1))}
+            disabled={loading}
+            sx={{ textTransform: "none" }}
+          >
+            Quay lại
+          </Button>
+        )}
+      </Stack>
+    </Box>
   );
-}
+};
 
 export default TwoFactorAuth;

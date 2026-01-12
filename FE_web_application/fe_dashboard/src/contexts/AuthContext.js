@@ -70,48 +70,91 @@ export const AuthProvider = ({ children }) => {
   const login = async (credentials) => {
     try {
       const response = await authService.login(credentials);
-      console.log("Login response:", response); // Debug log
+      console.log("Login raw response:", response); // Debug log
+
+      // 1) Trường hợp 2FA: authService đã flatten thành { requires2FA, message, data }
+      if (response && response.requires2FA === true) {
+        console.log("Login requires 2FA step - returning requires2FA flag");
+        const message =
+          response.message || "Two-factor code is required";
+        return {
+          success: false,
+          requires2FA: true,
+          error: message,
+        };
+      }
+
+      // 2) Trường hợp login thành công: chuẩn hóa cấu trúc, lấy "core" là phần payload chính
+      // Hỗ trợ các kiểu:
+      // - { HttpCode, success, data: { access_token, ... } }
+      // - { HttpCode, success, data: { HttpCode, success, data: { ... } } }
+      // - Hoặc object đơn giản { access_token, user }
+      const core =
+        (response &&
+          response.data &&
+          response.data.data &&
+          typeof response.data.data === "object"
+          ? response.data.data
+          : response && response.data && typeof response.data === "object"
+          ? response.data
+          : response) || response;
+
+      console.log("Login core payload:", core);
 
       // Xử lý nhiều format response có thể từ backend
       let access_token, userData;
 
-      if (response.access_token && response.user) {
-        // Format 1: { access_token, user }
+      // Format chuẩn từ BE mới: core = { access_token, refresh_token, user }
+      if (core && core.access_token) {
+        console.log("Using format: core.access_token");
+        access_token = core.access_token;
+        userData = core.user;
+      } else if (response && response.access_token && response.user) {
+        // Format legacy: { access_token, user }
+        console.log("Using format: response.access_token");
         access_token = response.access_token;
         userData = response.user;
-      } else if (response.data && response.data.access_token) {
-        // Format 2: { data: { access_token, user } }
-        access_token = response.data.access_token;
-        userData = response.data.user;
-      } else if (response.token && response.user) {
-        // Format 3: { token, user }
+      } else if (response && response.token && response.user) {
+        console.log("Using format: response.token");
         access_token = response.token;
         userData = response.user;
-      } else if (response.accessToken) {
-        // Format 4: { accessToken, user }
+      } else if (response && response.accessToken) {
+        console.log("Using format: response.accessToken");
         access_token = response.accessToken;
         userData = response.user;
       } else {
-        // Fallback: Tạo user object từ response
+        // Fallback: cố gắng lấy token từ nhiều chỗ
         console.log("Unknown response format, creating user from response");
+        console.log("Full response:", JSON.stringify(response, null, 2));
         access_token =
-          response.access_token || response.token || response.accessToken;
-        userData = response.user || {
-          id: response.id || response.userId,
-          email: credentials.email,
-          name:
-            response.name ||
-            response.username ||
-            credentials.email.split("@")[0],
-          role: response.role || "USER",
-        };
+          core?.access_token ||
+          core?.token ||
+          core?.accessToken ||
+          response?.access_token ||
+          response?.token ||
+          response?.accessToken;
+        userData =
+          core?.user ||
+          response?.user || {
+            id: core?.id || response?.id || response?.userId,
+            email: credentials.email,
+            name:
+              core?.name ||
+              response?.name ||
+              response?.username ||
+              credentials.email.split("@")[0],
+            role: core?.role || response?.role || "USER",
+          };
       }
 
       console.log("Parsed access_token:", access_token);
       console.log("Parsed userData:", userData);
 
       if (!access_token) {
-        console.error("No access token found in response:", response);
+        console.error(
+          "No access token found in response (core):",
+          JSON.stringify(core, null, 2)
+        );
         throw new Error("No access token received from server");
       }
 
@@ -137,7 +180,8 @@ export const AuthProvider = ({ children }) => {
       return { success: true, user: userData };
     } catch (error) {
       console.error("Login failed:", error);
-      return { success: false, error: error.message };
+      // Bubble up so UI layers can handle and display meaningful feedback
+      throw (error instanceof Error ? error : new Error("Login failed"));
     }
   };
 

@@ -51,7 +51,7 @@ export class AuthService {
             }
 
             const isPasswordValid = await bcrypt.compare(loginData.password, user.password);
-            if( !isPasswordValid){
+            if (!isPasswordValid) {
                 await this.auditService.logLogin(user.id, user.email, false, requestId, ip, userAgent, 'Invalid password');
                 throw new UnauthorizedException('Password is incorrect');
             }
@@ -60,13 +60,42 @@ export class AuthService {
                 if (!user.totpSecret) {
                     throw new BadRequestException('Two-factor authentication is misconfigured for this account');
                 }
+                // Bước 1: password đúng nhưng chưa gửi mã 2FA → trả yêu cầu 2FA, không tạo token
                 if (!loginData.totpCode) {
-                    await this.auditService.logLogin(user.id, user.email, false, requestId, ip, userAgent, '2FA code required');
-                    throw new UnauthorizedException('Two-factor code is required');
+                    await this.auditService.logLogin(
+                        user.id,
+                        user.email,
+                        false,
+                        requestId,
+                        ip,
+                        userAgent,
+                        'Two-factor code required (password step passed)',
+                    );
+
+                    return {
+                        HttpCode: 200,
+                        success: true,
+                        requires2FA: true,
+                        message: 'Two-factor code is required',
+                        data: {
+                            email: user.email,
+                            hasTwoFactorEnabled: true,
+                        },
+                    };
                 }
+
+                // Bước 2: verify mã 2FA
                 const isTotpValid = authenticator.verify({ token: loginData.totpCode, secret: user.totpSecret });
                 if (!isTotpValid) {
-                    await this.auditService.logLogin(user.id, user.email, false, requestId, ip, userAgent, 'Invalid 2FA code');
+                    await this.auditService.logLogin(
+                        user.id,
+                        user.email,
+                        false,
+                        requestId,
+                        ip,
+                        userAgent,
+                        'Invalid 2FA code',
+                    );
                     throw new UnauthorizedException('Invalid two-factor code');
                 }
             }
@@ -86,7 +115,20 @@ export class AuthService {
             // Log successful login
             await this.auditService.logLogin(user.id, user.email, true, requestId, ip, userAgent);
 
-            return tokens;
+            return {
+                HttpCode: 200,
+                success: true,
+                data: {
+                    access_token: tokens.access_token,
+                    refresh_token: tokens.refresh_token,
+                    user: {
+                        id: user.id,
+                        name: user.name,
+                        email: user.email,
+                        role: user.role,
+                    },
+                },
+            };
         } catch (error) {
             throw error;
         }

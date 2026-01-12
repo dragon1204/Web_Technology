@@ -16,21 +16,91 @@ export const authService = {
 
     console.log("AuthService: Response status:", response.status); // Debug log
 
+    const contentType = response.headers.get("content-type") || "";
+    const isJson = contentType.includes("application/json");
+
     if (!response.ok) {
-      const error = await response.json();
-      console.error("AuthService: Login error:", error); // Debug log
-      throw new Error(error.message || "Login failed");
+      let errorData = null;
+      let errorMessage = "Login failed";
+
+      try {
+        errorData = isJson ? await response.json() : await response.text();
+      } catch (e) {
+        console.error("AuthService: Failed to parse error response", e);
+      }
+
+      if (errorData) {
+        if (typeof errorData === "string") {
+          errorMessage = errorData;
+        } else if (typeof errorData.message === "string") {
+          errorMessage = errorData.message;
+        } else if (Array.isArray(errorData.message)) {
+          errorMessage = errorData.message.join(", ");
+        }
+      }
+
+      console.error("AuthService: Login error:", errorData || errorMessage); // Debug log
+
+      // Special case: 2FA required flow
+      if (
+        response.status === 401 &&
+        typeof errorMessage === "string" &&
+        errorMessage.toLowerCase().includes("two-factor code is required")
+      ) {
+        return {
+          requires2FA: true,
+          message: errorMessage,
+          status: response.status,
+        };
+      }
+
+      throw new Error(errorMessage || "Login failed");
     }
 
-    const data = await response.json();
+    const data = isJson ? await response.json() : await response.text();
     console.log("AuthService: Login success, data:", data); // Debug log
 
-    // Store refresh token if provided
-    if (data.refresh_token) {
-      localStorage.setItem("refresh_token", data.refresh_token);
+    // Nếu response là string (text) thì parse lại
+    let parsedData = data;
+    if (typeof data === "string") {
+      try {
+        parsedData = JSON.parse(data);
+      } catch (e) {
+        console.error("AuthService: Failed to parse string response", e);
+        return data;
+      }
     }
 
-    return data;
+    console.log("AuthService: Parsed data:", parsedData);
+    console.log("AuthService: requires2FA check:", parsedData?.requires2FA);
+    console.log("AuthService: requires2FA in data:", parsedData?.data?.requires2FA);
+
+    // Nếu backend trả requires2FA (trong body 200) → chuyển cho UI xử lý
+    // Check cả response.requires2FA và response.data.requires2FA (nested structure)
+    const requires2FA = parsedData?.requires2FA === true || parsedData?.data?.requires2FA === true;
+    
+    if (parsedData && requires2FA) {
+      console.log("AuthService: 2FA required detected, returning requires2FA flag");
+      const twoFAData = parsedData.data?.requires2FA ? parsedData.data : parsedData;
+      return {
+        requires2FA: true,
+        message: twoFAData.message || parsedData.message || "Two-factor code is required",
+        data: twoFAData.data || parsedData.data,
+      };
+    }
+
+    // Store refresh token if provided
+    const refreshToken =
+      parsedData.refresh_token ||
+      (parsedData.data && parsedData.data.refresh_token) ||
+      parsedData.refreshToken ||
+      (parsedData.data && parsedData.data.refreshToken);
+
+    if (refreshToken) {
+      localStorage.setItem("refresh_token", refreshToken);
+    }
+
+    return parsedData;
   },
 
   async register(userData) {
@@ -176,7 +246,7 @@ export const authService = {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ totp_code: totpCode }),
+      body: JSON.stringify({ code: totpCode }),
     });
 
     if (!response.ok) {
@@ -205,8 +275,12 @@ export const authService = {
     return response.json();
   },
 
-  async get2FAQRCode() {
+  async get2FAQRCode(otpauthUrl) {
     const token = localStorage.getItem("token");
+
+    if (!otpauthUrl) {
+      throw new Error("otpauthUrl is required");
+    }
 
     console.log("AuthService: Getting 2FA QR code...");
 
@@ -216,6 +290,7 @@ export const authService = {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
+      body: JSON.stringify({ otpauthUrl }),
     });
 
     console.log("AuthService: QR code response status:", response.status);
@@ -234,8 +309,7 @@ export const authService = {
       throw new Error(error.message || "Failed to get QR code");
     }
 
-    const data = await response.json();
-    console.log("AuthService: QR code data:", data);
-    return data;
+    // Return blob để tạo image URL
+    return await response.blob();
   },
 };
