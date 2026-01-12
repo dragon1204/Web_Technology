@@ -18,6 +18,7 @@ import {
   Typography,
   Alert,
   Chip,
+  MenuItem,
 } from "@mui/material";
 import {
   Add as AddIcon,
@@ -214,14 +215,14 @@ function UserList() {
             label="Role"
             select
             fullWidth
+            variant="outlined"
             value={currentUser.role}
             onChange={(e) =>
               setCurrentUser({ ...currentUser, role: e.target.value })
             }
-            SelectProps={{ native: true }}
           >
-            <option value="USER">USER</option>
-            <option value="ADMIN">ADMIN</option>
+            <MenuItem value="USER">USER</MenuItem>
+            <MenuItem value="ADMIN">ADMIN</MenuItem>
           </TextField>
         </DialogContent>
         <DialogActions>

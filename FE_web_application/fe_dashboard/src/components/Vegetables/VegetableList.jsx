@@ -26,6 +26,7 @@ import {
   ShoppingCart as ImportIcon,
   Sell as SellIcon,
   AttachMoney as PriceIcon,
+  LocalFlorist as VegetableIcon,
 } from "@mui/icons-material";
 import { vegetableAPI } from "../../services/api";
 
@@ -174,33 +175,91 @@ function VegetableList() {
   };
 
   return (
-    <Box>
-      <Box sx={{ display: "flex", justifyContent: "space-between", mb: 3 }}>
-        <Typography variant="h4">Vegetables Management</Typography>
+    <Box sx={{ p: 3 }}>
+      {/* Header */}
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          mb: 4,
+          pb: 2,
+          borderBottom: "2px solid",
+          borderColor: "primary.main",
+        }}
+      >
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <VegetableIcon sx={{ fontSize: 32, color: "primary.main" }} />
+          <Typography variant="h4" sx={{ fontWeight: 700, color: "#ffffff" }}>
+            Vegetables Management
+          </Typography>
+        </Box>
         <Button
           variant="contained"
           startIcon={<AddIcon />}
           onClick={handleOpenCreate}
+          size="large"
+          sx={{
+            backgroundColor: "primary.main",
+            "&:hover": {
+              backgroundColor: "primary.dark",
+            },
+          }}
         >
-          Add Vegetable
+          ADD VEGETABLE
         </Button>
       </Box>
 
       {success && (
-        <Alert severity="success" sx={{ mb: 2 }}>
+        <Alert
+          severity="success"
+          sx={{
+            mb: 2,
+            backgroundColor: "#d4edda",
+            color: "#155724",
+          }}
+        >
           {success}
         </Alert>
       )}
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
+        <Alert
+          severity="error"
+          sx={{
+            mb: 2,
+            backgroundColor: "#f8d7da",
+            color: "#721c24",
+          }}
+        >
           {error}
         </Alert>
       )}
 
-      <TableContainer component={Paper}>
+      <TableContainer
+        component={Paper}
+        sx={{
+          boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
+          borderRadius: 2,
+          overflow: "hidden",
+          backgroundColor: "#ffffff",
+        }}
+      >
         <Table>
           <TableHead>
-            <TableRow>
+            <TableRow
+              sx={{
+                backgroundColor: "#1a3a3a",
+                "& th": {
+                  backgroundColor: "#1a3a3a",
+                  color: "#ffffff",
+                  fontWeight: 700,
+                  fontSize: "16px",
+                  border: "none",
+                  padding: "16px",
+                  letterSpacing: "0.5px",
+                },
+              }}
+            >
               <TableCell>Name</TableCell>
               <TableCell>Price</TableCell>
               <TableCell>Quantity</TableCell>
@@ -210,65 +269,107 @@ function VegetableList() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {vegetables.map((vegetable) => {
-              // Calculate quantity from imported and sold (inventory = imported - sold)
-              const quantity = vegetable.quantity ?? (vegetable.imported ?? 0) - (vegetable.sold ?? 0);
-              const imported = vegetable.imported ?? 0;
-              const sold = vegetable.sold ?? 0;
-              
-              return (
-              <TableRow key={vegetable.id}>
-                <TableCell>
-                  <Typography variant="body1" fontWeight="bold">
-                    {vegetable.name}
+            {vegetables && vegetables.length > 0 ? (
+              vegetables.map((vegetable) => {
+                const quantity = vegetable.quantity ?? (vegetable.imported ?? 0) - (vegetable.sold ?? 0);
+                const imported = vegetable.imported ?? 0;
+                const sold = vegetable.sold ?? 0;
+                
+                return (
+                  <TableRow
+                    key={vegetable.id}
+                    sx={{
+                      "&:hover": {
+                        backgroundColor: "#f5f5f5",
+                      },
+                      "& td": {
+                        padding: "16px",
+                        borderBottom: "1px solid #e0e0e0",
+                      },
+                    }}
+                  >
+                    <TableCell sx={{ fontWeight: 600, color: "#212121", fontSize: "15px" }}>
+                      {vegetable.name || "-"}
+                    </TableCell>
+                    <TableCell sx={{ color: "#212121", fontWeight: 600, fontSize: "15px" }}>
+                      ${vegetable.price?.toFixed(2) || "0.00"}
+                    </TableCell>
+                    <TableCell>
+                      <Box>
+                        <Typography variant="body2" sx={{ fontWeight: 600, color: "#212121", fontSize: "15px" }}>
+                          {quantity}
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: "#666666", fontSize: "12px" }}>
+                          (Imported: {imported}, Sold: {sold})
+                        </Typography>
+                      </Box>
+                    </TableCell>
+                    <TableCell sx={{ color: "#212121", fontWeight: 500, fontSize: "15px" }}>
+                      {vegetable.unit || "kg"}
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={quantity > 10 ? "In Stock" : "Low Stock"}
+                        color={quantity > 10 ? "success" : "warning"}
+                        variant="filled"
+                        size="small"
+                      />
+                    </TableCell>
+                    <TableCell align="right">
+                      <Box sx={{ display: "flex", gap: 0.5, justifyContent: "flex-end" }}>
+                        <IconButton
+                          onClick={() => handleOpenUpdate(vegetable, "price")}
+                          color="primary"
+                          size="small"
+                          title="Update Price"
+                          sx={{
+                            "&:hover": {
+                              backgroundColor: "rgba(76, 190, 0, 0.08)",
+                            },
+                          }}
+                        >
+                          <PriceIcon />
+                        </IconButton>
+                        <IconButton
+                          onClick={() => handleOpenUpdate(vegetable, "import")}
+                          color="info"
+                          size="small"
+                          title="Import Stock"
+                          sx={{
+                            "&:hover": {
+                              backgroundColor: "rgba(3, 155, 229, 0.08)",
+                            },
+                          }}
+                        >
+                          <ImportIcon />
+                        </IconButton>
+                        <IconButton
+                          onClick={() => handleOpenUpdate(vegetable, "sell")}
+                          color="success"
+                          size="small"
+                          title="Sell Stock"
+                          sx={{
+                            "&:hover": {
+                              backgroundColor: "rgba(76, 175, 80, 0.08)",
+                            },
+                          }}
+                        >
+                          <SellIcon />
+                        </IconButton>
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            ) : (
+              <TableRow>
+                <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
+                  <Typography sx={{ color: "#666666", fontSize: "16px" }}>
+                    No vegetables found. Create one to get started!
                   </Typography>
                 </TableCell>
-                <TableCell>${vegetable.price?.toFixed(2) || "0.00"}</TableCell>
-                <TableCell>
-                  <Box>
-                    <Typography variant="body2">{quantity}</Typography>
-                    <Typography variant="caption" color="textSecondary">
-                      (Imported: {imported}, Sold: {sold})
-                    </Typography>
-                  </Box>
-                </TableCell>
-                <TableCell>{vegetable.unit || "kg"}</TableCell>
-                <TableCell>
-                  <Chip
-                    label={quantity > 10 ? "In Stock" : "Low Stock"}
-                    color={quantity > 10 ? "success" : "warning"}
-                    size="small"
-                  />
-                </TableCell>
-                <TableCell align="right">
-                  <IconButton
-                    onClick={() => handleOpenUpdate(vegetable, "price")}
-                    color="primary"
-                    size="small"
-                    title="Update Price"
-                  >
-                    <PriceIcon />
-                  </IconButton>
-                  <IconButton
-                    onClick={() => handleOpenUpdate(vegetable, "import")}
-                    color="success"
-                    size="small"
-                    title="Import Stock"
-                  >
-                    <ImportIcon />
-                  </IconButton>
-                  <IconButton
-                    onClick={() => handleOpenUpdate(vegetable, "sell")}
-                    color="warning"
-                    size="small"
-                    title="Sell Stock"
-                  >
-                    <SellIcon />
-                  </IconButton>
-                </TableCell>
               </TableRow>
-              );
-            })}
+            )}
           </TableBody>
         </Table>
       </TableContainer>
@@ -280,10 +381,19 @@ function VegetableList() {
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle>Add New Vegetable</DialogTitle>
-        <DialogContent>
+        <DialogTitle
+          sx={{
+            backgroundColor: "#1a3a3a",
+            color: "white",
+            fontWeight: 700,
+            fontSize: "18px",
+          }}
+        >
+          Add New Vegetable
+        </DialogTitle>
+        <DialogContent sx={{ pt: 3 }}>
           <TextField
-            margin="dense"
+            margin="normal"
             label="Vegetable Name"
             fullWidth
             value={currentVegetable.name}
@@ -291,11 +401,11 @@ function VegetableList() {
               setCurrentVegetable({ ...currentVegetable, name: e.target.value })
             }
             required
+            variant="outlined"
           />
-          <Grid container spacing={2}>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={6}>
               <TextField
-                margin="dense"
                 label="Price ($)"
                 type="number"
                 fullWidth
@@ -307,11 +417,11 @@ function VegetableList() {
                   })
                 }
                 required
+                variant="outlined"
               />
             </Grid>
             <Grid item xs={6}>
               <TextField
-                margin="dense"
                 label="Initial Quantity"
                 type="number"
                 fullWidth
@@ -323,11 +433,12 @@ function VegetableList() {
                   })
                 }
                 required
+                variant="outlined"
               />
             </Grid>
           </Grid>
           <TextField
-            margin="dense"
+            margin="normal"
             label="Unit"
             fullWidth
             value={currentVegetable.unit}
@@ -335,11 +446,20 @@ function VegetableList() {
               setCurrentVegetable({ ...currentVegetable, unit: e.target.value })
             }
             placeholder="kg, lb, piece, etc."
+            variant="outlined"
           />
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseCreate}>Cancel</Button>
-          <Button onClick={handleCreate} variant="contained">
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={handleCloseCreate} variant="outlined">
+            Cancel
+          </Button>
+          <Button
+            onClick={handleCreate}
+            variant="contained"
+            sx={{
+              backgroundColor: "primary.main",
+            }}
+          >
             Create
           </Button>
         </DialogActions>
@@ -352,39 +472,57 @@ function VegetableList() {
         maxWidth="xs"
         fullWidth
       >
-        <DialogTitle>{getUpdateDialogTitle()}</DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+        <DialogTitle
+          sx={{
+            backgroundColor: "#1a3a3a",
+            color: "white",
+            fontWeight: 700,
+            fontSize: "18px",
+          }}
+        >
+          {getUpdateDialogTitle()}
+        </DialogTitle>
+        <DialogContent sx={{ pt: 3 }}>
+          <Typography variant="body2" sx={{ mb: 2, fontWeight: 600 }}>
             {currentVegetable.name}
           </Typography>
           {updateType === "price" && (
             <Typography variant="body2" sx={{ mb: 2 }}>
-              Current Price: ${currentVegetable.price?.toFixed(2)}
+              Current Price: <strong>${currentVegetable.price?.toFixed(2)}</strong>
             </Typography>
           )}
           {(updateType === "import" || updateType === "sell") && (
             <Typography variant="body2" sx={{ mb: 2 }}>
-              Current Stock: {currentVegetable.quantity ?? ((currentVegetable.imported ?? 0) - (currentVegetable.sold ?? 0))} {currentVegetable.unit || "kg"}
+              Current Stock: <strong>{currentVegetable.quantity ?? ((currentVegetable.imported ?? 0) - (currentVegetable.sold ?? 0))} {currentVegetable.unit || "kg"}</strong>
               <br />
-              <Typography variant="caption" color="textSecondary">
+              <Typography variant="caption" sx={{ color: "#999" }}>
                 (Imported: {currentVegetable.imported ?? 0}, Sold: {currentVegetable.sold ?? 0})
               </Typography>
             </Typography>
           )}
           <TextField
             autoFocus
-            margin="dense"
+            margin="normal"
             label={getUpdateDialogLabel()}
             type="number"
             fullWidth
             value={updateValue}
             onChange={(e) => setUpdateValue(e.target.value)}
             required
+            variant="outlined"
           />
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseUpdate}>Cancel</Button>
-          <Button onClick={handleUpdate} variant="contained">
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={handleCloseUpdate} variant="outlined">
+            Cancel
+          </Button>
+          <Button
+            onClick={handleUpdate}
+            variant="contained"
+            sx={{
+              backgroundColor: "primary.main",
+            }}
+          >
             Update
           </Button>
         </DialogActions>

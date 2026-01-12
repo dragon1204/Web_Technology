@@ -10,6 +10,8 @@ const Login = () => {
     password: "",
   });
   const [loading, setLoading] = useState(false);
+  const [twoFARequired, setTwoFARequired] = useState(false);
+  const [twoFACode, setTwoFACode] = useState("");
 
   const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
@@ -56,24 +58,46 @@ const Login = () => {
     try {
       console.log("Attempting login with:", formData.email);
 
+      if (twoFARequired && !twoFACode) {
+        toast.error("Vui lòng nhập mã 2FA (6 chữ số)");
+        setLoading(false);
+        return;
+      }
+
       const result = await login({
         email: formData.email,
         password: formData.password,
+        totpCode: twoFARequired ? twoFACode : undefined,
       });
 
       console.log("Login result:", result);
 
-      if (result.success) {
+      if (result && result.requires2FA === true) {
+        // Bước 1: backend yêu cầu mã 2FA
+        console.log("2FA required, showing 2FA input");
+        setTwoFARequired(true);
+        setTwoFACode("");
+        toast.success(
+          "Tài khoản này đã bật 2FA. Vui lòng nhập mã 6 chữ số từ ứng dụng Authenticator."
+        );
+        setLoading(false);
+        return; // Dừng lại, chờ user nhập mã 2FA
+      } else if (result && result.success === true) {
+        // Bước 2: Login thành công sau khi verify 2FA hoặc không có 2FA
+        console.log("Login successful, redirecting...");
         toast.success("Đăng nhập thành công!");
         setTimeout(() => {
           navigate("/");
         }, 100);
       } else {
-        toast.error(result.error || "Đăng nhập thất bại");
+        // Lỗi khác
+        console.error("Login failed:", result);
+        toast.error(result?.error || "Đăng nhập thất bại");
       }
     } catch (error) {
       console.error("Submit error:", error);
-      toast.error("Có lỗi xảy ra. Vui lòng thử lại.");
+      // Show the exact error message bubbled up from auth layer
+      toast.error(error?.message || "Có lỗi xảy ra. Vui lòng thử lại.");
     } finally {
       setLoading(false);
     }
@@ -189,6 +213,53 @@ const Login = () => {
             />
           </div>
 
+          {twoFARequired && (
+            <div style={{ marginBottom: "20px" }}>
+              <label
+                style={{
+                  display: "block",
+                  color: "#e0e0e0",
+                  fontSize: "14px",
+                  marginBottom: "8px",
+                }}
+              >
+                Mã 2FA (6 chữ số)
+              </label>
+              <input
+                type="text"
+                name="totpCode"
+                value={twoFACode}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/[^0-9]/g, "").slice(0, 6);
+                  setTwoFACode(value);
+                }}
+                required
+                style={{
+                  width: "100%",
+                  padding: "12px",
+                  backgroundColor: "#28392e",
+                  border: "1px solid #3a4a3a",
+                  borderRadius: "6px",
+                  color: "#e0e0e0",
+                  fontSize: "18px",
+                  boxSizing: "border-box",
+                  letterSpacing: "4px",
+                  textAlign: "center",
+                }}
+                placeholder="••••••"
+              />
+              <p
+                style={{
+                  marginTop: "6px",
+                  color: "#a0a0a0",
+                  fontSize: "12px",
+                }}
+              >
+                Lấy mã trong ứng dụng Google Authenticator hoặc Authy.
+              </p>
+            </div>
+          )}
+
           <button
             type="submit"
             disabled={loading}
@@ -206,7 +277,11 @@ const Login = () => {
               transition: "background-color 0.2s",
             }}
           >
-            {loading ? "Đang xử lý..." : "Đăng nhập"}
+            {loading
+              ? "Đang xử lý..."
+              : twoFARequired
+              ? "Xác nhận mã 2FA"
+              : "Đăng nhập"}
           </button>
 
           <div
