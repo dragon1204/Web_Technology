@@ -25,22 +25,27 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   Grass as GrassIcon,
+  Settings as SettingsIcon,
+  AddCircle as AddCircleIcon,
 } from "@mui/icons-material";
 import { gardenAPI } from "../../services/api";
+import PairDeviceModal from "./PairDeviceModal";
+import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 
 function GardenList() {
+  const navigate = useNavigate();
   const [gardens, setGardens] = useState([]);
   const [open, setOpen] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [currentGarden, setCurrentGarden] = useState({
     id: "",
     name: "",
-    location: "",
-    area: "",
-    description: "",
   });
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [pairDialogOpen, setPairDialogOpen] = useState(false);
+  const [pairingGardenId, setPairingGardenId] = useState(null);
 
   useEffect(() => {
     fetchGardens();
@@ -53,7 +58,7 @@ function GardenList() {
       console.log("Response.data:", response.data);
       console.log("Response.data.data:", response.data?.data);
       console.log("Response.data.data.items:", response.data?.data?.items);
-      
+
       // Handle pagination response structure: 
       // Axios response: response.data = { HttpCode, success, data: { items: [...], total, page, ... } }
       // So we need: response.data.data.items
@@ -61,7 +66,7 @@ function GardenList() {
       console.log("Extracted data:", data);
       console.log("Is array?", Array.isArray(data));
       console.log("Data length:", Array.isArray(data) ? data.length : 0);
-      
+
       setGardens(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Error fetching gardens:", error);
@@ -79,9 +84,6 @@ function GardenList() {
       setCurrentGarden({
         id: "",
         name: "",
-        location: "",
-        area: "",
-        description: "",
       });
     }
     setOpen(true);
@@ -94,15 +96,17 @@ function GardenList() {
 
   const handleSave = async () => {
     try {
-      const gardenData = {
-        ...currentGarden,
-        area: parseFloat(currentGarden.area),
-      };
-
       if (editMode) {
+        const gardenData = {
+          name: currentGarden.name,
+        };
         await gardenAPI.update(currentGarden.id, gardenData);
         setSuccess("Garden updated successfully");
       } else {
+        // Khi tạo mới, loại bỏ id và chỉ gửi các field cần thiết
+        const gardenData = {
+          name: currentGarden.name,
+        };
         await gardenAPI.create(gardenData);
         setSuccess("Garden created successfully");
       }
@@ -110,7 +114,10 @@ function GardenList() {
       handleClose();
       setTimeout(() => setSuccess(""), 3000);
     } catch (error) {
-      setError(error.response?.data?.message || "Operation failed");
+      console.error("Error saving garden:", error);
+      const errorMessage = error.response?.data?.message || error.message || "Operation failed";
+      setError(errorMessage);
+      setTimeout(() => setError(""), 5000);
     }
   };
 
@@ -124,6 +131,30 @@ function GardenList() {
       } catch (error) {
         setError("Failed to delete garden");
       }
+    }
+  };
+
+  const handleSelectGarden = (garden) => {
+    // Điều hướng đến dashboard của garden
+    navigate(`/gardens/${garden.id}`);
+  };
+
+  const handleAddDevice = (garden) => {
+    setPairingGardenId(garden.id);
+    setPairDialogOpen(true);
+  };
+
+  const handlePairSuccess = async (gardenId, deviceMac) => {
+    try {
+      // Refresh garden list để lấy deviceMac mới
+      await fetchGardens();
+      toast.success(`Đã thêm thiết bị ${deviceMac} vào garden thành công!`);
+      setPairDialogOpen(false);
+
+      // Tự động điều hướng đến dashboard của garden sau khi pair thành công
+      navigate(`/gardens/${gardenId}`);
+    } catch (error) {
+      console.error("Error refreshing gardens:", error);
     }
   };
 
@@ -212,9 +243,7 @@ function GardenList() {
               }}
             >
               <TableCell>Name</TableCell>
-              <TableCell>Location</TableCell>
-              <TableCell>Area (m²)</TableCell>
-              <TableCell>Description</TableCell>
+              <TableCell>Device MAC</TableCell>
               <TableCell align="right">Actions</TableCell>
             </TableRow>
           </TableHead>
@@ -244,16 +273,57 @@ function GardenList() {
                       }}
                     />
                   </TableCell>
-                  <TableCell sx={{ color: "#f0f0f0" }}>
-                    {garden.location || "N/A"}
-                  </TableCell>
-                  <TableCell sx={{ color: "#f0f0f0", fontWeight: 500 }}>
-                    {garden.area || "N/A"} m²
-                  </TableCell>
-                  <TableCell sx={{ color: "#d0d0d0", maxWidth: 200 }}>
-                    {garden.description || "N/A"}
+                  <TableCell>
+                    {garden.deviceMac ? (
+                      <Chip
+                        label={garden.deviceMac}
+                        color="success"
+                        size="small"
+                        sx={{
+                          fontFamily: "monospace",
+                        }}
+                      />
+                    ) : (
+                      <Chip
+                        label="Chưa có thiết bị"
+                        color="default"
+                        size="small"
+                        variant="outlined"
+                      />
+                    )}
                   </TableCell>
                   <TableCell align="right">
+                    {garden.deviceMac ? (
+                      <Tooltip title="Xem chi tiết và điều khiển">
+                        <IconButton
+                          onClick={() => handleSelectGarden(garden)}
+                          color="primary"
+                          size="small"
+                          sx={{
+                            "&:hover": {
+                              backgroundColor: "rgba(76, 190, 0, 0.08)",
+                            },
+                          }}
+                        >
+                          <SettingsIcon />
+                        </IconButton>
+                      </Tooltip>
+                    ) : (
+                      <Tooltip title="Thêm thiết bị">
+                        <IconButton
+                          onClick={() => handleAddDevice(garden)}
+                          color="success"
+                          size="small"
+                          sx={{
+                            "&:hover": {
+                              backgroundColor: "rgba(76, 190, 0, 0.08)",
+                            },
+                          }}
+                        >
+                          <AddCircleIcon />
+                        </IconButton>
+                      </Tooltip>
+                    )}
                     <Tooltip title="Edit Garden">
                       <IconButton
                         onClick={() => handleOpen(garden)}
@@ -287,7 +357,7 @@ function GardenList() {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
+                <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
                   <Typography color="textSecondary">
                     No gardens found. Create one to get started!
                   </Typography>
@@ -329,65 +399,6 @@ function GardenList() {
               },
             }}
           />
-          <TextField
-            margin="normal"
-            label="Location"
-            fullWidth
-            value={currentGarden.location}
-            onChange={(e) =>
-              setCurrentGarden({ ...currentGarden, location: e.target.value })
-            }
-            required
-            variant="outlined"
-            sx={{
-              "& .MuiOutlinedInput-root": {
-                "&:hover fieldset": {
-                  borderColor: "primary.main",
-                },
-              },
-            }}
-          />
-          <TextField
-            margin="normal"
-            label="Area (m²)"
-            type="number"
-            fullWidth
-            value={currentGarden.area}
-            onChange={(e) =>
-              setCurrentGarden({ ...currentGarden, area: e.target.value })
-            }
-            required
-            variant="outlined"
-            sx={{
-              "& .MuiOutlinedInput-root": {
-                "&:hover fieldset": {
-                  borderColor: "primary.main",
-                },
-              },
-            }}
-          />
-          <TextField
-            margin="normal"
-            label="Description"
-            fullWidth
-            multiline
-            rows={3}
-            value={currentGarden.description}
-            onChange={(e) =>
-              setCurrentGarden({
-                ...currentGarden,
-                description: e.target.value,
-              })
-            }
-            variant="outlined"
-            sx={{
-              "& .MuiOutlinedInput-root": {
-                "&:hover fieldset": {
-                  borderColor: "primary.main",
-                },
-              },
-            }}
-          />
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
           <Button onClick={handleClose} variant="outlined">
@@ -404,6 +415,17 @@ function GardenList() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Pair Device Modal */}
+      <PairDeviceModal
+        open={pairDialogOpen}
+        onClose={() => {
+          setPairDialogOpen(false);
+          setPairingGardenId(null);
+        }}
+        gardenId={pairingGardenId}
+        onPairSuccess={handlePairSuccess}
+      />
     </Box>
   );
 }
