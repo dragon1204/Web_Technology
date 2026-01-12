@@ -9,7 +9,7 @@ import CssBaseline from "@mui/material/CssBaseline";
 import { useAuth } from "./contexts/AuthContext";
 import Login from "./components/Login";
 import OAuthCallback from "./components/OAuthCallback";
-import Layout from "./components/Layout";
+import { AdminLayout, UserLayout, CustomerLayout } from "./components/Layouts";
 import Dashboard from "./components/Dashboard";
 import UserList from "./components/Users/UserList";
 import GardenList from "./components/Gardens/GardenList";
@@ -25,6 +25,14 @@ import SecuritySettings from "./components/Security/SecuritySettings";
 import AccountSettings from "./components/AccountSettings";
 
 import AuditLogs from "./components/AuditLogs.jsx";
+import { 
+  ShopList, 
+  ProductList, 
+  ShoppingCart, 
+  Checkout, 
+  OrderHistory, 
+  OrderDetail 
+} from "./components/Customer";
 
 const theme = createTheme({
   palette: {
@@ -115,10 +123,47 @@ const theme = createTheme({
   },
 });
 
+// Component để chọn layout dựa trên role
+function RoleBasedLayout({ children }) {
+  const { user } = useAuth();
+  
+  const userRole = user?.role || user?.data?.role || "USER";
+  
+  if (userRole === "ADMIN") {
+    return <AdminLayout>{children}</AdminLayout>;
+  } else if (userRole === "CUSTOMER") {
+    return <CustomerLayout>{children}</CustomerLayout>;
+  } else {
+    // USER hoặc mặc định
+    return <UserLayout>{children}</UserLayout>;
+  }
+}
+
+// Component để redirect dựa trên role
+function RoleBasedRedirect() {
+  const { user } = useAuth();
+  const userRole = user?.role || user?.data?.role || "USER";
+  
+  if (userRole === "ADMIN") {
+    return <Navigate to="/dashboard" replace />;
+  } else if (userRole === "CUSTOMER") {
+    return <Navigate to="/customer/shops" replace />;
+  } else {
+    // USER hoặc mặc định
+    return <Navigate to="/dashboard" replace />;
+  }
+}
+
 function App() {
+<<<<<<< HEAD
   const ProtectedRoute = ({ children }) => {
     const { isAuthenticated, loading } = useAuth();
 
+=======
+  const ProtectedRoute = ({ children, allowedRoles = [] }) => {
+    const { isAuthenticated, loading, user } = useAuth();
+    
+>>>>>>> 542a81b (sale module)
     if (loading) {
       return (
         <div
@@ -134,12 +179,33 @@ function App() {
         </div>
       );
     }
+<<<<<<< HEAD
 
     return isAuthenticated ? (
       <Layout>{children}</Layout>
     ) : (
       <Navigate to="/login" />
     );
+=======
+    
+    if (!isAuthenticated) {
+      return <Navigate to="/login" />;
+    }
+    
+    // Kiểm tra role nếu có yêu cầu
+    if (allowedRoles.length > 0) {
+      const userRole = user?.role || user?.data?.role || "USER";
+      if (!allowedRoles.includes(userRole)) {
+        // Redirect dựa trên role
+        if (userRole === "CUSTOMER") {
+          return <Navigate to="/customer/shops" replace />;
+        }
+        return <Navigate to="/dashboard" replace />;
+      }
+    }
+    
+    return <RoleBasedLayout>{children}</RoleBasedLayout>;
+>>>>>>> 542a81b (sale module)
   };
 
   return (
@@ -154,7 +220,7 @@ function App() {
           <Route
             path="/dashboard"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={["ADMIN", "USER"]}>
                 <Dashboard />
               </ProtectedRoute>
             }
@@ -162,7 +228,7 @@ function App() {
           <Route
             path="/users"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={["ADMIN"]}>
                 <UserList />
               </ProtectedRoute>
             }
@@ -170,7 +236,7 @@ function App() {
           <Route
             path="/gardens"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={["ADMIN", "USER"]}>
                 <GardenList />
               </ProtectedRoute>
             }
@@ -178,8 +244,13 @@ function App() {
           <Route
             path="/gardens/:id"
             element={
+<<<<<<< HEAD
               <ProtectedRoute>
                 <GardenDashboard />
+=======
+              <ProtectedRoute allowedRoles={["ADMIN", "USER"]}>
+                <Controls />
+>>>>>>> 542a81b (sale module)
               </ProtectedRoute>
             }
           />
@@ -189,7 +260,7 @@ function App() {
           <Route
             path="/vegetables"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={["ADMIN", "USER"]}>
                 <VegetableList />
               </ProtectedRoute>
             }
@@ -197,7 +268,7 @@ function App() {
           <Route
             path="/revenue"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={["ADMIN", "USER"]}>
                 <RevenuePage />
               </ProtectedRoute>
             }
@@ -205,7 +276,7 @@ function App() {
           <Route
             path="/notifications"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={["ADMIN", "USER"]}>
                 <NotificationsPage />
               </ProtectedRoute>
             }
@@ -213,7 +284,7 @@ function App() {
           <Route
             path="/alerts"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={["ADMIN", "USER"]}>
                 <AlertsPage />
               </ProtectedRoute>
             }
@@ -246,12 +317,76 @@ function App() {
           <Route
             path="/audit-logs"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={["ADMIN", "USER"]}>
                 <AuditLogs />
               </ProtectedRoute>
             }
           />
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          {/* Customer Routes */}
+          <Route
+            path="/customer/shops"
+            element={
+              <ProtectedRoute>
+                <ShopList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/customer/products"
+            element={
+              <ProtectedRoute>
+                <ProductList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/customer/products/:shopId"
+            element={
+              <ProtectedRoute>
+                <ProductList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/customer/cart"
+            element={
+              <ProtectedRoute>
+                <ShoppingCart />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/customer/checkout/:shopId"
+            element={
+              <ProtectedRoute>
+                <Checkout />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/customer/orders"
+            element={
+              <ProtectedRoute>
+                <OrderHistory />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/customer/orders/:orderId"
+            element={
+              <ProtectedRoute>
+                <OrderDetail />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <RoleBasedRedirect />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </Router>
     </ThemeProvider>

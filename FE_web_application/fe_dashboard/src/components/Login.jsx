@@ -54,12 +54,33 @@ function Login() {
       }
       navigate("/dashboard");
     } catch (err) {
-      setError(
-        typeof err.response?.data?.message === "string"
-          ? err.response.data.message
-          : JSON.stringify(err.response?.data) ||
-              "Login failed. Please check your credentials."
-      );
+      console.error("Submit error:", err);
+      
+      let errorMessage = "Login failed. Please check your credentials.";
+      
+      // Handle network/CORS errors
+      if (err.message === "Failed to fetch" || err.message.includes("NetworkError")) {
+        errorMessage = "Cannot connect to server. Please check if the backend is running on http://localhost:3000";
+      }
+      // Handle response errors
+      else if (err.response?.data) {
+        const data = err.response.data;
+        if (typeof data === "string") {
+          errorMessage = data;
+        } else if (typeof data.message === "string") {
+          errorMessage = data.message;
+        } else if (typeof data.error === "string") {
+          errorMessage = data.error;
+        } else {
+          errorMessage = "Login failed: " + JSON.stringify(data);
+        }
+      }
+      // Handle other errors
+      else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

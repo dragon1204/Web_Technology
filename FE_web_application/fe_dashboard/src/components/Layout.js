@@ -62,6 +62,29 @@ const Layout = ({ children }) => {
     },
   ];
 
+  const customerMenuItems = [
+    {
+      path: "/customer/shops",
+      name: "Danh sách Shop",
+      icon: "🏪",
+    },
+    {
+      path: "/customer/products",
+      name: "Sản phẩm",
+      icon: "🛒",
+    },
+    {
+      path: "/customer/cart",
+      name: "Giỏ hàng",
+      icon: "🛍️",
+    },
+    {
+      path: "/customer/orders",
+      name: "Lịch sử đơn hàng",
+      icon: "📦",
+    },
+  ];
+
   const isActive = (path) => {
     return location.pathname === path;
   };
@@ -154,6 +177,69 @@ const Layout = ({ children }) => {
                 {sidebarOpen && <span>{item.name}</span>}
               </button>
             ))}
+          
+          {/* Customer Section Divider */}
+          {sidebarOpen && (
+            <div
+              style={{
+                padding: "15px 20px 5px 20px",
+                color: "#4cbe00",
+                fontSize: "12px",
+                fontWeight: "600",
+                textTransform: "uppercase",
+                letterSpacing: "1px",
+              }}
+            >
+              Customer
+            </div>
+          )}
+          
+          {/* Customer Menu Items */}
+          {customerMenuItems.map((item) => {
+            const isCustomerActive = 
+              location.pathname === item.path ||
+              (item.path === "/customer/products" && location.pathname.startsWith("/customer/products")) ||
+              (item.path === "/customer/orders" && location.pathname.startsWith("/customer/orders"));
+            
+            return (
+              <button
+                key={item.path}
+                onClick={() => navigate(item.path)}
+                style={{
+                  width: "100%",
+                  padding: "12px 20px",
+                  backgroundColor: isCustomerActive
+                    ? "#28392e"
+                    : "transparent",
+                  border: "none",
+                  color: isCustomerActive ? "#4cbe00" : "#e0e0e0",
+                  fontSize: "14px",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  transition: "all 0.2s ease",
+                  textAlign: "left",
+                  paddingLeft: sidebarOpen ? "30px" : "20px",
+                }}
+                onMouseOver={(e) => {
+                  if (!isCustomerActive) {
+                    e.target.style.backgroundColor = "#28392e";
+                    e.target.style.color = "#4cbe00";
+                  }
+                }}
+                onMouseOut={(e) => {
+                  if (!isCustomerActive) {
+                    e.target.style.backgroundColor = "transparent";
+                    e.target.style.color = "#e0e0e0";
+                  }
+                }}
+              >
+                <span style={{ fontSize: "16px" }}>{item.icon}</span>
+                {sidebarOpen && <span>{item.name}</span>}
+              </button>
+            );
+          })}
         </nav>
 
         {/* Toggle Button */}
