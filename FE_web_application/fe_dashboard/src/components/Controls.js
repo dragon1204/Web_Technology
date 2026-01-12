@@ -304,32 +304,43 @@ const Controls = () => {
       </div>
 
       {/* Device Value (for sensors) */}
-      {device.value && (
+      {device.type === "sensor" && device.value && (
         <div
           style={{
             backgroundColor: "#28392e",
-            padding: "16px",
+            padding: "20px",
             borderRadius: "8px",
             textAlign: "center",
+            border: "2px solid #4cbe00",
           }}
         >
           <div
             style={{
               color: "#4cbe00",
-              fontSize: "24px",
+              fontSize: "32px",
               fontWeight: "bold",
-              marginBottom: "4px",
+              marginBottom: "8px",
             }}
           >
             {device.value}
           </div>
           <div
             style={{
-              color: "#a0a0a0",
-              fontSize: "12px",
+              color: "#d0d0d0",
+              fontSize: "14px",
+              fontWeight: "500",
             }}
           >
-            Giá trị hiện tại
+            Giá trị cảm biến hiện tại
+          </div>
+          <div
+            style={{
+              color: "#a0a0a0",
+              fontSize: "12px",
+              marginTop: "4px",
+            }}
+          >
+            Cập nhật theo thời gian thực
           </div>
         </div>
       )}
@@ -675,18 +686,86 @@ const Controls = () => {
         </div>
       </div>
 
-      {/* Devices Grid */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-          gap: "24px",
-        }}
-      >
-        {devices.map((device) => (
-          <DeviceCard key={device.id} device={device} />
-        ))}
-      </div>
+      {/* Sensors Section */}
+      {devices.filter((d) => d.type === "sensor").length > 0 && (
+        <div style={{ marginBottom: "30px" }}>
+          <h2
+            style={{
+              color: "#ffffff",
+              fontSize: "20px",
+              fontWeight: "bold",
+              marginBottom: "20px",
+            }}
+          >
+            🌡️ Cảm biến
+          </h2>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+              gap: "20px",
+              marginBottom: "30px",
+            }}
+          >
+            {devices
+              .filter((d) => d.type === "sensor")
+              .map((device) => (
+                <DeviceCard key={device.id} device={device} />
+              ))}
+          </div>
+        </div>
+      )}
+
+      {/* Other Devices Section */}
+      {devices.filter((d) => d.type !== "sensor").length > 0 && (
+        <div>
+          <h2
+            style={{
+              color: "#ffffff",
+              fontSize: "20px",
+              fontWeight: "bold",
+              marginBottom: "20px",
+            }}
+          >
+            ⚙️ Thiết bị điều khiển
+          </h2>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+              gap: "24px",
+            }}
+          >
+            {devices
+              .filter((d) => d.type !== "sensor")
+              .map((device) => (
+                <DeviceCard key={device.id} device={device} />
+              ))}
+          </div>
+        </div>
+      )}
+
+      {/* All Devices (if no separation needed) */}
+      {devices.length === 0 && (
+        <div
+          style={{
+            backgroundColor: "#1a2e1a",
+            padding: "40px",
+            borderRadius: "12px",
+            border: "1px solid #28392e",
+            textAlign: "center",
+          }}
+        >
+          <div
+            style={{
+              color: "#a0a0a0",
+              fontSize: "16px",
+            }}
+          >
+            Chưa có thiết bị nào được kết nối. Vui lòng đợi thiết bị kết nối hoặc kiểm tra kết nối WebSocket.
+          </div>
+        </div>
+      )}
 
       {/* Help Text */}
       <div

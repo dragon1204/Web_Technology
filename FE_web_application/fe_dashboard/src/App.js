@@ -14,6 +14,7 @@ import Dashboard from "./components/Dashboard";
 import UserList from "./components/Users/UserList";
 import GardenList from "./components/Gardens/GardenList";
 import GardenDashboard from "./components/Gardens/GardenDashboard";
+import GardenDetail from "./components/Gardens/GardenDetail";
 import VegetableList from "./components/Vegetables/VegetableList";
 import RevenuePage from "./components/Revenue/RevenuePage";
 import NotificationsPage from "./components/Notifications/NotificationsPage";
@@ -25,6 +26,7 @@ import SecuritySettings from "./components/Security/SecuritySettings";
 import AccountSettings from "./components/AccountSettings";
 
 import AuditLogs from "./components/AuditLogs.jsx";
+import Controls from "./components/Controls";
 import { 
   ShopList, 
   ProductList, 
@@ -155,15 +157,9 @@ function RoleBasedRedirect() {
 }
 
 function App() {
-<<<<<<< HEAD
-  const ProtectedRoute = ({ children }) => {
-    const { isAuthenticated, loading } = useAuth();
-
-=======
   const ProtectedRoute = ({ children, allowedRoles = [] }) => {
     const { isAuthenticated, loading, user } = useAuth();
     
->>>>>>> 542a81b (sale module)
     if (loading) {
       return (
         <div
@@ -179,14 +175,6 @@ function App() {
         </div>
       );
     }
-<<<<<<< HEAD
-
-    return isAuthenticated ? (
-      <Layout>{children}</Layout>
-    ) : (
-      <Navigate to="/login" />
-    );
-=======
     
     if (!isAuthenticated) {
       return <Navigate to="/login" />;
@@ -205,7 +193,6 @@ function App() {
     }
     
     return <RoleBasedLayout>{children}</RoleBasedLayout>;
->>>>>>> 542a81b (sale module)
   };
 
   return (
@@ -244,13 +231,16 @@ function App() {
           <Route
             path="/gardens/:id"
             element={
-<<<<<<< HEAD
-              <ProtectedRoute>
-                <GardenDashboard />
-=======
+              <ProtectedRoute allowedRoles={["ADMIN", "USER"]}>
+                <GardenDetail />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/controls"
+            element={
               <ProtectedRoute allowedRoles={["ADMIN", "USER"]}>
                 <Controls />
->>>>>>> 542a81b (sale module)
               </ProtectedRoute>
             }
           />
