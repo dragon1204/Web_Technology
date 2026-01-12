@@ -152,11 +152,11 @@ function GardenDashboard() {
       {/* Header */}
       <Box display="flex" alignItems="center" justifyContent="space-between" mb={3}>
         <Box display="flex" alignItems="center" gap={2}>
-          <IconButton onClick={() => navigate('/gardens')} sx={{ color: 'white' }}>
+          <IconButton onClick={() => navigate('/gardens')}>
             <ArrowBackIcon />
           </IconButton>
           <Box>
-            <Typography variant="h4" sx={{ fontWeight: 700, color: "white" }}>
+            <Typography variant="h4" sx={{ fontWeight: 700, color: "text.primary" }}>
               {garden.name}
             </Typography>
 

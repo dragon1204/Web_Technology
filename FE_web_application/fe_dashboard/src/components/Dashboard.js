@@ -111,10 +111,11 @@ const Dashboard = () => {
   const StatCard = ({ title, value, icon, color = "#4cbe00" }) => (
     <div
       style={{
-        backgroundColor: "#1a2e1a",
+        backgroundColor: "#ffffff",
         padding: "24px",
         borderRadius: "12px",
-        border: "1px solid #28392e",
+        border: "1px solid #e5e7eb",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
         display: "flex",
         alignItems: "center",
         gap: "16px",
@@ -137,7 +138,7 @@ const Dashboard = () => {
       <div>
         <h3
           style={{
-            color: "#e0e0e0",
+            color: "#1a2e1a",
             fontSize: "24px",
             fontWeight: "bold",
             margin: "0 0 4px 0",
@@ -147,7 +148,7 @@ const Dashboard = () => {
         </h3>
         <p
           style={{
-            color: "#a0a0a0",
+            color: "#6b7280",
             fontSize: "14px",
             margin: 0,
           }}
@@ -171,7 +172,7 @@ const Dashboard = () => {
       <div style={{ marginBottom: "30px" }}>
         <h1
           style={{
-            color: "#e0e0e0",
+            color: "#1a2e1a",
             fontSize: "28px",
             fontWeight: "bold",
             margin: "0 0 8px 0",
@@ -181,7 +182,7 @@ const Dashboard = () => {
         </h1>
         <p
           style={{
-            color: "#a0a0a0",
+            color: "#6b7280",
             fontSize: "16px",
             margin: 0,
           }}
@@ -193,8 +194,8 @@ const Dashboard = () => {
       {/* Connection Status */}
       <div
         style={{
-          backgroundColor: connected ? "#10b98120" : "#dc262620",
-          border: `1px solid ${connected ? "#10b981" : "#dc2626"}`,
+          backgroundColor: connected ? "#ecfdf5" : "#fef2f2",
+          border: `1px solid ${connected ? "#10b981" : "#ef4444"}`,
           borderRadius: "8px",
           padding: "12px 16px",
           marginBottom: "30px",
@@ -207,13 +208,13 @@ const Dashboard = () => {
           style={{
             width: "8px",
             height: "8px",
-            backgroundColor: connected ? "#10b981" : "#dc2626",
+            backgroundColor: connected ? "#10b981" : "#ef4444",
             borderRadius: "50%",
           }}
         ></div>
         <span
           style={{
-            color: connected ? "#10b981" : "#dc2626",
+            color: connected ? "#059669" : "#b91c1c",
             fontSize: "14px",
             fontWeight: "500",
           }}
@@ -267,15 +268,16 @@ const Dashboard = () => {
         {/* Recent Gardens */}
         <div
           style={{
-            backgroundColor: "#1a2e1a",
+            backgroundColor: "#ffffff",
             padding: "24px",
             borderRadius: "12px",
-            border: "1px solid #28392e",
+            border: "1px solid #e5e7eb",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
           }}
         >
           <h2
             style={{
-              color: "#e0e0e0",
+              color: "#1a2e1a",
               fontSize: "18px",
               fontWeight: "bold",
               margin: "0 0 20px 0",
@@ -286,7 +288,7 @@ const Dashboard = () => {
 
           {loading ? (
             <div
-              style={{ color: "#a0a0a0", textAlign: "center", padding: "20px" }}
+              style={{ color: "#6b7280", textAlign: "center", padding: "20px" }}
             >
               Đang tải...
             </div>
@@ -298,18 +300,19 @@ const Dashboard = () => {
                 <div
                   key={garden.id}
                   style={{
-                    backgroundColor: "#28392e",
+                    backgroundColor: "#f9fafb",
                     padding: "16px",
                     borderRadius: "8px",
                     display: "flex",
                     justifyContent: "space-between",
                     alignItems: "center",
+                    border: "1px solid #f3f4f6",
                   }}
                 >
                   <div>
                     <h3
                       style={{
-                        color: "#e0e0e0",
+                        color: "#1f2937",
                         fontSize: "16px",
                         fontWeight: "600",
                         margin: "0 0 4px 0",
@@ -319,7 +322,7 @@ const Dashboard = () => {
                     </h3>
                     <p
                       style={{
-                        color: "#a0a0a0",
+                        color: "#6b7280",
                         fontSize: "14px",
                         margin: 0,
                       }}
@@ -329,12 +332,12 @@ const Dashboard = () => {
                   </div>
                   <div
                     style={{
-                      backgroundColor: "#4cbe00",
-                      color: "white",
+                      backgroundColor: "#ecfdf5",
+                      color: "#059669",
                       padding: "4px 8px",
                       borderRadius: "4px",
                       fontSize: "12px",
-                      fontWeight: "500",
+                      fontWeight: "600",
                     }}
                   >
                     Hoạt động
@@ -345,7 +348,7 @@ const Dashboard = () => {
           ) : (
             <div
               style={{
-                color: "#a0a0a0",
+                color: "#9ca3af",
                 textAlign: "center",
                 padding: "40px 20px",
               }}
@@ -359,15 +362,16 @@ const Dashboard = () => {
         {/* Recent Vegetables */}
         <div
           style={{
-            backgroundColor: "#1a2e1a",
+            backgroundColor: "#ffffff",
             padding: "24px",
             borderRadius: "12px",
-            border: "1px solid #28392e",
+            border: "1px solid #e5e7eb",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
           }}
         >
           <h2
             style={{
-              color: "#e0e0e0",
+              color: "#1a2e1a",
               fontSize: "18px",
               fontWeight: "bold",
               margin: "0 0 20px 0",
@@ -378,7 +382,7 @@ const Dashboard = () => {
 
           {loading ? (
             <div
-              style={{ color: "#a0a0a0", textAlign: "center", padding: "20px" }}
+              style={{ color: "#6b7280", textAlign: "center", padding: "20px" }}
             >
               Đang tải...
             </div>
@@ -390,18 +394,19 @@ const Dashboard = () => {
                 <div
                   key={vegetable.id}
                   style={{
-                    backgroundColor: "#28392e",
+                    backgroundColor: "#f9fafb",
                     padding: "16px",
                     borderRadius: "8px",
                     display: "flex",
                     justifyContent: "space-between",
                     alignItems: "center",
+                    border: "1px solid #f3f4f6",
                   }}
                 >
                   <div>
                     <h3
                       style={{
-                        color: "#e0e0e0",
+                        color: "#1f2937",
                         fontSize: "16px",
                         fontWeight: "600",
                         margin: "0 0 4px 0",
@@ -411,7 +416,7 @@ const Dashboard = () => {
                     </h3>
                     <p
                       style={{
-                        color: "#a0a0a0",
+                        color: "#6b7280",
                         fontSize: "14px",
                         margin: 0,
                       }}
@@ -421,7 +426,7 @@ const Dashboard = () => {
                   </div>
                   <div
                     style={{
-                      color: "#4cbe00",
+                      color: "#059669",
                       fontSize: "16px",
                       fontWeight: "bold",
                     }}
@@ -434,7 +439,7 @@ const Dashboard = () => {
           ) : (
             <div
               style={{
-                color: "#a0a0a0",
+                color: "#9ca3af",
                 textAlign: "center",
                 padding: "40px 20px",
               }}
@@ -450,16 +455,17 @@ const Dashboard = () => {
       {Object.keys(sensorData).length > 0 && (
         <div
           style={{
-            backgroundColor: "#1a2e1a",
+            backgroundColor: "#ffffff",
             padding: "24px",
             borderRadius: "12px",
-            border: "1px solid #28392e",
+            border: "1px solid #e5e7eb",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
             marginTop: "30px",
           }}
         >
           <h2
             style={{
-              color: "#e0e0e0",
+              color: "#1a2e1a",
               fontSize: "18px",
               fontWeight: "bold",
               margin: "0 0 20px 0",
@@ -479,15 +485,16 @@ const Dashboard = () => {
               <div
                 key={sensorId}
                 style={{
-                  backgroundColor: "#28392e",
+                  backgroundColor: "#f9fafb",
                   padding: "16px",
                   borderRadius: "8px",
                   textAlign: "center",
+                  border: "1px solid #f3f4f6",
                 }}
               >
                 <h4
                   style={{
-                    color: "#4cbe00",
+                    color: "#059669",
                     fontSize: "14px",
                     fontWeight: "600",
                     margin: "0 0 8px 0",
@@ -497,7 +504,7 @@ const Dashboard = () => {
                 </h4>
                 <div
                   style={{
-                    color: "#e0e0e0",
+                    color: "#1f2937",
                     fontSize: "20px",
                     fontWeight: "bold",
                   }}
@@ -506,7 +513,7 @@ const Dashboard = () => {
                 </div>
                 <div
                   style={{
-                    color: "#a0a0a0",
+                    color: "#6b7280",
                     fontSize: "12px",
                     marginTop: "4px",
                   }}

@@ -196,10 +196,10 @@ function PairDeviceModal({ open, onClose, gardenId, onPairSuccess }) {
           {pairingStatus === 'success' && (
             <>
               <Alert severity="success" sx={{ mb: 2 }}>
-                <Typography variant="body1" gutterBottom>
+                <Typography variant="body1" gutterBottom sx={{ color: 'text.primary' }}>
                   <strong>Đã thêm thiết bị thành công!</strong>
                 </Typography>
-                <Typography variant="body2">
+                <Typography variant="body2" sx={{ color: 'text.primary' }}>
                   Device MAC: <strong>{deviceMac}</strong>
                 </Typography>
               </Alert>
