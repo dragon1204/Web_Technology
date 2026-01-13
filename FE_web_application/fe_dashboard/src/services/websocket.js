@@ -1,6 +1,11 @@
 import { io } from 'socket.io-client';
 
-const WS_URL = process.env.REACT_APP_WS_URL || process.env.REACT_APP_API_URL || 'http://159.223.61.25:3000';
+// Auto-detect protocol: nếu đang chạy trên HTTPS thì dùng WSS/HTTPS
+const isHttps = window.location.protocol === 'https:';
+const protocol = isHttps ? 'https' : 'http';
+const wsProtocol = isHttps ? 'wss' : 'ws';
+const defaultUrl = `${protocol}://159.223.61.25:3000`;
+const WS_URL = process.env.REACT_APP_WS_URL || process.env.REACT_APP_API_URL || defaultUrl;
 
 class WebSocketService {
   constructor() {

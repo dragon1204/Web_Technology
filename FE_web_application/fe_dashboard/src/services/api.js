@@ -317,8 +317,10 @@ export const saleAPI = {
 export const analyticsAPI = {
   // Revenue Reports
   getRevenueByPeriod: (params = {}) => api.get("/analytics/revenue/period", { params }),
+  getShopOwnerRevenueByPeriod: (params = {}) => api.get("/analytics/revenue/shop-owner", { params }),
   compareRevenueBetweenGardens: (params = {}) => api.get("/analytics/revenue/compare-gardens", { params }),
   getTopProducts: (params = {}) => api.get("/analytics/revenue/top-products", { params }),
+  compareGardenRevenueByShopOrders: (params = {}) => api.get("/analytics/revenue/compare-gardens-shop", { params }),
   
   // Productivity Reports
   getProductivityByCategory: (params = {}) => api.get("/analytics/productivity/by-category", { params }),

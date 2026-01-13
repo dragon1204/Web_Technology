@@ -9,6 +9,11 @@
       name="description"
       content="GardenIoT - Smart Garden Management System"
     />
+    <!-- Security Headers: X-Frame-Options, X-Content-Type-Options, X-XSS-Protection 
+         chỉ hoạt động qua HTTP headers (đã cấu hình trong firebase.json), 
+         không thể đặt trong meta tags -->
+    <!-- Content-Security-Policy: Tạm thời comment vì backend chưa hỗ trợ HTTPS -->
+    <!-- <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests" /> -->
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
     <!--
       manifest.json provides metadata used when your web app is installed on a

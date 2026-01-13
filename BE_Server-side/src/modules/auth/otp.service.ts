@@ -57,6 +57,7 @@ export class OtpService {
         await this.emailService.sendOtpEmail(email, code, type);
         console.log(`✅ OTP email sent to ${email}`);
       } catch (error) {
+        // Log error nhưng không throw - vẫn return OTP code
         console.error(`❌ Failed to send OTP email to ${email}:`, error);
         console.error(`Error details:`, {
           code: error.code,
@@ -64,8 +65,11 @@ export class OtpService {
           response: error.response,
           message: error.message
         });
+        // Log OTP code để user vẫn có thể test
         console.log(`\n📧 OTP Code for ${email} (${type}): ${code}\n`);
         console.log(`⏰ Expires at: ${expiresAt.toISOString()}\n`);
+        console.log(`⚠️  Email sending failed, but OTP code is still valid. Check server connectivity to SMTP server.\n`);
+        // Không throw error - vẫn return code để user có thể test
       }
     } else {
       console.log(`\n📧 OTP Code for ${email} (${type}): ${code}\n`);

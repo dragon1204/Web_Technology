@@ -26,8 +26,11 @@
   "scripts": {
     "start": "set PORT=3001 && react-scripts start",
     "build": "react-scripts build",
+    "build:prod": "set REACT_APP_API_BASE_URL=http://159.223.61.25:3000 && set REACT_APP_API_URL=http://159.223.61.25:3000 && set REACT_APP_GOOGLE_AUTH_URL=http://159.223.61.25:3000/auth/google && set REACT_APP_SIMULATOR_WS_URL=ws://159.223.61.25:8080 && react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "deploy": "npm run build:prod && firebase deploy --only hosting",
+    "deploy:preview": "npm run build:prod && firebase hosting:channel:deploy preview"
   },
   "eslintConfig": {
     "extends": [

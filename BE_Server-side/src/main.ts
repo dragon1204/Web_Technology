@@ -18,14 +18,35 @@ async function bootstrap() {
   const corsOrigin = configService.get<string>('CORS_ORIGIN');
   const allowedOrigins = corsOrigin 
     ? corsOrigin.split(',').map(origin => origin.trim())
-    : ['http://localhost:3000', 'http://localhost:3001', 'http://159.223.61.25:3000', 'http://159.223.61.25:3001']; // Default for development
+      : [
+        'http://localhost:3000', 
+        'http://localhost:3001', 
+        'http://159.223.61.25:3000', 
+        'http://159.223.61.25:3001',
+        'https://localhost:3000',
+        'https://localhost:3001',
+        'https://159.223.61.25:3000',
+        'https://159.223.61.25:3001',
+        'https://gardeniothust.duckdns.org',
+        'https://*.web.app',
+        'https://*.firebaseapp.com'
+      ];
   
   app.enableCors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps or curl requests)
       if (!origin) return callback(null, true);
       
-      if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+      const isAllowed = allowedOrigins.some(allowed => {
+        if (allowed === '*') return true;
+        if (allowed.includes('*')) {
+          const pattern = allowed.replace(/\*/g, '.*');
+          const regex = new RegExp(`^${pattern}$`);
+          return regex.test(origin);
+        }
+        return allowed === origin;
+      });
+      
+      if (isAllowed) {
         callback(null, true);
       } else {
         callback(new Error('Not allowed by CORS'));

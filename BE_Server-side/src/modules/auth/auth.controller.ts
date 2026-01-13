@@ -5,6 +5,7 @@ import {
     Get,
     HttpCode, 
     HttpStatus, 
+    Logger,
     Post, 
     Req, 
     Res,
@@ -175,6 +176,9 @@ export class AuthController {
     @Post("send-otp")
     @Throttle({ default: { limit: 5, ttl: 60 } }) // Limit to 5 requests per minute
     async sendOtp(@Body() dto: SendOtpDto, @Req() req) {
+        // Log incoming request for debugging
+        const logger = new Logger(AuthController.name);
+        logger.log(`Send OTP request - Email: ${dto.email}, Type: ${dto.type}`);
         return this.authService.sendOtp(dto.email, dto.type, req);
     }
 

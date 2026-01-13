@@ -1,11 +1,49 @@
 // Application configuration - kết nối với backend NestJS
-const API_FALLBACK = "http://159.223.61.25:3000";
-const API_BASE = process.env.REACT_APP_API_BASE_URL || API_FALLBACK;
-const API_URL = process.env.REACT_APP_API_URL || API_BASE;
-const GOOGLE_AUTH =
-  process.env.REACT_APP_GOOGLE_AUTH_URL || `${API_BASE}/auth/google`;
-const SIMULATOR_WS =
-  process.env.REACT_APP_SIMULATOR_WS_URL || "ws://localhost:8080";
+// Ưu tiên env variables, nếu không có thì auto-detect protocol
+const isHttps = window.location.protocol === 'https:';
+const protocol = isHttps ? 'https' : 'http';
+const API_FALLBACK = `${protocol}://159.223.61.25:3000`;
+
+// Helper function để validate và normalize URL
+const normalizeUrl = (url) => {
+  if (!url || typeof url !== 'string') return null;
+  // Remove trailing slash
+  url = url.trim().replace(/\/+$/, '');
+  // Ensure it starts with http:// or https://
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    return null;
+  }
+  return url;
+};
+
+// Ưu tiên env variables (nếu có thì dùng, không auto-detect)
+// Nếu env variable có HTTP thì dùng HTTP (ngay cả khi frontend chạy HTTPS)
+let API_BASE = process.env.REACT_APP_API_BASE_URL || API_FALLBACK;
+let API_URL = process.env.REACT_APP_API_URL || API_BASE;
+
+// Force HTTP nếu env variable chỉ định HTTP (để tránh SSL error khi backend chưa có HTTPS)
+if (process.env.REACT_APP_API_URL && process.env.REACT_APP_API_URL.startsWith('http://')) {
+  API_URL = process.env.REACT_APP_API_URL;
+}
+if (process.env.REACT_APP_API_BASE_URL && process.env.REACT_APP_API_BASE_URL.startsWith('http://')) {
+  API_BASE = process.env.REACT_APP_API_BASE_URL;
+}
+
+// Validate và normalize URLs
+API_BASE = normalizeUrl(API_BASE) || API_FALLBACK;
+API_URL = normalizeUrl(API_URL) || API_BASE;
+
+// Build Google Auth URL
+let GOOGLE_AUTH = process.env.REACT_APP_GOOGLE_AUTH_URL;
+if (!GOOGLE_AUTH || !normalizeUrl(GOOGLE_AUTH)) {
+  GOOGLE_AUTH = `${API_BASE}/auth/google`;
+}
+
+// Build WebSocket URL
+let SIMULATOR_WS = process.env.REACT_APP_SIMULATOR_WS_URL;
+if (!SIMULATOR_WS || (!SIMULATOR_WS.startsWith('ws://') && !SIMULATOR_WS.startsWith('wss://'))) {
+  SIMULATOR_WS = isHttps ? "wss://159.223.61.25:8080" : "ws://159.223.61.25:8080";
+}
 
 // Debug: Log API configuration
 console.log("🔧 API Configuration:", {

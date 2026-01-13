@@ -39,7 +39,7 @@ export class AnalyticsController {
    */
 
   @Get('revenue/period')
-  @ApiOperation({ summary: 'Doanh thu theo khoảng thời gian' })
+  @ApiOperation({ summary: 'Doanh thu theo khoảng thời gian (từ Sale table)' })
   async getRevenueByPeriod(@Query() query: RevenueReportDto) {
     try {
       const result = await this.analyticsService.getRevenueByPeriod(
@@ -53,6 +53,81 @@ export class AnalyticsController {
     } catch (error) {
       console.error('Error in getRevenueByPeriod controller:', error);
       // Trả về empty array thay vì throw error
+      return [];
+    }
+  }
+
+  @Get('revenue/shop-owner')
+  @ApiOperation({ summary: 'Doanh thu từ orders đã thanh toán của shop owner theo khoảng thời gian' })
+  @ApiQuery({ name: 'period', required: false, enum: ['day', 'week', 'month', 'year'], description: 'Khoảng thời gian' })
+  @ApiQuery({ name: 'startDate', required: false, type: String, description: 'Ngày bắt đầu (ISO format)' })
+  @ApiQuery({ name: 'endDate', required: false, type: String, description: 'Ngày kết thúc (ISO format)' })
+  async getShopOwnerRevenueByPeriod(
+    @Request() req: any,
+    @Query('period') period?: 'day' | 'week' | 'month' | 'year',
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    try {
+      const ownerId = req.user.id;
+      const result = await this.analyticsService.getShopOwnerRevenueByPeriod(
+        ownerId,
+        period || 'month',
+        startDate ? new Date(startDate) : undefined,
+        endDate ? new Date(endDate) : undefined,
+      );
+      return result;
+    } catch (error) {
+      console.error('Error in getShopOwnerRevenueByPeriod controller:', error);
+      return [];
+    }
+  }
+
+  @Get('revenue/top-products')
+  @ApiOperation({ summary: 'Top sản phẩm theo doanh thu từ orders đã thanh toán' })
+  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Số lượng sản phẩm (mặc định: 10)' })
+  @ApiQuery({ name: 'startDate', required: false, type: String, description: 'Ngày bắt đầu (ISO format)' })
+  @ApiQuery({ name: 'endDate', required: false, type: String, description: 'Ngày kết thúc (ISO format)' })
+  async getTopProductsByShopRevenue(
+    @Request() req: any,
+    @Query('limit') limit?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    try {
+      const ownerId = req.user.id;
+      const result = await this.analyticsService.getTopProductsByShopRevenue(
+        ownerId,
+        limit ? parseInt(limit, 10) : 10,
+        startDate ? new Date(startDate) : undefined,
+        endDate ? new Date(endDate) : undefined,
+      );
+      return result;
+    } catch (error) {
+      console.error('Error in getTopProductsByShopRevenue controller:', error);
+      return [];
+    }
+  }
+
+  @Get('revenue/compare-gardens-shop')
+  @ApiOperation({ summary: 'So sánh doanh thu giữa các vườn từ orders đã thanh toán' })
+  @ApiQuery({ name: 'startDate', required: false, type: String, description: 'Ngày bắt đầu (ISO format)' })
+  @ApiQuery({ name: 'endDate', required: false, type: String, description: 'Ngày kết thúc (ISO format)' })
+  async compareGardenRevenueByShopOrders(
+    @Request() req: any,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    try {
+      const ownerId = req.user.id;
+      const result = await this.analyticsService.compareGardenRevenueByShopOrders(
+        ownerId,
+        startDate ? new Date(startDate) : undefined,
+        endDate ? new Date(endDate) : undefined,
+      );
+      return result;
+    } catch (error) {
+      console.error('Error in compareGardenRevenueByShopOrders controller:', error);
       return [];
     }
   }

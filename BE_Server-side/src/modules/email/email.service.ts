@@ -27,6 +27,21 @@ export class EmailService implements OnModuleInit {
         user: smtpUser,
         pass: smtpPassword,
       },
+      // Tối ưu performance - giảm thời gian chờ
+      connectionTimeout: 10000, // 10 giây timeout cho connection
+      greetingTimeout: 5000, // 5 giây timeout cho greeting
+      socketTimeout: 10000, // 10 giây timeout cho socket
+      // Connection pooling - tái sử dụng connection
+      pool: true,
+      maxConnections: 5, // Tối đa 5 connections đồng thời
+      maxMessages: 100, // Tối đa 100 messages mỗi connection
+      rateDelta: 1000, // 1 giây giữa các messages
+      rateLimit: 5, // Tối đa 5 messages/giây
+      // DNS optimization
+      dnsTimeout: 5000, // 5 giây timeout cho DNS lookup
+      // Tắt debug để tăng performance
+      debug: false,
+      logger: false,
     });
   }
 

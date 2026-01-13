@@ -552,6 +552,12 @@ const AuditLogs = () => {
                 onChange={(e) => setFilters({ ...filters, action: e.target.value })}
                 size="small"
                 fullWidth
+                sx={{
+                  minWidth: "200px",
+                  "& .MuiSelect-select": {
+                    minWidth: "200px",
+                  },
+                }}
               >
                 <MenuItem value="">All Actions</MenuItem>
                 <MenuItem value="LOGIN">Login</MenuItem>
@@ -571,6 +577,12 @@ const AuditLogs = () => {
                 onChange={(e) => setFilters({ ...filters, success: e.target.value })}
                 size="small"
                 fullWidth
+                sx={{
+                  minWidth: "200px",
+                  "& .MuiSelect-select": {
+                    minWidth: "200px",
+                  },
+                }}
               >
                 <MenuItem value="">All Status</MenuItem>
                 <MenuItem value="true">Success</MenuItem>
@@ -716,7 +728,7 @@ const AuditLogs = () => {
                     User
                   </TableCell>
                 )}
-                <TableCell sx={{ bgcolor: "#102216", color: "#fff", fontWeight: 700, fontSize: "13px", textTransform: "uppercase" }}>
+                <TableCell sx={{ bgcolor: "#102216", color: "#fff", fontWeight: 700, fontSize: "13px", textTransform: "uppercase", minWidth: "100px" }}>
                   Action
                 </TableCell>
                 <TableCell sx={{ bgcolor: "#102216", color: "#fff", fontWeight: 700, fontSize: "13px", textTransform: "uppercase" }}>
@@ -725,10 +737,10 @@ const AuditLogs = () => {
                 <TableCell sx={{ bgcolor: "#102216", color: "#fff", fontWeight: 700, fontSize: "13px", textTransform: "uppercase" }}>
                   IP Address
                 </TableCell>
-                <TableCell align="center" sx={{ bgcolor: "#102216", color: "#fff", fontWeight: 700, fontSize: "13px", textTransform: "uppercase" }}>
+                <TableCell align="center" sx={{ bgcolor: "#102216", color: "#fff", fontWeight: 700, fontSize: "13px", textTransform: "uppercase", minWidth: "120px" }}>
                   Status
                 </TableCell>
-                <TableCell align="center" sx={{ bgcolor: "#102216", color: "#fff", fontWeight: 700, fontSize: "13px", textTransform: "uppercase" }}>
+                <TableCell align="center" sx={{ bgcolor: "#102216", color: "#fff", fontWeight: 700, fontSize: "13px", textTransform: "uppercase", minWidth: "100px" }}>
                   Details
                 </TableCell>
               </TableRow>
@@ -770,7 +782,7 @@ const AuditLogs = () => {
                         </Stack>
                       </TableCell>
                     )}
-                    <TableCell>
+                    <TableCell sx={{ minWidth: "100px" }}>
                       <Chip
                         label={log.action}
                         size="small"
@@ -802,7 +814,7 @@ const AuditLogs = () => {
                     <TableCell sx={{ fontSize: "13px", fontFamily: "monospace", color: "#666" }}>
                       {log.ipAddress || "-"}
                     </TableCell>
-                    <TableCell align="center">
+                    <TableCell align="center" sx={{ minWidth: "120px" }}>
                       {log.success !== undefined ? (
                         log.success ? (
                           <Chip
@@ -827,7 +839,7 @@ const AuditLogs = () => {
                         <Typography sx={{ color: "#999" }}>-</Typography>
                       )}
                     </TableCell>
-                    <TableCell align="center">
+                    <TableCell align="center" sx={{ minWidth: "100px" }}>
                       {log.changes || log.details || log.metadata ? (
                         <Button
                           size="small"

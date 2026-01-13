@@ -214,6 +214,19 @@ function ShopProductManagement() {
     }
   }, []);
 
+  // Memoize selectedVegetableData để tránh tính toán lại mỗi lần render
+  // Phải khai báo trước các useEffect/handlers sử dụng nó
+  const selectedVegetableData = useMemo(() => {
+    if (!addForm.vegetableId || !availableVegetables.length) {
+      return null;
+    }
+    const vegetableId = parseInt(addForm.vegetableId);
+    if (isNaN(vegetableId)) {
+      return null;
+    }
+    return availableVegetables.find((v) => v.vegetable.id === vegetableId) || null;
+  }, [addForm.vegetableId, availableVegetables]);
+
   const handleOpenAddDialog = useCallback(() => {
     if (selectedShop) {
       fetchAvailableVegetables();
@@ -222,6 +235,20 @@ function ShopProductManagement() {
     }
     setOpenAddDialog(true);
   }, [selectedShop, fetchAvailableVegetables, fetchAllVegetables, fetchUserGardens]);
+
+  // Tự động chọn vườn đầu tiên khi có gardens và chưa chọn vườn
+  useEffect(() => {
+    if (openAddDialog && userGardens.length > 0 && !addForm.gardenId) {
+      setAddForm((prev) => ({ ...prev, gardenId: String(userGardens[0].id) }));
+    }
+  }, [openAddDialog, userGardens, addForm.gardenId]);
+
+  // Reset gardenId khi đổi rau
+  useEffect(() => {
+    if (addForm.vegetableId && userGardens.length > 0 && !addForm.gardenId) {
+      setAddForm((prev) => ({ ...prev, gardenId: String(userGardens[0].id) }));
+    }
+  }, [addForm.vegetableId, userGardens, addForm.gardenId]);
 
   const handleCloseAddDialog = () => {
     setOpenAddDialog(false);
@@ -301,20 +328,6 @@ function ShopProductManagement() {
     if (!addForm.stock || parseInt(addForm.stock) <= 0) {
       toast.error("Vui lòng nhập số lượng hợp lệ (lớn hơn 0)");
       return;
-    }
-
-    // Kiểm tra số lượng không vượt quá số lượng có sẵn trong vườn
-    const vegetableData = selectedVegetableData;
-    if (vegetableData) {
-      const selectedGarden = vegetableData.gardens.find(
-        (g) => g.gardenId === parseInt(addForm.gardenId)
-      );
-      if (selectedGarden && parseInt(addForm.stock) > selectedGarden.quantity) {
-        toast.error(
-          `Số lượng không được vượt quá ${selectedGarden.quantity} kg có sẵn trong vườn "${selectedGarden.gardenName}"`
-        );
-        return;
-      }
     }
 
     try {
@@ -417,35 +430,6 @@ function ShopProductManagement() {
     setPage(0);
   }, []);
 
-  // Memoize selectedVegetableData để tránh tính toán lại mỗi lần render
-  const selectedVegetableData = useMemo(() => {
-    if (!addForm.vegetableId || !availableVegetables.length) {
-      return null;
-    }
-    const vegetableId = parseInt(addForm.vegetableId);
-    if (isNaN(vegetableId)) {
-      return null;
-    }
-    return availableVegetables.find((v) => v.vegetable.id === vegetableId) || null;
-  }, [addForm.vegetableId, availableVegetables]);
-
-  // Reset gardenId khi vegetableId thay đổi
-  useEffect(() => {
-    if (addForm.vegetableId) {
-      // Kiểm tra xem gardenId hiện tại có còn hợp lệ với vegetableId mới không
-      const vegetableData = selectedVegetableData;
-      if (vegetableData) {
-        const isValidGarden = vegetableData.gardens.some(
-          (g) => g.gardenId === parseInt(addForm.gardenId)
-        );
-        if (!isValidGarden) {
-          setAddForm((prev) => ({ ...prev, gardenId: "" }));
-        }
-      } else {
-        setAddForm((prev) => ({ ...prev, gardenId: "" }));
-      }
-    }
-  }, [addForm.vegetableId, selectedVegetableData]);
 
   return (
     <Box className="shop-product-management">
@@ -460,57 +444,38 @@ function ShopProductManagement() {
         </Typography>
       </Box>
 
-      {/* Shop Selection */}
-      {shops.length > 0 && (
+      {/* Shop Info (không cho chọn) */}
+      {selectedShop && (
         <Card sx={{ mb: 3 }}>
           <CardContent>
-            <Grid container spacing={2} alignItems="center">
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Chọn Shop</InputLabel>
-                  <Select
-                    value={selectedShop?.id || ""}
-                    onChange={(e) => {
-                      const shop = shops.find((s) => s.id === e.target.value);
-                      setSelectedShop(shop);
-                      setPage(0);
-                    }}
-                    label="Chọn Shop"
-                  >
-                    {shops.map((shop) => (
-                      <MenuItem key={shop.id} value={shop.id}>
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                          <StoreIcon />
-                          <Box>
-                            <Typography variant="body1">{shop.name}</Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              {shop._count?.products || 0} sản phẩm
-                            </Typography>
-                          </Box>
-                        </Box>
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-              {selectedShop && (
-                <Grid item xs={12} md={6}>
-                  <Box sx={{ display: "flex", gap: 2 }}>
-                    <Chip
-                      icon={<InventoryIcon />}
-                      label={`${selectedShop._count?.products || 0} Sản phẩm`}
-                      color="primary"
-                      variant="outlined"
-                    />
-                    <Chip
-                      icon={selectedShop.isActive ? <CheckCircleIcon /> : <CancelIcon />}
-                      label={selectedShop.isActive ? "Đang hoạt động" : "Không hoạt động"}
-                      color={selectedShop.isActive ? "success" : "default"}
-                    />
-                  </Box>
-                </Grid>
-              )}
-            </Grid>
+            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 2 }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                <StoreIcon sx={{ fontSize: 32, color: "primary.main" }} />
+                <Box>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    {selectedShop.name}
+                  </Typography>
+                  {selectedShop.description && (
+                    <Typography variant="body2" color="text.secondary">
+                      {selectedShop.description}
+                    </Typography>
+                  )}
+                </Box>
+              </Box>
+              <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+                <Chip
+                  icon={<InventoryIcon />}
+                  label={`${selectedShop._count?.products || 0} Sản phẩm`}
+                  color="primary"
+                  variant="outlined"
+                />
+                <Chip
+                  icon={selectedShop.isActive ? <CheckCircleIcon /> : <CancelIcon />}
+                  label={selectedShop.isActive ? "Đang hoạt động" : "Không hoạt động"}
+                  color={selectedShop.isActive ? "success" : "default"}
+                />
+              </Box>
+            </Box>
           </CardContent>
         </Card>
       )}
@@ -543,6 +508,7 @@ function ShopProductManagement() {
                       value={filterAvailable}
                       onChange={handleFilterChange}
                       label="Trạng thái"
+                      sx={{ minWidth: "200px" }}
                     >
                       <MenuItem value="all">Tất cả</MenuItem>
                       <MenuItem value="true">Có sẵn</MenuItem>
@@ -728,12 +694,12 @@ function ShopProductManagement() {
                       const value = e.target.value;
                       setAddForm((prev) => ({ 
                         ...prev, 
-                        vegetableId: value,
-                        gardenId: "" // Reset gardenId khi đổi rau
+                        vegetableId: value
                       }));
                     }}
                     label="Chọn loại rau *"
                     displayEmpty
+                    sx={{ minWidth: "250px" }}
                   >
                     {allVegetables.length === 0 ? (
                       <MenuItem disabled value="">
@@ -778,7 +744,7 @@ function ShopProductManagement() {
                     )}
                   </Select>
                   <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>
-                    Bạn có thể chọn bất kỳ loại rau nào trong hệ thống. Nếu rau chưa có trong vườn, bạn sẽ cần chọn vườn ở bước tiếp theo.
+                    Bạn có thể chọn bất kỳ loại rau nào trong hệ thống để thêm vào shop.
                   </Typography>
                 </FormControl>
 
@@ -811,77 +777,48 @@ function ShopProductManagement() {
                 )}
 
                 {/* Bước 2: Chọn vườn */}
-                {addForm.vegetableId && (
-                  <>
-                    {selectedVegetableData && selectedVegetableData.gardens.length > 0 ? (
-                      <FormControl fullWidth required>
-                        <InputLabel>Chọn vườn *</InputLabel>
-                        <Select
-                          value={addForm.gardenId || ""}
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            setAddForm((prev) => ({ ...prev, gardenId: value }));
-                          }}
-                          label="Chọn vườn *"
-                          displayEmpty
-                        >
-                          <MenuItem disabled value="">
-                            <Typography variant="body2" color="text.secondary">
-                              Chọn vườn có loại rau này
-                            </Typography>
+                {selectedVegetableData && (
+                  <FormControl fullWidth required>
+                    <InputLabel id="garden-select-label">Chọn vườn *</InputLabel>
+                    <Select
+                      labelId="garden-select-label"
+                      value={addForm.gardenId || ""}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setAddForm((prev) => ({ ...prev, gardenId: value }));
+                      }}
+                      label="Chọn vườn *"
+                      displayEmpty
+                      disabled={userGardens.length === 0}
+                      sx={{ minWidth: "250px" }}
+                      renderValue={(selected) => {
+                        if (!selected) {
+                          return <em style={{ color: '#999' }}>Chọn vườn của bạn</em>;
+                        }
+                        const garden = userGardens.find(g => String(g.id) === String(selected));
+                        return garden ? garden.name : '';
+                      }}
+                    >
+                      {userGardens.length === 0 ? (
+                        <MenuItem disabled value="">
+                          <Typography variant="body2" color="text.secondary">
+                            Bạn chưa có vườn nào. Vui lòng tạo vườn trước.
+                          </Typography>
+                        </MenuItem>
+                      ) : (
+                        userGardens.map((garden) => (
+                          <MenuItem key={garden.id} value={String(garden.id)}>
+                            <Typography variant="body1">{garden.name}</Typography>
                           </MenuItem>
-                          {selectedVegetableData.gardens.map((garden) => (
-                            <MenuItem key={garden.gardenId} value={String(garden.gardenId)}>
-                              <Box>
-                                <Typography variant="body1">{garden.gardenName}</Typography>
-                                <Typography variant="caption" color="text.secondary">
-                                  Số lượng có sẵn: {garden.quantity} kg
-                                </Typography>
-                              </Box>
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-                    ) : (
-                      <FormControl fullWidth required>
-                        <InputLabel>Chọn vườn *</InputLabel>
-                        <Select
-                          value={addForm.gardenId || ""}
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            setAddForm((prev) => ({ ...prev, gardenId: value }));
-                          }}
-                          label="Chọn vườn *"
-                          displayEmpty
-                        >
-                          {userGardens.length === 0 ? (
-                            <MenuItem disabled value="">
-                              <Typography variant="body2" color="text.secondary">
-                                Bạn chưa có vườn nào
-                              </Typography>
-                            </MenuItem>
-                          ) : (
-                            <>
-                              <MenuItem disabled value="">
-                                <Typography variant="body2" color="text.secondary">
-                                  Chọn vườn để thêm loại rau này
-                                </Typography>
-                              </MenuItem>
-                              {userGardens.map((garden) => (
-                                <MenuItem key={garden.id} value={String(garden.id)}>
-                                  <Typography variant="body1">{garden.name}</Typography>
-                                </MenuItem>
-                              ))}
-                            </>
-                          )}
-                        </Select>
-                        <Alert severity="info" sx={{ mt: 1 }}>
-                          Loại rau này chưa có trong vườn nào. Bạn có thể chọn một vườn để thêm vào shop.
-                          Lưu ý: Backend sẽ tự động thêm rau vào vườn khi bạn thêm vào shop.
-                        </Alert>
-                      </FormControl>
+                        ))
+                      )}
+                    </Select>
+                    {userGardens.length === 0 && (
+                      <Alert severity="warning" sx={{ mt: 1 }}>
+                        Bạn cần có ít nhất một vườn để thêm sản phẩm vào shop.
+                      </Alert>
                     )}
-                  </>
+                  </FormControl>
                 )}
 
                 {/* Bước 3: Nhập thông tin sản phẩm */}
@@ -911,21 +848,10 @@ function ShopProductManagement() {
                         setAddForm((prev) => ({ ...prev, stock: value }));
                       }}
                       inputProps={{ 
-                        min: 0,
-                        max: selectedVegetableData.gardens.find(
-                          g => g.gardenId === parseInt(addForm.gardenId)
-                        )?.quantity || undefined
+                        min: 0
                       }}
                       required
-                      helperText={
-                        selectedVegetableData.gardens.find(
-                          g => g.gardenId === parseInt(addForm.gardenId)
-                        )
-                          ? `Tối đa: ${selectedVegetableData.gardens.find(
-                              g => g.gardenId === parseInt(addForm.gardenId)
-                            )?.quantity} kg`
-                          : "Nhập số lượng sản phẩm"
-                      }
+                      helperText="Nhập số lượng sản phẩm"
                     />
                   </>
                 )}
@@ -953,8 +879,8 @@ function ShopProductManagement() {
                       <strong>Hướng dẫn:</strong>
                     </Typography>
                     <Typography variant="body2" component="div" sx={{ mt: 1 }}>
-                      1. Chọn loại rau từ danh sách (có thể chọn bất kỳ loại rau nào trong hệ thống)<br />
-                      2. Chọn vườn (nếu rau đã có trong vườn thì chọn từ danh sách, nếu chưa có thì chọn vườn bất kỳ)<br />
+                      1. Chọn loại rau từ danh sách<br />
+                      2. Chọn vườn của bạn<br />
                       3. Nhập giá bán và số lượng<br />
                       4. Bật/tắt trạng thái "Có sẵn để bán"<br />
                       5. Nhấn "Thêm sản phẩm" để hoàn tất
@@ -990,6 +916,7 @@ function ShopProductManagement() {
                       setNewVegetableForm((prev) => ({ ...prev, category: value }));
                     }}
                     label="Loại rau"
+                    sx={{ minWidth: "250px" }}
                   >
                     <MenuItem value="leafy">Rau lá (Leafy)</MenuItem>
                     <MenuItem value="root">Rau củ (Root)</MenuItem>

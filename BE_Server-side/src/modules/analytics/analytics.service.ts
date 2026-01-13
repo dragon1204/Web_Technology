@@ -11,7 +11,324 @@ export class AnalyticsService {
    */
 
   /**
+   * Doanh thu từ orders đã thanh toán của shop owner theo khoảng thời gian
+   * Tính từ số tiền shop owner thực sự nhận được (orders đã PAID)
+   */
+  async getShopOwnerRevenueByPeriod(
+    ownerId: number,
+    period: 'day' | 'week' | 'month' | 'year',
+    startDate?: Date,
+    endDate?: Date,
+  ) {
+    try {
+      // Validate period
+      const validPeriods = ['day', 'week', 'month', 'year'];
+      if (!validPeriods.includes(period)) {
+        throw new BadRequestException(`Invalid period: ${period}. Must be one of: ${validPeriods.join(', ')}`);
+      }
+
+      // Build where clause với Prisma
+      const where: any = {
+        paymentStatus: 'PAID',
+        shop: {
+          ownerId: ownerId,
+        },
+        paidAt: {
+          not: null,
+        },
+      };
+
+      // Add date filter
+      if (startDate || endDate) {
+        where.paidAt = {
+          ...(where.paidAt || {}),
+          ...(startDate ? { gte: startDate } : {}),
+          ...(endDate ? {
+            lte: new Date(new Date(endDate).setHours(23, 59, 59, 999))
+          } : {}),
+        };
+      }
+
+      // Lấy tất cả orders đã thanh toán
+      const orders = await this.prisma.order.findMany({
+        where,
+        select: {
+          id: true,
+          total: true,
+          paidAt: true,
+        },
+        orderBy: {
+          paidAt: 'asc',
+        },
+      });
+
+      // Group by period
+      const periodMap = new Map<string, { revenue: number; orderCount: number }>();
+
+      orders.forEach((order) => {
+        if (!order.paidAt) return;
+
+        const date = new Date(order.paidAt);
+        let periodKey: string;
+
+        switch (period) {
+          case 'day':
+            periodKey = date.toISOString().split('T')[0]; // YYYY-MM-DD
+            break;
+          case 'week':
+            const weekStart = new Date(date);
+            weekStart.setDate(date.getDate() - date.getDay());
+            periodKey = weekStart.toISOString().split('T')[0];
+            break;
+          case 'month':
+            periodKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+            break;
+          case 'year':
+            periodKey = String(date.getFullYear());
+            break;
+          default:
+            return;
+        }
+
+        if (!periodMap.has(periodKey)) {
+          periodMap.set(periodKey, { revenue: 0, orderCount: 0 });
+        }
+
+        const periodData = periodMap.get(periodKey)!;
+        periodData.revenue += Number(order.total || 0);
+        periodData.orderCount += 1;
+      });
+
+      // Convert to array and format
+      return Array.from(periodMap.entries())
+        .map(([periodKey, data], idx) => {
+          let periodDate: Date;
+          try {
+            if (period === 'day' || period === 'week') {
+              periodDate = new Date(periodKey);
+            } else if (period === 'month') {
+              const [year, month] = periodKey.split('-');
+              periodDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+            } else {
+              periodDate = new Date(parseInt(periodKey), 0, 1);
+            }
+          } catch {
+            periodDate = new Date();
+          }
+
+          // Format label
+          let label = '';
+          if (period === 'day') {
+            label = periodDate.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+          } else if (period === 'week') {
+            label = `Tuần ${periodDate.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}`;
+          } else if (period === 'month') {
+            label = periodDate.toLocaleDateString('vi-VN', { month: 'short', year: 'numeric' });
+          } else {
+            label = periodDate.toLocaleDateString('vi-VN', { year: 'numeric' });
+          }
+
+          return {
+            period: periodDate,
+            totalRevenue: Math.round(data.revenue),
+            orderCount: data.orderCount,
+            avgOrderValue: data.orderCount > 0 ? Math.round(data.revenue / data.orderCount) : 0,
+          };
+        })
+        .sort((a, b) => a.period.getTime() - b.period.getTime());
+    } catch (error) {
+      console.error('Error in getShopOwnerRevenueByPeriod:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Top sản phẩm theo doanh thu từ orders đã thanh toán
+   */
+  async getTopProductsByShopRevenue(
+    ownerId: number,
+    limit: number = 10,
+    startDate?: Date,
+    endDate?: Date,
+  ) {
+    try {
+      const where: any = {
+        paymentStatus: 'PAID',
+        shop: {
+          ownerId: ownerId,
+        },
+        paidAt: {
+          not: null,
+        },
+      };
+
+      if (startDate || endDate) {
+        where.paidAt = {
+          ...(where.paidAt || {}),
+          ...(startDate ? { gte: startDate } : {}),
+          ...(endDate ? {
+            lte: new Date(new Date(endDate).setHours(23, 59, 59, 999))
+          } : {}),
+        };
+      }
+
+      const orders = await this.prisma.order.findMany({
+        where,
+        include: {
+          items: {
+            include: {
+              shopProduct: {
+                include: {
+                  vegetable: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      // Aggregate by vegetable
+      const productMap = new Map<number, {
+        vegetableId: number;
+        vegetableName: string;
+        totalRevenue: number;
+        totalQuantity: number;
+        orderIds: Set<number>;
+      }>();
+
+      orders.forEach((order) => {
+        order.items.forEach((item) => {
+          const vegId = item.shopProduct.vegetable.id;
+          const vegName = item.shopProduct.vegetable.name;
+
+          if (!productMap.has(vegId)) {
+            productMap.set(vegId, {
+              vegetableId: vegId,
+              vegetableName: vegName,
+              totalRevenue: 0,
+              totalQuantity: 0,
+              orderIds: new Set(),
+            });
+          }
+
+          const productData = productMap.get(vegId)!;
+          productData.totalRevenue += Number(item.subtotal || 0);
+          productData.totalQuantity += Number(item.quantity || 0);
+          productData.orderIds.add(order.id);
+        });
+      });
+
+      // Convert to array, sort by revenue, and limit
+      return Array.from(productMap.values())
+        .map((p) => ({
+          vegetableId: p.vegetableId,
+          vegetableName: p.vegetableName,
+          totalRevenue: Math.round(p.totalRevenue),
+          totalQuantity: p.totalQuantity,
+          orderCount: p.orderIds.size,
+        }))
+        .sort((a, b) => b.totalRevenue - a.totalRevenue)
+        .slice(0, limit);
+    } catch (error) {
+      console.error('Error in getTopProductsByShopRevenue:', error);
+      return [];
+    }
+  }
+
+  /**
+   * So sánh doanh thu giữa các vườn từ orders đã thanh toán
+   */
+  async compareGardenRevenueByShopOrders(
+    ownerId: number,
+    startDate?: Date,
+    endDate?: Date,
+  ) {
+    try {
+      const where: any = {
+        paymentStatus: 'PAID',
+        shop: {
+          ownerId: ownerId,
+        },
+        paidAt: {
+          not: null,
+        },
+      };
+
+      if (startDate || endDate) {
+        where.paidAt = {
+          ...(where.paidAt || {}),
+          ...(startDate ? { gte: startDate } : {}),
+          ...(endDate ? {
+            lte: new Date(new Date(endDate).setHours(23, 59, 59, 999))
+          } : {}),
+        };
+      }
+
+      const orders = await this.prisma.order.findMany({
+        where,
+        include: {
+          items: {
+            include: {
+              shopProduct: {
+                include: {
+                  garden: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      // Aggregate by garden
+      const gardenMap = new Map<number, {
+        gardenId: number;
+        gardenName: string;
+        totalRevenue: number;
+        totalQuantity: number;
+        orderIds: Set<number>;
+      }>();
+
+      orders.forEach((order) => {
+        order.items.forEach((item) => {
+          const gardenId = item.shopProduct.garden.id;
+          const gardenName = item.shopProduct.garden.name;
+
+          if (!gardenMap.has(gardenId)) {
+            gardenMap.set(gardenId, {
+              gardenId: gardenId,
+              gardenName: gardenName,
+              totalRevenue: 0,
+              totalQuantity: 0,
+              orderIds: new Set(),
+            });
+          }
+
+          const gardenData = gardenMap.get(gardenId)!;
+          gardenData.totalRevenue += Number(item.subtotal || 0);
+          gardenData.totalQuantity += Number(item.quantity || 0);
+          gardenData.orderIds.add(order.id);
+        });
+      });
+
+      // Convert to array and sort by revenue
+      return Array.from(gardenMap.values())
+        .map((g) => ({
+          gardenId: g.gardenId,
+          gardenName: g.gardenName,
+          totalRevenue: Math.round(g.totalRevenue),
+          totalQuantity: g.totalQuantity,
+          orderCount: g.orderIds.size,
+        }))
+        .sort((a, b) => b.totalRevenue - a.totalRevenue);
+    } catch (error) {
+      console.error('Error in compareGardenRevenueByShopOrders:', error);
+      return [];
+    }
+  }
+
+  /**
    * Doanh thu theo khoảng thời gian (ngày/tuần/tháng/năm)
+   * @deprecated - Dùng getShopOwnerRevenueByPeriod thay thế
    */
   async getRevenueByPeriod(
     period: 'day' | 'week' | 'month' | 'year',

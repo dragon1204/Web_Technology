@@ -343,11 +343,11 @@ function AccountSettings() {
     <Container maxWidth="lg" sx={{ py: 4 }}>
       {/* Page Header */}
       <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" sx={{ fontWeight: 700, color: "#1a2e1a", mb: 1, display: "flex", alignItems: "center", gap: 1 }}>
-          <AccountIcon sx={{ fontSize: 40 }} />
+        <Typography variant="h4" sx={{ fontWeight: 700, color: "#ffffff", mb: 1, display: "flex", alignItems: "center", gap: 1 }}>
+          <AccountIcon sx={{ fontSize: 40, color: "#4cbe00" }} />
           Account Settings
         </Typography>
-        <Typography variant="body2" color="text.secondary">
+        <Typography variant="body2" sx={{ color: "#e0e0e0" }}>
           Manage your profile, security, and preferences
         </Typography>
       </Box>

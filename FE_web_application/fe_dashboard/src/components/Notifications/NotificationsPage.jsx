@@ -106,8 +106,8 @@ function NotificationsPage() {
     <Box>
       <Toolbar disableGutters sx={{ mb: 2, justifyContent: "space-between" }}>
         <Box>
-          <Typography variant="h4">Notifications</Typography>
-          <Typography variant="body2" color="textSecondary">
+          <Typography variant="h4" sx={{ color: "#ffffff", fontWeight: 700 }}>Notifications</Typography>
+          <Typography variant="body2" sx={{ color: "#e0e0e0" }}>
             Unread: {unreadCount}
           </Typography>
         </Box>

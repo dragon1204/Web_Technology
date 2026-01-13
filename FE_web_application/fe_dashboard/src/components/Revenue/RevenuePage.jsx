@@ -75,58 +75,57 @@ function RevenuePage() {
         ...(endDate ? { endDate } : {}),
       };
 
-      // Fetch data với error handling riêng cho từng API
+      // Fetch data từ orders đã thanh toán (PAID) của shop owner
       const [
         vegetablesRes,
         revenuePeriodRes,
         topProductsRes,
         gardenCompareRes,
       ] = await Promise.all([
-        // Lấy danh sách vegetables (luôn có)
+        // Lấy danh sách vegetables (để hiển thị trong table)
         vegetableAPI.getAll({ limit: 500 }).catch(() => ({ data: { data: { items: [] } } })),
-        // Analytics nâng cao
-        analyticsAPI.getRevenueByPeriod(analyticsParams).catch((err) => {
-          console.warn("Analytics revenue/period error:", err);
+        // Doanh thu từ orders đã thanh toán theo thời gian
+        analyticsAPI.getShopOwnerRevenueByPeriod({
+          period: timeGranularity,
+          ...(startDate ? { startDate } : {}),
+          ...(endDate ? { endDate } : {}),
+        }).catch((err) => {
+          console.warn("Analytics shop-owner revenue/period error:", err);
           return { data: { data: [] } };
         }),
-        analyticsAPI.getTopProducts({ ...analyticsParams, limit: 10 }).catch((err) => {
+        // Top sản phẩm từ orders đã thanh toán
+        analyticsAPI.getTopProducts({
+          limit: 10,
+          ...(startDate ? { startDate } : {}),
+          ...(endDate ? { endDate } : {}),
+        }).catch((err) => {
           console.warn("Analytics top-products error:", err);
           return { data: { data: [] } };
         }),
-        analyticsAPI.compareRevenueBetweenGardens(analyticsParams).catch((err) => {
-          console.warn("Analytics compare-gardens error:", err);
+        // So sánh doanh thu giữa các vườn từ orders đã thanh toán
+        analyticsAPI.compareGardenRevenueByShopOrders({
+          ...(startDate ? { startDate } : {}),
+          ...(endDate ? { endDate } : {}),
+        }).catch((err) => {
+          console.warn("Analytics compare-gardens-shop error:", err);
           return { data: { data: [] } };
         }),
       ]);
 
-      // Tính revenue từ vegetables (fallback nếu không có vegetable revenue API)
+      // Lấy danh sách vegetables để hiển thị (không tính revenue từ đây nữa)
       const vegetablesData = vegetablesRes.data?.data?.items || vegetablesRes.data?.items || vegetablesRes.data?.data || vegetablesRes.data || [];
-
-      const vegWithRevenue = (Array.isArray(vegetablesData) ? vegetablesData : []).map((v) => {
-        // Calculate quantity from imported and sold (inventory = imported - sold)
+      const vegList = (Array.isArray(vegetablesData) ? vegetablesData : []).map((v) => {
         const quantity = v.quantity ?? (v.imported ?? 0) - (v.sold ?? 0);
-        // Tính revenue từ giá * số lượng đã bán (sold)
-        const revenue = (v.price || 0) * (v.sold || 0);
         return {
           name: v.name,
-          revenue: revenue,
+          revenue: 0, // Sẽ được tính từ orders
           quantity: quantity,
           price: v.price || 0,
         };
       });
+      setVegetables(vegList);
 
-      setVegetables(vegWithRevenue);
-
-      // Tính tổng revenue từ vegetables
-      const totalRevenue = vegWithRevenue.reduce((sum, v) => sum + (v.revenue || 0), 0);
-
-      setRevenueData({
-        total: totalRevenue,
-        byVegetable: vegWithRevenue,
-      });
-
-      // --- Revenue by period (line chart) ---
-      // Format: { period: Date, totalRevenue: number, totalQuantity: number, saleCount: number }
+      // --- Revenue by period (line chart) từ orders đã thanh toán ---
       const periodRaw =
         revenuePeriodRes.data?.data ||
         revenuePeriodRes.data ||
@@ -134,7 +133,7 @@ function RevenuePage() {
       const periodArray = Array.isArray(periodRaw) ? periodRaw : [];
       const mappedPeriod = periodArray.map((p, idx) => {
         const revenue = Number(p.totalRevenue || p.revenue || p.total || 0);
-        const orders = Number(p.saleCount || p.orders || p.orderCount || 0);
+        const orders = Number(p.orderCount || p.orders || p.saleCount || 0);
         const periodDate = p.period ? new Date(p.period) : new Date();
         
         // Format label theo period
@@ -142,7 +141,6 @@ function RevenuePage() {
         if (timeGranularity === 'day') {
           label = periodDate.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
         } else if (timeGranularity === 'week') {
-          // Tính tuần từ ngày đầu tuần
           const weekStart = new Date(periodDate);
           weekStart.setDate(weekStart.getDate() - weekStart.getDay());
           label = `Tuần ${weekStart.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}`;
@@ -161,8 +159,10 @@ function RevenuePage() {
       });
       setPeriodSeries(mappedPeriod);
 
-      // --- Top products (bar chart) ---
-      // Format: { vegetableId, vegetableName, totalRevenue, totalQuantity, saleCount }
+      // Tính tổng revenue từ orders đã thanh toán
+      const totalRevenue = mappedPeriod.reduce((sum, p) => sum + (p.revenue || 0), 0);
+
+      // --- Top products (bar chart) từ orders đã thanh toán ---
       const topRaw =
         topProductsRes.data?.data ||
         topProductsRes.data ||
@@ -172,12 +172,25 @@ function RevenuePage() {
         id: t.vegetableId || t.id || idx,
         name: t.vegetableName || t.name || t.productName || `Sản phẩm #${idx + 1}`,
         revenue: Math.round(Number(t.totalRevenue || t.revenue || t.total || 0)),
-        orders: Math.round(Number(t.saleCount || t.orders || t.orderCount || 0)),
+        orders: Math.round(Number(t.orderCount || t.orders || t.saleCount || 0)),
       }));
       setTopProducts(mappedTop);
 
-      // --- Garden comparison (bar chart) ---
-      // Format: { gardenId, gardenName, totalRevenue, totalQuantity, saleCount }
+      // Cập nhật revenue cho vegetables từ top products
+      const vegWithRevenue = vegList.map((v) => {
+        const topProduct = mappedTop.find((tp) => tp.name === v.name);
+        return {
+          ...v,
+          revenue: topProduct ? topProduct.revenue : 0,
+        };
+      });
+
+      setRevenueData({
+        total: totalRevenue,
+        byVegetable: vegWithRevenue,
+      });
+
+      // --- Garden comparison (bar chart) từ orders đã thanh toán ---
       const gardenRaw =
         gardenCompareRes.data?.data ||
         gardenCompareRes.data ||
@@ -244,10 +257,10 @@ function RevenuePage() {
         }}
       >
         <Box>
-          <Typography variant="h4" sx={{ mb: 1 }}>
+          <Typography variant="h4" sx={{ mb: 1, color: "#ffffff", fontWeight: 700 }}>
             Báo cáo doanh thu
           </Typography>
-          <Typography variant="body2" color="textSecondary">
+          <Typography variant="body2" sx={{ color: "#e0e0e0" }}>
             Tổng hợp doanh thu, sản phẩm và hiệu quả theo vườn theo từng khoảng thời gian.
           </Typography>
         </Box>
