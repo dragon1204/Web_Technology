@@ -1,11 +1,20 @@
 // Application configuration - kết nối với backend NestJS
-const API_FALLBACK = "http://localhost:3000";
+const API_FALLBACK = "http://159.223.61.25:3000";
 const API_BASE = process.env.REACT_APP_API_BASE_URL || API_FALLBACK;
 const API_URL = process.env.REACT_APP_API_URL || API_BASE;
 const GOOGLE_AUTH =
   process.env.REACT_APP_GOOGLE_AUTH_URL || `${API_BASE}/auth/google`;
 const SIMULATOR_WS =
   process.env.REACT_APP_SIMULATOR_WS_URL || "ws://localhost:8080";
+
+// Debug: Log API configuration
+console.log("🔧 API Configuration:", {
+  REACT_APP_API_BASE_URL: process.env.REACT_APP_API_BASE_URL,
+  REACT_APP_API_URL: process.env.REACT_APP_API_URL,
+  API_FALLBACK,
+  API_BASE,
+  API_URL,
+});
 
 export const config = {
   // API Configuration

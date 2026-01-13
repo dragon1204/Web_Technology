@@ -7,6 +7,8 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
   constructor() {
     const clientID = process.env.GOOGLE_CLIENT_ID;
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+    const serverUrl = process.env.SERVER_URL || 'http://159.223.61.25:3000';
+    const callbackURL = `${serverUrl}/auth/google/redirect`;
 
     if (!clientID || !clientSecret) {
       // Không có cấu hình Google OAuth -> log cảnh báo và dùng giá trị giả
@@ -21,7 +23,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     super({
       clientID: clientID || 'dummy-client-id',
       clientSecret: clientSecret || 'dummy-client-secret',
-      callbackURL: 'http://localhost:3000/auth/google/redirect',
+      callbackURL: callbackURL,
       scope: ['email', 'profile'],
       passReqToCallback: false, // quan trọng
     } as StrategyOptions);

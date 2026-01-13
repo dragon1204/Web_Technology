@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Box,
   Container,
@@ -31,6 +32,7 @@ import { paymentService } from "../../services/paymentService";
 import toast from "react-hot-toast";
 
 const PaymentCheckout = ({ orderId, orderNumber, totalAmount, onPaymentSuccess, onCancel }) => {
+  const navigate = useNavigate();
   const [paymentData, setPaymentData] = useState(null);
   const [paymentStatus, setPaymentStatus] = useState("PENDING");
   const [loading, setLoading] = useState(false);
@@ -124,27 +126,82 @@ const PaymentCheckout = ({ orderId, orderNumber, totalAmount, onPaymentSuccess, 
     const interval = setInterval(async () => {
       try {
         const result = await paymentService.getPaymentStatus(orderId);
-        const status = result.data?.order?.paymentStatus;
+        console.log("PaymentCheckout: Full API response:", result);
+        
+        // Handle nested response format (data.data.order)
+        const order = result.data?.data?.order || result.data?.order;
+        const paymentInfo = result.data?.data?.paymentInfo || result.data?.paymentInfo;
+        
+        console.log("PaymentCheckout: Polling result:", { order, paymentInfo });
+        console.log("PaymentCheckout: Full result:", result);
+        
+        // Check paymentInfo.status first (most accurate from PayOS)
+        // If paymentInfo.status is PAID, consider payment successful even if order.paymentStatus is EXPIRED
+        const paymentInfoStatus = paymentInfo?.status;
+        const orderPaymentStatus = order?.paymentStatus;
+        const orderStatus = order?.status;
+        
+        // Determine actual payment status: prefer paymentInfo.status if it's PAID
+        let actualStatus = orderPaymentStatus;
+        if (paymentInfoStatus === "PAID") {
+          actualStatus = "PAID";
+        } else if (paymentInfoStatus) {
+          actualStatus = paymentInfoStatus;
+        }
 
-        setPaymentStatus(status);
+        console.log("PaymentCheckout: Payment status check:", {
+          paymentInfoStatus,
+          orderPaymentStatus,
+          orderStatus,
+          actualStatus,
+          amountPaid: paymentInfo?.amountPaid,
+          amount: paymentInfo?.amount,
+        });
 
-        if (status === "PAID") {
+        setPaymentStatus(actualStatus);
+
+        // Check if payment is actually paid
+        // Consider paid if:
+        // 1. paymentInfo.status is PAID and amountPaid >= amount
+        // 2. OR order.paymentStatus is PAID
+        // 3. OR order.status is CONFIRMED (indicates payment was processed)
+        const isPaid = actualStatus === "PAID" || 
+                      orderPaymentStatus === "PAID" ||
+                      orderStatus === "CONFIRMED" ||
+                      (paymentInfoStatus === "PAID" && paymentInfo?.amountPaid >= paymentInfo?.amount);
+
+        if (isPaid) {
+          console.log("PaymentCheckout: Payment confirmed as PAID, navigating to success page");
           setPollingActive(false);
           clearInterval(interval);
           toast.success("Thanh toán thành công!");
-          onPaymentSuccess?.();
-        } else if (status === "CANCELLED" || status === "EXPIRED") {
-          setPollingActive(false);
-          clearInterval(interval);
-          toast.error(`Thanh toán đã ${status === "CANCELLED" ? "bị hủy" : "hết hạn"}`);
+          
+          // Call callback if provided, otherwise navigate directly
+          if (onPaymentSuccess) {
+            onPaymentSuccess();
+          } else {
+            // Default: navigate to success page
+            setTimeout(() => {
+              navigate(`/payment/success?orderId=${orderId}`);
+            }, 1000);
+          }
+        } else if (actualStatus === "CANCELLED" || actualStatus === "EXPIRED") {
+          // Only show error if paymentInfo also confirms it's not paid
+          // If paymentInfo.status is PAID but order.paymentStatus is EXPIRED, 
+          // it means payment was successful but order wasn't updated yet
+          if (paymentInfoStatus !== "PAID" && paymentInfo?.amountPaid !== paymentInfo?.amount) {
+            setPollingActive(false);
+            clearInterval(interval);
+            toast.error(`Thanh toán đã ${actualStatus === "CANCELLED" ? "bị hủy" : "hết hạn"}`);
+          }
         }
       } catch (err) {
-        console.error("Error checking payment status:", err);
+        console.error("PaymentCheckout: Error checking payment status:", err);
       }
     }, 3000); // Check every 3 seconds
 
     return () => clearInterval(interval);
-  }, [pollingActive, orderId, onPaymentSuccess]);
+  }, [pollingActive, orderId, onPaymentSuccess, navigate]);
 
   const handleCopyAccountNumber = (accountNumber) => {
     navigator.clipboard.writeText(accountNumber);

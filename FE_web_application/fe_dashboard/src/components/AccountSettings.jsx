@@ -301,7 +301,7 @@ function AccountSettings() {
     setLoading(true);
 
     try {
-      // await authAPI.changePassword(currentPassword, newPassword);
+      await authAPI.changePassword(currentPassword, newPassword);
       setSuccess("Password changed successfully!");
       setPasswordDialog(false);
       setCurrentPassword("");
@@ -310,7 +310,7 @@ function AccountSettings() {
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
       setError(
-        err.response?.data?.message || "Failed to change password. Please try again."
+        err.response?.data?.message || err.message || "Failed to change password. Please try again."
       );
     } finally {
       setLoading(false);

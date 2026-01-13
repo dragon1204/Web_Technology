@@ -14,6 +14,7 @@ import { AuthService } from "./auth.service";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
 import { LoginDto } from "./dto/login.dto";
 import { RegisterDto } from "./dto/register.dto";
+import { ChangePasswordDto } from "./dto/change-password.dto";
 import { AuthGuard } from "@nestjs/passport";
 import { Throttle } from "@nestjs/throttler";
 import { VerifyTotpDto } from "./dto/totp.dto";
@@ -81,6 +82,18 @@ export class AuthController {
         return this.authService.disableTwoFactor(req.user.id);
     }
 
+    @ApiOperation({ summary: "Change password for the current user" })
+    @UseGuards(AtGuard)
+    @Post("change-password")
+    async changePassword(@Req() req, @Body() dto: ChangePasswordDto) {
+        return this.authService.changePassword(
+            req.user.id,
+            dto.currentPassword,
+            dto.newPassword,
+            req
+        );
+    }
+
     @ApiOperation({ summary: "Generate PNG QR for otpauth URL" })
     @UseGuards(AtGuard)
     @Post("2fa/qrcode")
@@ -139,8 +152,16 @@ export class AuthController {
             return res.redirect(redirectUrl);
         } catch (error) {
             console.error("❌ Error in googleAuthRedirect:", error);
+            console.error("❌ Error stack:", error.stack);
+            console.error("❌ Error details:", {
+                message: error.message,
+                name: error.name,
+                code: error.code,
+            });
+            
             const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3001';
-            return res.redirect(`${frontendUrl}/login?error=oauth_error`);
+            const errorMessage = encodeURIComponent(error.message || 'oauth_error');
+            return res.redirect(`${frontendUrl}/login?error=${errorMessage}`);
         }
     }
 }

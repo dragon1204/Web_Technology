@@ -407,9 +407,183 @@ export class PaymentController {
     if (order.paymentId) {
       try {
         paymentInfo = await this.payOSService.getPaymentLinkInformation(order.paymentId);
+        
+        // Auto-sync: Nếu payment đã thanh toán nhưng order chưa được cập nhật
+        this.logger.log(`Checking payment sync for order ${order.orderNumber}:`, {
+          paymentInfoStatus: paymentInfo?.status,
+          paymentInfoAmountPaid: paymentInfo?.amountPaid,
+          paymentInfoAmount: paymentInfo?.amount,
+          orderPaymentStatus: order.paymentStatus,
+          orderStatus: order.status,
+        });
+
+        if (paymentInfo?.status === 'PAID' && 
+            paymentInfo?.amountPaid >= paymentInfo?.amount &&
+            order.paymentStatus !== 'PAID') {
+          this.logger.log(`🔄 Auto-syncing payment status for order ${order.orderNumber}: payment is PAID but order is ${order.paymentStatus}`);
+          
+          try {
+            // Lấy đầy đủ thông tin order để update
+            const fullOrder = await this.prisma.order.findUnique({
+              where: { id: order.id },
+              include: {
+                customer: {
+                  select: { id: true, name: true, email: true },
+                },
+                shop: {
+                  select: { id: true, name: true, ownerId: true },
+                },
+                items: {
+                  include: {
+                    shopProduct: {
+                      select: {
+                        id: true,
+                        gardenId: true,
+                        vegetableId: true,
+                        price: true,
+                      },
+                    },
+                  },
+                },
+              },
+            });
+
+            if (fullOrder) {
+              // Cập nhật order status giống như webhook
+              await this.prisma.$transaction(async (tx) => {
+                await tx.order.update({
+                  where: { id: fullOrder.id },
+                  data: {
+                    paymentStatus: 'PAID',
+                    paidAt: new Date(),
+                    status: 'CONFIRMED',
+                  },
+                });
+
+                // Ghi nhận doanh thu
+                for (const item of fullOrder.items) {
+                  const shopProduct = item.shopProduct;
+                  if (!shopProduct?.gardenId || !shopProduct?.vegetableId) {
+                    continue;
+                  }
+
+                  await tx.sale.create({
+                    data: {
+                      gardenId: shopProduct.gardenId,
+                      vegetableId: shopProduct.vegetableId,
+                      quantity: item.quantity,
+                      priceAtSale: item.price,
+                      total: item.subtotal,
+                    },
+                  });
+                }
+              });
+
+              this.logger.log(`✅ Order ${fullOrder.orderNumber} payment status auto-synced to PAID, order status updated to CONFIRMED`);
+
+              // Verify update
+              const verifyOrder = await this.prisma.order.findUnique({
+                where: { id: fullOrder.id },
+                select: {
+                  paymentStatus: true,
+                  status: true,
+                  paidAt: true,
+                },
+              });
+              this.logger.log(`✅ Verified order update:`, verifyOrder);
+
+              // Gửi notifications
+              if (fullOrder.customer) {
+                await this.notificationService.createForUser(
+                  fullOrder.customer.id,
+                  'Thanh toán thành công',
+                  `Đơn hàng ${fullOrder.orderNumber} đã được thanh toán thành công.`,
+                  'success',
+                );
+              }
+
+              if (fullOrder.shop?.ownerId) {
+                await this.notificationService.createForUser(
+                  fullOrder.shop.ownerId,
+                  'Đơn hàng mới đã thanh toán',
+                  `Khách hàng ${fullOrder.customer?.name || ''} đã thanh toán đơn hàng ${fullOrder.orderNumber} với số tiền ${fullOrder.total.toLocaleString('vi-VN')} VNĐ.`,
+                  'info',
+                );
+              }
+
+              // Reload order để lấy status mới
+              const updatedOrder = await this.prisma.order.findUnique({
+                where: { id: order.id },
+                select: {
+                  id: true,
+                  orderNumber: true,
+                  total: true,
+                  paymentId: true,
+                  paymentStatus: true,
+                  paymentMethod: true,
+                  paymentLink: true,
+                  paymentQrCode: true,
+                  paidAt: true,
+                  status: true,
+                  customerId: true,
+                },
+              });
+
+              if (!updatedOrder) {
+                this.logger.error(`Failed to reload order ${order.id} after sync`);
+                throw new NotFoundException('Không thể tải lại thông tin đơn hàng sau khi cập nhật');
+              }
+
+              return {
+                HttpCode: 200,
+                success: true,
+                data: {
+                  order: {
+                    id: updatedOrder.id,
+                    orderNumber: updatedOrder.orderNumber,
+                    total: updatedOrder.total,
+                    status: updatedOrder.status,
+                    paymentStatus: updatedOrder.paymentStatus,
+                    paymentMethod: updatedOrder.paymentMethod,
+                    paymentLink: updatedOrder.paymentLink,
+                    paymentQrCode: updatedOrder.paymentQrCode,
+                    paidAt: updatedOrder.paidAt,
+                  },
+                  paymentInfo,
+                },
+                timestamp: new Date().toISOString(),
+              };
+            }
+          } catch (syncError) {
+            this.logger.error(`Failed to auto-sync payment status for order ${order.id}:`, syncError);
+            // Continue to return current status even if sync fails
+          }
+        }
       } catch (error) {
         this.logger.warn(`Failed to get payment info for ${order.paymentId}:`, error);
       }
+    }
+
+    // Reload order để đảm bảo có data mới nhất
+    const updatedOrder = await this.prisma.order.findUnique({
+      where: { id: order.id },
+      select: {
+        id: true,
+        orderNumber: true,
+        total: true,
+        paymentId: true,
+        paymentStatus: true,
+        paymentMethod: true,
+        paymentLink: true,
+        paymentQrCode: true,
+        paidAt: true,
+        status: true,
+        customerId: true,
+      },
+    });
+
+    if (!updatedOrder) {
+      throw new NotFoundException('Không tìm thấy đơn hàng');
     }
 
     return {
@@ -417,15 +591,15 @@ export class PaymentController {
       success: true,
       data: {
         order: {
-          id: order.id,
-          orderNumber: order.orderNumber,
-          total: order.total,
-          status: order.status,
-          paymentStatus: order.paymentStatus,
-          paymentMethod: order.paymentMethod,
-          paymentLink: order.paymentLink,
-          paymentQrCode: order.paymentQrCode,
-          paidAt: order.paidAt,
+          id: updatedOrder.id,
+          orderNumber: updatedOrder.orderNumber,
+          total: updatedOrder.total,
+          status: updatedOrder.status,
+          paymentStatus: updatedOrder.paymentStatus,
+          paymentMethod: updatedOrder.paymentMethod,
+          paymentLink: updatedOrder.paymentLink,
+          paymentQrCode: updatedOrder.paymentQrCode,
+          paidAt: updatedOrder.paidAt,
         },
         paymentInfo,
       },

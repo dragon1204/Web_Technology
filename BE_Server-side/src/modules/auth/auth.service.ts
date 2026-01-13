@@ -313,6 +313,84 @@ export class AuthService {
         return { message: 'Two-factor authentication disabled' };
     }
 
+    async changePassword(userId: number, currentPassword: string, newPassword: string, req?: Request) {
+        const ip = req?.ip || req?.connection?.remoteAddress;
+        const userAgent = req?.headers['user-agent'];
+        const requestId = (req as any)?.requestId;
+
+        try {
+            const user = await this.usersService.findUserById(userId);
+            
+            if (!user) {
+                throw new NotFoundException('User not found');
+            }
+
+            // Kiểm tra nếu user login bằng OAuth (không có password)
+            if (!user.password || user.password === '') {
+                throw new BadRequestException('Cannot change password for OAuth accounts. Please set a password first.');
+            }
+
+            // Verify current password
+            const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
+            if (!isCurrentPasswordValid) {
+                await this.auditService.log({
+                    action: 'UPDATE',
+                    entityType: 'User',
+                    entityId: String(userId),
+                    userId,
+                    requestId,
+                    ipAddress: ip,
+                    userAgent,
+                    success: false,
+                    errorMessage: 'Current password is incorrect',
+                });
+                throw new UnauthorizedException('Current password is incorrect');
+            }
+
+            // Hash new password
+            const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+
+            // Update password
+            await this.usersService.updateUser(userId, { password: hashedNewPassword });
+
+            // Log successful password change
+            await this.auditService.log({
+                action: 'UPDATE',
+                entityType: 'User',
+                entityId: String(userId),
+                userId,
+                requestId,
+                ipAddress: ip,
+                userAgent,
+                success: true,
+                changes: { field: 'password', action: 'changed' },
+            });
+
+            return { message: 'Password changed successfully' };
+        } catch (error) {
+            if (error instanceof NotFoundException || 
+                error instanceof UnauthorizedException || 
+                error instanceof BadRequestException) {
+                throw error;
+            }
+            
+            // Log failed password change
+            await this.auditService.log({
+                action: 'UPDATE',
+                entityType: 'User',
+                entityId: String(userId),
+                userId,
+                requestId,
+                ipAddress: ip,
+                userAgent,
+                success: false,
+                errorMessage: error.message || 'Failed to change password',
+            });
+            
+            throw new BadRequestException(error.message || 'Failed to change password');
+        }
+    }
+
     async logout(userId: number, req?: Request) {
         const ip = req?.ip || req?.connection?.remoteAddress;
         const requestId = (req as any)?.requestId;
@@ -442,18 +520,30 @@ export class AuthService {
             };
         } catch (error) {
             console.error("❌ Error in googleLogin:", error);
-            // Log failed Google OAuth login
-            await this.auditService.log({
-                action: 'LOGIN',
-                entityType: 'User',
-                entityId: '0',
-                requestId,
-                ipAddress: ip,
-                userAgent,
-                success: false,
-                errorMessage: error.message || 'Google OAuth login failed',
-                changes: { provider: 'google', email: googleUser.email },
+            console.error("❌ Error stack:", error.stack);
+            console.error("❌ Error details:", {
+                message: error.message,
+                name: error.name,
+                code: error.code,
             });
+            
+            // Log failed Google OAuth login (wrap in try-catch to avoid double error)
+            try {
+                await this.auditService.log({
+                    action: 'LOGIN',
+                    entityType: 'User',
+                    entityId: '0',
+                    requestId,
+                    ipAddress: ip,
+                    userAgent,
+                    success: false,
+                    errorMessage: error.message || 'Google OAuth login failed',
+                    changes: { provider: 'google', email: googleUser.email },
+                });
+            } catch (auditError) {
+                console.error("❌ Failed to log audit entry:", auditError);
+            }
+            
             throw error;
         }
     }

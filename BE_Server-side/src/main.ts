@@ -18,7 +18,7 @@ async function bootstrap() {
   const corsOrigin = configService.get<string>('CORS_ORIGIN');
   const allowedOrigins = corsOrigin 
     ? corsOrigin.split(',').map(origin => origin.trim())
-    : ['http://localhost:3000', 'http://localhost:3001']; // Default for development
+    : ['http://localhost:3000', 'http://localhost:3001', 'http://159.223.61.25:3000', 'http://159.223.61.25:3001']; // Default for development
   
   app.enableCors({
     origin: (origin, callback) => {

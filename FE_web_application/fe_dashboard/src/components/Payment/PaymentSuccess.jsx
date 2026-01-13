@@ -40,12 +40,41 @@ const PaymentSuccess = () => {
     const checkPaymentStatus = async () => {
       try {
         const result = await paymentService.getPaymentStatus(orderId);
-        const order = result.data?.order;
+        console.log("PaymentSuccess: Full API response:", result);
+        
+        // Handle nested response format (data.data.order)
+        const order = result.data?.data?.order || result.data?.order;
+        const paymentInfo = result.data?.data?.paymentInfo || result.data?.paymentInfo;
 
-        if (order?.paymentStatus === "PAID") {
+        console.log("PaymentSuccess: Checking payment status:", { order, paymentInfo });
+        
+        // Check paymentInfo.status first (most accurate from PayOS)
+        // If paymentInfo.status is PAID, consider payment successful even if order.paymentStatus is EXPIRED
+        const paymentInfoStatus = paymentInfo?.status;
+        const orderPaymentStatus = order?.paymentStatus;
+        const orderStatus = order?.status;
+        
+        // Determine actual payment status: prefer paymentInfo.status if it's PAID
+        // Consider paid if:
+        // 1. paymentInfo.status is PAID
+        // 2. OR order.paymentStatus is PAID
+        // 3. OR order.status is CONFIRMED (indicates payment was processed)
+        const isPaid = paymentInfoStatus === "PAID" || 
+                      orderPaymentStatus === "PAID" ||
+                      orderStatus === "CONFIRMED" ||
+                      (paymentInfoStatus === "PAID" && paymentInfo?.amountPaid >= paymentInfo?.amount);
+        
+        console.log("PaymentSuccess: Payment check result:", {
+          paymentInfoStatus,
+          orderPaymentStatus,
+          orderStatus,
+          isPaid,
+        });
+
+        if (isPaid) {
           setOrderData(order);
           toast.success("Thanh toán thành công!");
-        } else if (order?.paymentStatus === "PENDING") {
+        } else if (orderPaymentStatus === "PENDING" || paymentInfoStatus === "PENDING") {
           setError("Thanh toán vẫn đang xử lý. Vui lòng chờ...");
         } else {
           setError("Thanh toán không thành công");

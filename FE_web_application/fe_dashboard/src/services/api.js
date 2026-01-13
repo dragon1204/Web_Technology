@@ -2,6 +2,9 @@ import axios from "axios";
 
 const API_URL = process.env.REACT_APP_API_URL || "http://159.223.61.25:3000";
 
+// Debug: Log API URL
+console.log("🔧 API Service - API_URL:", API_URL, "Env:", process.env.REACT_APP_API_URL);
+
 const api = axios.create({
   baseURL: API_URL,
   headers: {
@@ -162,6 +165,8 @@ export const authAPI = {
     localStorage.removeItem("user");
     localStorage.removeItem("refresh_token");
   },
+  changePassword: (currentPassword, newPassword) => 
+    api.post("/auth/change-password", { currentPassword, newPassword }),
 };
 
 // User APIs
