@@ -87,6 +87,7 @@ const AuditLogs = () => {
     if (isAdmin && activeTab === 0) {
       fetchStatistics();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, pagination.page, isAdmin]);
 
   const fetchStatistics = async () => {
@@ -137,19 +138,11 @@ const AuditLogs = () => {
       }
 
       // Chuẩn hoá cấu trúc response từ backend:
-      // - { HttpCode, success, data: { data: [...], total, totalPages } }
-      // - Hoặc { data: [...], total, totalPages }
-      // - Hoặc trực tiếp là [...logs]
-      const core =
-        (response &&
-          response.data &&
-          response.data.data &&
-          typeof response.data.data === "object"
-          ? response.data.data
-          : response && response.data && typeof response.data === "object"
-          ? response.data
-          : response) || response;
-
+      // Backend trả về: { data: [...], pagination: { page, limit, total, totalPages } }
+      // Hoặc: { HttpCode, success, data: { data: [...], pagination: {...} } }
+      const responseData = response?.data || response;
+      const core = responseData?.data || responseData;
+      
       const logsArray =
         (Array.isArray(core)
           ? core
@@ -161,21 +154,29 @@ const AuditLogs = () => {
 
       setLogs(Array.isArray(logsArray) ? logsArray : []);
 
-      const total =
-        response?.data?.total ||
-        core?.total ||
-        logsArray.length ||
-        0;
-      const totalPages =
-        response?.data?.totalPages ||
-        core?.totalPages ||
-        (total && pagination.limit ? Math.ceil(total / pagination.limit) : 1);
-
-      setPagination({
-        ...pagination,
+      // Lấy pagination info từ response
+      // Backend trả về: { data: [...], pagination: { page, limit, total, totalPages } }
+      const paginationInfo = responseData?.pagination || core?.pagination || {};
+      const total = paginationInfo.total ?? responseData?.total ?? core?.total ?? logsArray.length ?? 0;
+      const calculatedTotalPages = total && pagination.limit ? Math.ceil(total / pagination.limit) : 1;
+      const totalPages = paginationInfo.totalPages ?? responseData?.totalPages ?? core?.totalPages ?? calculatedTotalPages;
+      
+      console.log("AuditLogs: Pagination info from backend:", {
         total,
-        totalPages: totalPages || 1,
+        totalPages,
+        calculatedTotalPages,
+        paginationInfo,
+        responseData,
+        core,
+        currentPage: pagination.page,
+        limit: pagination.limit
       });
+
+      setPagination(prev => ({
+        ...prev,
+        total: Number(total) || 0,
+        totalPages: Number(totalPages) || 1,
+      }));
     } catch (err) {
       setError(err.message);
       setLogs([]);
@@ -889,20 +890,34 @@ const AuditLogs = () => {
                 </Typography>
               </Stack>
               <Pagination
-                count={pagination.totalPages}
-                page={pagination.page}
-                onChange={(e, page) => setPagination({ ...pagination, page })}
+                count={pagination.totalPages || 1}
+                page={pagination.page || 1}
+                onChange={(e, newPage) => {
+                  console.log("Pagination onChange:", { oldPage: pagination.page, newPage, totalPages: pagination.totalPages });
+                  setPagination(prev => ({ ...prev, page: newPage }));
+                }}
                 color="primary"
-                disabled={loading}
+                disabled={loading || !pagination.totalPages || pagination.totalPages <= 1}
                 showFirstButton
                 showLastButton
                 sx={{
                   "& .MuiPaginationItem-root": {
                     fontWeight: 600,
+                    cursor: loading ? "not-allowed" : "pointer",
                     "&.Mui-selected": {
                       bgcolor: "#4cbe00",
+                      color: "white",
                       "&:hover": {
                         bgcolor: "#3da000",
+                      },
+                    },
+                    "&.Mui-disabled": {
+                      opacity: 0.4,
+                      cursor: "not-allowed",
+                    },
+                    "&:not(.Mui-disabled)": {
+                      "&:hover": {
+                        bgcolor: "rgba(76,190,0,0.1)",
                       },
                     },
                   },

@@ -190,8 +190,8 @@ const PaymentCheckout = ({ orderId, orderNumber, totalAmount, onPaymentSuccess, 
           // If paymentInfo.status is PAID but order.paymentStatus is EXPIRED, 
           // it means payment was successful but order wasn't updated yet
           if (paymentInfoStatus !== "PAID" && paymentInfo?.amountPaid !== paymentInfo?.amount) {
-            setPollingActive(false);
-            clearInterval(interval);
+          setPollingActive(false);
+          clearInterval(interval);
             toast.error(`Thanh toán đã ${actualStatus === "CANCELLED" ? "bị hủy" : "hết hạn"}`);
           }
         }

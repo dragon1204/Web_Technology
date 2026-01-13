@@ -3,9 +3,11 @@ import { useAuth } from "../../contexts/AuthContext";
 import { config } from "../../config";
 import { useNavigate, useLocation } from "react-router-dom";
 import toast from "react-hot-toast";
+import { notificationAPI } from "../../services/api";
 
 const UserLayout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [unreadCount, setUnreadCount] = useState(0);
   const { user, logout, token } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -19,6 +21,44 @@ const UserLayout = ({ children }) => {
       toast.error("Lỗi khi đăng xuất");
     }
   };
+
+  // Fetch unread notification count
+  const fetchUnreadCount = async () => {
+    try {
+      const response = await notificationAPI.unreadCount();
+      const count = response.data?.data?.count || response.data?.count || 0;
+      setUnreadCount(count);
+    } catch (error) {
+      console.error("Error fetching unread count:", error);
+      setUnreadCount(0);
+    }
+  };
+
+  useEffect(() => {
+    // Fetch immediately
+    fetchUnreadCount();
+
+    // Fetch every 30 seconds
+    const interval = setInterval(fetchUnreadCount, 30000);
+
+    // Also fetch when navigating to/from notifications page
+    const handleFocus = () => {
+      fetchUnreadCount();
+    };
+    window.addEventListener("focus", handleFocus);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("focus", handleFocus);
+    };
+  }, []);
+
+  // Refresh count when navigating to notifications page
+  useEffect(() => {
+    if (location.pathname === "/notifications") {
+      fetchUnreadCount();
+    }
+  }, [location.pathname]);
 
   // Menu items dành cho USER (Shop Owner) - chỉ hiển thị các mục cần thiết
   const menuItems = [
@@ -38,9 +78,9 @@ const UserLayout = ({ children }) => {
       icon: "🏪",
     },
     {
-      path: "/controls",
-      name: "Điều khiển thiết bị",
-      icon: "🎛️",
+      path: "/shop-orders",
+      name: "Quản lý đơn hàng",
+      icon: "📦",
     },
     {
       path: "/revenue",
@@ -51,11 +91,6 @@ const UserLayout = ({ children }) => {
       path: "/notifications",
       name: "Thông báo",
       icon: "🔔",
-    },
-    {
-      path: "/alerts",
-      name: "Cảnh báo",
-      icon: "⚠️",
     },
     {
       path: "/audit-logs",
@@ -119,43 +154,77 @@ const UserLayout = ({ children }) => {
 
         {/* Menu Items */}
         <nav style={{ padding: "20px 0" }}>
-          {menuItems.map((item) => (
-            <button
-              key={item.path}
-              onClick={() => navigate(item.path)}
-              style={{
-                width: "100%",
-                padding: "12px 20px",
-                backgroundColor: isActive(item.path)
-                  ? "#3a5a4a"
-                  : "transparent",
-                border: "none",
-                color: isActive(item.path) ? "#4cbe00" : "#ffffff",
-                fontSize: "14px",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: "12px",
-                transition: "all 0.2s ease",
-                textAlign: "left",
-              }}
-              onMouseOver={(e) => {
+          {menuItems.map((item) => {
+            const isNotificationItem = item.path === "/notifications";
+            return (
+              <button
+                key={item.path}
+                onClick={() => navigate(item.path)}
+                style={{
+                  width: "100%",
+                  padding: "12px 20px",
+                  backgroundColor: isActive(item.path)
+                    ? "#3a5a4a"
+                    : "transparent",
+                  border: "none",
+                  color: isActive(item.path) ? "#4cbe00" : "#ffffff",
+                  fontSize: "14px",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  transition: "all 0.2s ease",
+                  textAlign: "left",
+                  position: "relative",
+                }}
+                onMouseOver={(e) => {
+                    if (!isActive(item.path)) {
+                      e.target.style.backgroundColor = "#3a5a4a";
+                      e.target.style.color = "#4cbe00";
+                    }
+                }}
+                onMouseOut={(e) => {
                   if (!isActive(item.path)) {
-                    e.target.style.backgroundColor = "#3a5a4a";
-                    e.target.style.color = "#4cbe00";
+                    e.target.style.backgroundColor = "transparent";
+                    e.target.style.color = "#ffffff";
                   }
-              }}
-              onMouseOut={(e) => {
-                if (!isActive(item.path)) {
-                  e.target.style.backgroundColor = "transparent";
-                  e.target.style.color = "#ffffff";
-                }
-              }}
-            >
-              <span style={{ fontSize: "16px" }}>{item.icon}</span>
-              {sidebarOpen && <span>{item.name}</span>}
-            </button>
-          ))}
+                }}
+              >
+                <span style={{ fontSize: "16px", position: "relative", display: "inline-block" }}>
+                  {item.icon}
+                  {isNotificationItem && unreadCount > 0 && (
+                    <span
+                      style={{
+                        position: "absolute",
+                        top: "-8px",
+                        right: sidebarOpen ? "-8px" : "-12px",
+                        backgroundColor: "#e74c3c",
+                        color: "white",
+                        borderRadius: "50%",
+                        width: "20px",
+                        height: "20px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: "11px",
+                        fontWeight: "bold",
+                        border: "2px solid #2a4a3a",
+                        minWidth: "20px",
+                        zIndex: 10,
+                      }}
+                    >
+                      {unreadCount > 99 ? "99+" : unreadCount}
+                    </span>
+                  )}
+                </span>
+                {sidebarOpen && (
+                  <span style={{ flex: 1 }}>
+                    {item.name}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </nav>
 
         {/* Toggle Button */}

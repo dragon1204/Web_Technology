@@ -20,7 +20,7 @@ const AdminLayout = ({ children }) => {
     }
   };
 
-  // Menu items dành cho ADMIN - chỉ hiển thị các mục quản lý hệ thống
+  // Menu items dành cho ADMIN - chỉ hiển thị các mục quản lý người dùng
   const menuItems = [
     {
       path: "/dashboard",
@@ -31,31 +31,6 @@ const AdminLayout = ({ children }) => {
       path: "/users",
       name: "Quản lý người dùng",
       icon: "👥",
-    },
-    {
-      path: "/gardens",
-      name: "Quản lý vườn",
-      icon: "🌱",
-    },
-    {
-      path: "/shop-products",
-      name: "Quản lý sản phẩm Shop",
-      icon: "🏪",
-    },
-    {
-      path: "/revenue",
-      name: "Doanh thu",
-      icon: "💰",
-    },
-    {
-      path: "/notifications",
-      name: "Thông báo",
-      icon: "🔔",
-    },
-    {
-      path: "/alerts",
-      name: "Cảnh báo",
-      icon: "⚠️",
     },
     {
       path: "/audit-logs",
@@ -113,7 +88,7 @@ const AdminLayout = ({ children }) => {
               margin: 0,
             }}
           >
-            {sidebarOpen ? "Garden IoT - Admin" : "🌱"}
+            {sidebarOpen ? "Admin Panel" : "👤"}
           </h2>
         </div>
 

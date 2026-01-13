@@ -23,6 +23,10 @@ import { QrDto } from "./dto/qr.dto";
 import * as QRCode from "qrcode";
 import { Response } from "express";
 import { ConfigService } from "@nestjs/config";
+import { SendOtpDto } from "./dto/send-otp.dto";
+import { VerifyOtpDto } from "./dto/verify-otp.dto";
+import { RegisterWithPasswordDto } from "./dto/register-with-password.dto";
+import { ResetPasswordDto } from "./dto/reset-password.dto";
 
 @ApiTags('Authentication Section')
 @Controller('auth')
@@ -163,5 +167,37 @@ export class AuthController {
             const errorMessage = encodeURIComponent(error.message || 'oauth_error');
             return res.redirect(`${frontendUrl}/login?error=${errorMessage}`);
         }
+    }
+
+    // ================= OTP & PASSWORD RESET =================
+
+    @ApiOperation({ summary: "Send OTP code for registration or forgot password" })
+    @Post("send-otp")
+    @Throttle({ default: { limit: 5, ttl: 60 } }) // Limit to 5 requests per minute
+    async sendOtp(@Body() dto: SendOtpDto, @Req() req) {
+        return this.authService.sendOtp(dto.email, dto.type, req);
+    }
+
+    @ApiOperation({ summary: "Verify OTP code" })
+    @Post("verify-otp")
+    @Throttle({ default: { limit: 10, ttl: 60 } }) // Limit to 10 requests per minute
+    async verifyOtp(@Body() dto: VerifyOtpDto) {
+        return this.authService.verifyOtp(dto.email, dto.code, dto.type);
+    }
+
+    @ApiOperation({ summary: "Register user with OTP verification" })
+    @Post("register-with-otp")
+    @HttpCode(HttpStatus.CREATED)
+    @Throttle({ default: { limit: 5, ttl: 60 } })
+    async registerWithOtp(@Body() data: RegisterWithPasswordDto, @Req() req) {
+        return this.authService.registerWithOtp(data, req);
+    }
+
+    @ApiOperation({ summary: "Reset password with OTP verification" })
+    @Post("reset-password")
+    @HttpCode(HttpStatus.OK)
+    @Throttle({ default: { limit: 5, ttl: 60 } })
+    async resetPassword(@Body() data: ResetPasswordDto, @Req() req) {
+        return this.authService.resetPassword(data, req);
     }
 }

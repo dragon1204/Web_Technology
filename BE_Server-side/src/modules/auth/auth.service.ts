@@ -13,6 +13,9 @@ import { Request } from "express";
 import { MinioService } from "../storage/minio.service";
 import * as https from "https";
 import { URL } from "url";
+import { OtpService } from "./otp.service";
+import { RegisterWithPasswordDto } from "./dto/register-with-password.dto";
+import { ResetPasswordDto } from "./dto/reset-password.dto";
 
 
 @Injectable()
@@ -23,6 +26,7 @@ export class AuthService {
         private configService: ConfigService,
         private auditService: AuditService,
         private minioService: MinioService,
+        private otpService: OtpService,
     ) {}
     
     /**
@@ -544,6 +548,198 @@ export class AuthService {
                 console.error("❌ Failed to log audit entry:", auditError);
             }
             
+            throw error;
+        }
+    }
+
+    /**
+     * Send OTP for registration or forgot password
+     */
+    async sendOtp(email: string, type: 'REGISTER' | 'FORGOT_PASSWORD', req?: Request) {
+        // Check if user exists for FORGOT_PASSWORD
+        if (type === 'FORGOT_PASSWORD') {
+            const user = await this.usersService.findUserByEmail(email);
+            if (!user) {
+                throw new NotFoundException('User with this email does not exist.');
+            }
+            if (!user.password || user.password === '') {
+                throw new BadRequestException('This account was created with OAuth and has no password. Please use OAuth login.');
+            }
+        }
+
+        // Check if user already exists for REGISTER
+        if (type === 'REGISTER') {
+            const existingUser = await this.usersService.findUserByEmail(email);
+            if (existingUser) {
+                throw new BadRequestException('User with this email already exists.');
+            }
+        }
+
+        const code = await this.otpService.sendOtp(email, type);
+        
+        return {
+            HttpCode: 200,
+            success: true,
+            message: `OTP code has been sent to ${email}. Please check your email (or console for testing).`,
+            data: {
+                email,
+                type,
+                // In production, don't return the code. For testing, we return it.
+                // Remove this in production
+                code: process.env.NODE_ENV === 'development' ? code : undefined,
+            },
+        };
+    }
+
+    /**
+     * Verify OTP code
+     */
+    async verifyOtp(email: string, code: string, type: 'REGISTER' | 'FORGOT_PASSWORD') {
+        await this.otpService.verifyOtp(email, code, type);
+        
+        return {
+            HttpCode: 200,
+            success: true,
+            message: 'OTP verified successfully.',
+            data: {
+                email,
+                type,
+                verified: true,
+            },
+        };
+    }
+
+    /**
+     * Register user with OTP verification
+     */
+    async registerWithOtp(data: RegisterWithPasswordDto, req?: Request) {
+        const ip = req?.ip || req?.connection?.remoteAddress;
+        const userAgent = req?.headers['user-agent'];
+        const requestId = (req as any)?.requestId;
+
+        // Verify OTP first
+        const isVerified = this.otpService.isOtpVerified(data.email, 'REGISTER');
+        if (!isVerified) {
+            // Try to verify the OTP
+            await this.otpService.verifyOtp(data.email, data.code, 'REGISTER');
+        }
+
+        try {
+            const hashedPassword = await bcrypt.hash(data.password, 10);
+
+            const user = await this.usersService.createUser({
+                email: data.email,
+                password: hashedPassword,
+                name: data.name,
+                role: Role.USER,
+            });
+
+            // Remove OTP after successful registration
+            this.otpService.removeOtp(data.email, 'REGISTER');
+
+            // Log successful registration
+            await this.auditService.log({
+                action: 'REGISTER',
+                entityType: 'User',
+                entityId: String(user.id),
+                userId: user.id,
+                requestId,
+                ipAddress: ip,
+                userAgent,
+                success: true,
+                changes: { email: user.email, name: user.name, role: user.role },
+            });
+
+            console.log(user.email, " Register successfully!");
+            return {
+                HttpCode: 201,
+                success: true,
+                message: 'Registration successful.',
+                data: user,
+            };
+        } catch (error) {
+            // Log failed registration
+            await this.auditService.log({
+                action: 'REGISTER',
+                entityType: 'User',
+                entityId: '0',
+                requestId,
+                ipAddress: ip,
+                userAgent,
+                success: false,
+                errorMessage: error.message || 'Registration failed',
+                changes: { email: data.email },
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * Reset password with OTP verification
+     */
+    async resetPassword(data: ResetPasswordDto, req?: Request) {
+        const ip = req?.ip || req?.connection?.remoteAddress;
+        const userAgent = req?.headers['user-agent'];
+        const requestId = (req as any)?.requestId;
+
+        // Find user
+        const user = await this.usersService.findUserByEmail(data.email);
+        if (!user) {
+            throw new NotFoundException('User with this email does not exist.');
+        }
+
+        // Verify OTP first
+        const isVerified = this.otpService.isOtpVerified(data.email, 'FORGOT_PASSWORD');
+        if (!isVerified) {
+            // Try to verify the OTP
+            await this.otpService.verifyOtp(data.email, data.code, 'FORGOT_PASSWORD');
+        }
+
+        try {
+            // Hash new password
+            const hashedPassword = await bcrypt.hash(data.newPassword, 10);
+
+            // Update user password
+            await this.usersService.updateUser(user.id, { password: hashedPassword });
+
+            // Remove OTP after successful password reset
+            this.otpService.removeOtp(data.email, 'FORGOT_PASSWORD');
+
+            // Log password reset
+            await this.auditService.log({
+                action: 'RESET_PASSWORD',
+                entityType: 'User',
+                entityId: String(user.id),
+                userId: user.id,
+                requestId,
+                ipAddress: ip,
+                userAgent,
+                success: true,
+                changes: { email: user.email },
+            });
+
+            return {
+                HttpCode: 200,
+                success: true,
+                message: 'Password reset successful.',
+                data: {
+                    email: user.email,
+                },
+            };
+        } catch (error) {
+            // Log failed password reset
+            await this.auditService.log({
+                action: 'RESET_PASSWORD',
+                entityType: 'User',
+                entityId: String(user.id),
+                userId: user.id,
+                requestId,
+                ipAddress: ip,
+                userAgent,
+                success: false,
+                errorMessage: error.message || 'Password reset failed',
+                changes: { email: user.email },
+            });
             throw error;
         }
     }

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { config } from "../config";
 import toast from "react-hot-toast";
 
@@ -12,6 +12,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [twoFARequired, setTwoFARequired] = useState(false);
   const [twoFACode, setTwoFACode] = useState("");
+  const [error, setError] = useState("");
 
   const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
@@ -53,13 +54,16 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
     setLoading(true);
 
     try {
       console.log("Attempting login with:", formData.email);
 
       if (twoFARequired && !twoFACode) {
-        toast.error("Vui lòng nhập mã 2FA (6 chữ số)");
+        const errorMsg = "Vui lòng nhập mã 2FA (6 chữ số)";
+        setError(errorMsg);
+        toast.error(errorMsg);
         setLoading(false);
         return;
       }
@@ -77,6 +81,7 @@ const Login = () => {
         console.log("2FA required, showing 2FA input");
         setTwoFARequired(true);
         setTwoFACode("");
+        setError("");
         toast.success(
           "Tài khoản này đã bật 2FA. Vui lòng nhập mã 6 chữ số từ ứng dụng Authenticator."
         );
@@ -85,6 +90,7 @@ const Login = () => {
       } else if (result && result.success === true) {
         // Bước 2: Login thành công sau khi verify 2FA hoặc không có 2FA
         console.log("Login successful, redirecting...");
+        setError("");
         toast.success("Đăng nhập thành công!");
         setTimeout(() => {
           navigate("/");
@@ -92,12 +98,38 @@ const Login = () => {
       } else {
         // Lỗi khác
         console.error("Login failed:", result);
-        toast.error(result?.error || "Đăng nhập thất bại");
+        const errorMsg = result?.error || "Đăng nhập thất bại. Vui lòng kiểm tra lại email và mật khẩu.";
+        setError(errorMsg);
+        toast.error(errorMsg);
       }
     } catch (error) {
       console.error("Submit error:", error);
-      // Show the exact error message bubbled up from auth layer
-      toast.error(error?.message || "Có lỗi xảy ra. Vui lòng thử lại.");
+      
+      // Parse error message từ nhiều nguồn
+      let errorMessage = "Có lỗi xảy ra. Vui lòng thử lại.";
+      
+      if (error?.message) {
+        errorMessage = error.message;
+      } else if (error?.response?.data) {
+        const errorData = error.response.data;
+        if (typeof errorData === "string") {
+          errorMessage = errorData;
+        } else if (errorData.message) {
+          errorMessage = typeof errorData.message === "string" 
+            ? errorData.message 
+            : Array.isArray(errorData.message) 
+            ? errorData.message.join(", ")
+            : errorMessage;
+        } else if (errorData.error) {
+          errorMessage = typeof errorData.error === "string" ? errorData.error : errorMessage;
+        }
+      } else if (typeof error === "string") {
+        errorMessage = error;
+      }
+      
+      // Hiển thị error message
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -151,6 +183,23 @@ const Login = () => {
         </div>
 
         <form onSubmit={handleSubmit}>
+          {error && (
+            <div
+              style={{
+                marginBottom: "20px",
+                padding: "12px",
+                backgroundColor: "#4a1a1a",
+                border: "1px solid #e74c3c",
+                borderRadius: "6px",
+                color: "#ff6b6b",
+                fontSize: "14px",
+                textAlign: "center",
+              }}
+            >
+              <strong>⚠️ Lỗi đăng nhập:</strong> {error}
+            </div>
+          )}
+          
           <div style={{ marginBottom: "20px" }}>
             <label
               style={{
@@ -194,25 +243,19 @@ const Login = () => {
               >
                 Mật khẩu
               </label>
-              <button
-                type="button"
-                onClick={() => {
-                  toast("Tính năng quên mật khẩu đang được phát triển. Vui lòng liên hệ admin.");
-                }}
+              <Link
+                to="/forgot-password"
                 style={{
-                  background: "none",
-                  border: "none",
                   color: "#4cbe00",
                   fontSize: "12px",
-                  cursor: "pointer",
-                  padding: 0,
                   textDecoration: "underline",
+                  cursor: "pointer",
                 }}
                 onMouseOver={(e) => (e.target.style.color = "#6dd400")}
                 onMouseOut={(e) => (e.target.style.color = "#4cbe00")}
               >
                 Quên mật khẩu?
-              </button>
+              </Link>
             </div>
             <input
               type="password"
@@ -382,26 +425,20 @@ const Login = () => {
           <div style={{ textAlign: "center", marginTop: "20px", paddingTop: "20px", borderTop: "1px solid #3a4a3a" }}>
             <p style={{ color: "#a0a0a0", fontSize: "14px", margin: 0 }}>
               Chưa có tài khoản?{" "}
-              <button
-                type="button"
-                onClick={() => {
-                  toast("Tính năng đăng ký đang được phát triển. Vui lòng liên hệ admin.");
-                }}
+              <Link
+                to="/register"
                 style={{
-                  background: "none",
-                  border: "none",
                   color: "#4cbe00",
                   fontSize: "14px",
-                  cursor: "pointer",
-                  padding: 0,
                   textDecoration: "underline",
                   fontWeight: "500",
+                  cursor: "pointer",
                 }}
                 onMouseOver={(e) => (e.target.style.color = "#6dd400")}
                 onMouseOut={(e) => (e.target.style.color = "#4cbe00")}
               >
                 Đăng ký ngay
-              </button>
+              </Link>
             </p>
           </div>
         </form>

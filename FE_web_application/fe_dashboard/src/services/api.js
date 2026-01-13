@@ -153,6 +153,10 @@ api.interceptors.response.use(
 export const authAPI = {
   login: (email, password) => api.post("/auth/login", { email, password }),
   register: (data) => api.post("/auth/register", data),
+  sendOtp: (email, type) => api.post("/auth/send-otp", { email, type }),
+  verifyOtp: (email, code, type) => api.post("/auth/verify-otp", { email, code, type }),
+  registerWithOtp: (data) => api.post("/auth/register-with-otp", data),
+  resetPassword: (data) => api.post("/auth/reset-password", data),
   refresh: (refresh_token) => api.post("/auth/refresh", { refresh_token }),
   logout: async () => {
     try {

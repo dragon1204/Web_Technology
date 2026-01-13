@@ -20,13 +20,15 @@ import NotificationsPage from "./components/Notifications/NotificationsPage";
 import AlertsPage from "./components/Alerts/AlertsPage";
 import ForgotPassword from "./components/Security/ForgotPassword";
 import ResetPassword from "./components/Security/ResetPassword";
+import Register from "./components/Register";
 import TwoFactorAuth from "./components/Security/TwoFactorAuth";
 import SecuritySettings from "./components/Security/SecuritySettings";
 import AccountSettings from "./components/AccountSettings";
 
-import AuditLogs from "./components/AuditLogs.jsx";
+import AuditLogs from "./components/AuditLogs";
 import Controls from "./components/Controls";
 import ShopProductManagement from "./components/Shop/ShopProductManagement";
+import ShopOrderManagement from "./components/Shop/ShopOrderManagement";
 import { PaymentCheckout, PaymentSuccess, PaymentCancel } from "./components/Payment";
 import { 
   ShopList, 
@@ -202,6 +204,7 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/auth/google/redirect" element={<OAuthCallback />} />
+          <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route
@@ -209,6 +212,14 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={["ADMIN", "USER"]}>
                 <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN", "USER"]}>
+                <Navigate to="/dashboard" replace />
               </ProtectedRoute>
             }
           />
@@ -223,7 +234,7 @@ function App() {
           <Route
             path="/gardens"
             element={
-              <ProtectedRoute allowedRoles={["ADMIN", "USER"]}>
+              <ProtectedRoute allowedRoles={["USER"]}>
                 <GardenList />
               </ProtectedRoute>
             }
@@ -231,7 +242,7 @@ function App() {
           <Route
             path="/gardens/:id"
             element={
-              <ProtectedRoute allowedRoles={["ADMIN", "USER"]}>
+              <ProtectedRoute allowedRoles={["USER"]}>
                 <GardenDashboard />
               </ProtectedRoute>
             }
@@ -239,7 +250,7 @@ function App() {
           <Route
             path="/controls"
             element={
-              <ProtectedRoute allowedRoles={["ADMIN", "USER"]}>
+              <ProtectedRoute allowedRoles={["USER"]}>
                 <Controls />
               </ProtectedRoute>
             }
@@ -250,7 +261,7 @@ function App() {
           <Route
             path="/vegetables"
             element={
-              <ProtectedRoute allowedRoles={["ADMIN", "USER"]}>
+              <ProtectedRoute allowedRoles={["USER"]}>
                 <VegetableList />
               </ProtectedRoute>
             }
@@ -258,7 +269,7 @@ function App() {
           <Route
             path="/revenue"
             element={
-              <ProtectedRoute allowedRoles={["ADMIN", "USER"]}>
+              <ProtectedRoute allowedRoles={["USER"]}>
                 <RevenuePage />
               </ProtectedRoute>
             }
@@ -266,7 +277,7 @@ function App() {
           <Route
             path="/notifications"
             element={
-              <ProtectedRoute allowedRoles={["ADMIN", "USER"]}>
+              <ProtectedRoute allowedRoles={["USER"]}>
                 <NotificationsPage />
               </ProtectedRoute>
             }
@@ -274,7 +285,7 @@ function App() {
           <Route
             path="/alerts"
             element={
-              <ProtectedRoute allowedRoles={["ADMIN", "USER"]}>
+              <ProtectedRoute allowedRoles={["USER"]}>
                 <AlertsPage />
               </ProtectedRoute>
             }
@@ -315,8 +326,16 @@ function App() {
           <Route
             path="/shop-products"
             element={
-              <ProtectedRoute allowedRoles={["ADMIN", "USER"]}>
+              <ProtectedRoute allowedRoles={["USER"]}>
                 <ShopProductManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/shop-orders"
+            element={
+              <ProtectedRoute allowedRoles={["USER"]}>
+                <ShopOrderManagement />
               </ProtectedRoute>
             }
           />

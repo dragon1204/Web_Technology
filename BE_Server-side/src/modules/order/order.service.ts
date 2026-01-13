@@ -6,6 +6,7 @@ import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { ShippingService } from './shipping.service';
 import { OrderStatus, Role } from '@prisma/client';
 import { CartService } from '../cart/cart.service';
+import { NotificationService } from '../notification/notification.service';
 
 @Injectable()
 export class OrderService {
@@ -13,6 +14,7 @@ export class OrderService {
     private readonly prisma: PrismaService,
     private readonly shippingService: ShippingService,
     private readonly cartService: CartService,
+    private readonly notificationService: NotificationService,
   ) {}
 
   // Tạo mã đơn hàng
@@ -349,7 +351,16 @@ export class OrderService {
   async updateOrderStatus(orderId: number, shopId: number, userId: number, dto: UpdateOrderStatusDto, userRole: Role) {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
-      include: { shop: true },
+      include: { 
+        shop: true,
+        customer: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
     });
 
     if (!order) {
@@ -375,7 +386,11 @@ export class OrderService {
       }
     }
 
-    return this.prisma.order.update({
+    const oldStatus = order.status;
+    const newStatus = dto.status;
+
+    // Update order status
+    const updatedOrder = await this.prisma.order.update({
       where: { id: orderId },
       data: { status: dto.status },
       include: {
@@ -395,8 +410,67 @@ export class OrderService {
             name: true,
           },
         },
+        customer: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
     });
+
+    // Send notification to customer if status changed
+    if (oldStatus !== newStatus && order.customer) {
+      let notificationTitle = '';
+      let notificationMessage = '';
+      let notificationType: 'alert' | 'info' | 'warning' | 'success' = 'info';
+
+      switch (newStatus) {
+        case OrderStatus.CONFIRMED:
+          notificationTitle = 'Đơn hàng đã được xác nhận';
+          notificationMessage = `Đơn hàng ${order.orderNumber} của bạn đã được xác nhận bởi shop ${order.shop.name}. Shop sẽ chuẩn bị hàng và giao cho bạn sớm nhất.`;
+          notificationType = 'success';
+          break;
+        case OrderStatus.PROCESSING:
+          notificationTitle = 'Đơn hàng đang được xử lý';
+          notificationMessage = `Đơn hàng ${order.orderNumber} đang được shop ${order.shop.name} chuẩn bị. Vui lòng chờ trong giây lát.`;
+          notificationType = 'info';
+          break;
+        case OrderStatus.SHIPPED:
+          notificationTitle = 'Đơn hàng đã được gửi';
+          notificationMessage = `Đơn hàng ${order.orderNumber} đã được shop ${order.shop.name} gửi đi. Bạn sẽ nhận được hàng trong thời gian sớm nhất.`;
+          notificationType = 'info';
+          break;
+        case OrderStatus.DELIVERED:
+          notificationTitle = 'Đơn hàng đã được giao';
+          notificationMessage = `Đơn hàng ${order.orderNumber} đã được giao thành công. Cảm ơn bạn đã mua sắm tại ${order.shop.name}!`;
+          notificationType = 'success';
+          break;
+        case OrderStatus.CANCELLED:
+          notificationTitle = 'Đơn hàng đã bị hủy';
+          notificationMessage = `Đơn hàng ${order.orderNumber} đã bị hủy bởi shop ${order.shop.name}.`;
+          notificationType = 'warning';
+          break;
+        default:
+          notificationTitle = 'Cập nhật trạng thái đơn hàng';
+          notificationMessage = `Trạng thái đơn hàng ${order.orderNumber} đã được cập nhật thành ${newStatus}.`;
+          notificationType = 'info';
+      }
+
+      try {
+        await this.notificationService.createForUser(
+          order.customer.id,
+          notificationTitle,
+          notificationMessage,
+          notificationType,
+        );
+      } catch (error) {
+        // Log error but don't fail the order update
+        console.error('Failed to send notification to customer:', error);
+      }
+    }
+
+    return updatedOrder;
   }
 
   async getShopOrders(shopId: number, ownerId: number, status?: OrderStatus, userRole?: Role) {
