@@ -52,19 +52,22 @@ export class OtpService {
 
     this.otpStore.set(key, otpData);
 
-    // Send OTP via email service if available, otherwise log to console
     if (this.emailService) {
       try {
         await this.emailService.sendOtpEmail(email, code, type);
         console.log(`✅ OTP email sent to ${email}`);
       } catch (error) {
         console.error(`❌ Failed to send OTP email to ${email}:`, error);
-        // Fallback to console log if email fails
+        console.error(`Error details:`, {
+          code: error.code,
+          command: error.command,
+          response: error.response,
+          message: error.message
+        });
         console.log(`\n📧 OTP Code for ${email} (${type}): ${code}\n`);
         console.log(`⏰ Expires at: ${expiresAt.toISOString()}\n`);
       }
     } else {
-      // No email service configured, log to console for testing
       console.log(`\n📧 OTP Code for ${email} (${type}): ${code}\n`);
       console.log(`⏰ Expires at: ${expiresAt.toISOString()}\n`);
       console.log(`⚠️  Email service not configured. OTP is only logged to console.\n`);

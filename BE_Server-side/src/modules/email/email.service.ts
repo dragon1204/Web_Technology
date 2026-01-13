@@ -1,22 +1,51 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
 
 @Injectable()
-export class EmailService {
+export class EmailService implements OnModuleInit {
   private transporter: nodemailer.Transporter;
+  private readonly logger = new Logger(EmailService.name);
 
   constructor(private configService: ConfigService) {
-    // Initialize email transporter
+    const smtpHost = this.configService.get<string>('SMTP_HOST');
+    const smtpPort = this.configService.get<string>('SMTP_PORT');
+    const smtpUser = this.configService.get<string>('SMTP_USER');
+    const smtpPassword = this.configService.get<string>('SMTP_PASSWORD');
+
+    this.logger.log('Initializing EmailService...');
+    this.logger.log(`SMTP_HOST: ${smtpHost || 'not set (using default: smtp.gmail.com)'}`);
+    this.logger.log(`SMTP_PORT: ${smtpPort || 'not set (using default: 587)'}`);
+    this.logger.log(`SMTP_USER: ${smtpUser ? smtpUser.substring(0, 3) + '***' : 'not set'}`);
+    this.logger.log(`SMTP_PASSWORD: ${smtpPassword ? '***' : 'not set'}`);
+
     this.transporter = nodemailer.createTransport({
-      host: this.configService.get<string>('SMTP_HOST') || 'smtp.gmail.com',
-      port: parseInt(this.configService.get<string>('SMTP_PORT') || '587'),
-      secure: this.configService.get<string>('SMTP_SECURE') === 'true', // true for 465, false for other ports
+      host: smtpHost || 'smtp.gmail.com',
+      port: parseInt(smtpPort || '587'),
+      secure: this.configService.get<string>('SMTP_SECURE') === 'true',
       auth: {
-        user: this.configService.get<string>('SMTP_USER'), // Your email
-        pass: this.configService.get<string>('SMTP_PASSWORD'), // Your email password or app password
+        user: smtpUser,
+        pass: smtpPassword,
       },
     });
+  }
+
+  async onModuleInit() {
+    const smtpUser = this.configService.get<string>('SMTP_USER');
+    const smtpPassword = this.configService.get<string>('SMTP_PASSWORD');
+
+    if (!smtpUser || !smtpPassword) {
+      this.logger.warn('⚠️  Email service not configured. SMTP_USER or SMTP_PASSWORD is missing.');
+      this.logger.warn('⚠️  OTP will be logged to console instead of being sent via email.');
+      return;
+    }
+
+    try {
+      await this.verifyConnection();
+    } catch (error) {
+      this.logger.error('❌ Email service verification failed:', error.message);
+      this.logger.error('⚠️  OTP will be logged to console instead of being sent via email.');
+    }
   }
 
   /**
@@ -146,9 +175,15 @@ Trân trọng,
         html: htmlContent,
       });
 
-      console.log(`✅ Email sent successfully to ${to}`);
+      this.logger.log(`✅ Email sent successfully to ${to}`);
     } catch (error) {
-      console.error(`❌ Failed to send email to ${to}:`, error);
+      this.logger.error(`❌ Failed to send email to ${to}:`, error);
+      this.logger.error(`Error details: ${JSON.stringify({
+        code: error.code,
+        command: error.command,
+        response: error.response,
+        message: error.message
+      })}`);
       throw new Error(`Failed to send email: ${error.message}`);
     }
   }
@@ -159,10 +194,17 @@ Trân trọng,
   async verifyConnection(): Promise<boolean> {
     try {
       await this.transporter.verify();
-      console.log('✅ Email service is configured correctly');
+      this.logger.log('✅ Email service is configured correctly');
       return true;
     } catch (error) {
-      console.error('❌ Email service configuration error:', error);
+      this.logger.error('❌ Email service configuration error:', error);
+      if (error.code === 'EAUTH') {
+        this.logger.error('❌ Authentication failed. Please check SMTP_USER and SMTP_PASSWORD.');
+      } else if (error.code === 'ECONNECTION') {
+        this.logger.error('❌ Connection failed. Please check SMTP_HOST and SMTP_PORT.');
+      } else {
+        this.logger.error(`❌ Error code: ${error.code}, Message: ${error.message}`);
+      }
       return false;
     }
   }
