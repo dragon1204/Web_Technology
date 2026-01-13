@@ -244,7 +244,11 @@ const OrderDetail = () => {
                   {item.shopProduct?.vegetable?.imageUrl ? (
                     <img 
                       src={item.shopProduct.vegetable.imageUrl} 
-                      alt={item.shopProduct.vegetable.name} 
+                      alt={item.shopProduct.vegetable.name}
+                      onError={(e) => {
+                        console.error('Image load error:', item.shopProduct.vegetable.imageUrl);
+                        e.target.style.display = 'none';
+                      }}
                     />
                   ) : (
                     <div className="order-item-image-placeholder">

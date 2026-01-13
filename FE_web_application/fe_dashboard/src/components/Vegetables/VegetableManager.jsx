@@ -297,6 +297,10 @@ const VegetableManager = () => {
                         height: '100%',
                         objectFit: 'cover',
                       }}
+                      onError={(e) => {
+                        console.error('Image load error:', vegetable.imageUrl);
+                        e.target.style.display = 'none';
+                      }}
                     />
                   ) : (
                     <ImageIcon sx={{ fontSize: 64, color: 'grey.400' }} />

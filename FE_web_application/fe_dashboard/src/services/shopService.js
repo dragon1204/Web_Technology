@@ -34,6 +34,43 @@ const shopService = {
     return extractData(response);
   },
 
+  // ===== SHOP VEGETABLE MANAGEMENT APIs =====
+  
+  // Get available vegetables that can be added to shop
+  getAvailableVegetables: async (shopId) => {
+    const response = await api.get(`/shop/${shopId}/available-vegetables`);
+    const data = extractData(response);
+    return Array.isArray(data) ? data : [];
+  },
+
+  // Get shop products with filters and pagination
+  getShopProducts: async (shopId, filters = {}, pagination = {}) => {
+    const params = {};
+    
+    if (filters.isAvailable !== undefined && filters.isAvailable !== null) {
+      params.isAvailable = filters.isAvailable;
+    }
+    if (filters.vegetableId) {
+      params.vegetableId = filters.vegetableId;
+    }
+    if (filters.gardenId) {
+      params.gardenId = filters.gardenId;
+    }
+    if (filters.search) {
+      params.search = filters.search;
+    }
+    if (pagination.page) {
+      params.page = pagination.page;
+    }
+    if (pagination.limit) {
+      params.limit = pagination.limit;
+    }
+
+    const response = await api.get(`/shop/${shopId}/products`, { params });
+    // Response structure: { data: [...], pagination: {...} }
+    return response.data?.data || response.data;
+  },
+
   // Add product to shop
   addProductToShop: async (shopId, productData) => {
     const response = await api.post(`/shop/${shopId}/products`, productData);

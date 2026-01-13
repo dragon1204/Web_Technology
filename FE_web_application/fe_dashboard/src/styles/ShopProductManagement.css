@@ -1,0 +1,148 @@
+.shop-product-management {
+  padding: 24px;
+  background: linear-gradient(135deg, #f8fcf8 0%, #e8f5e9 100%);
+  min-height: 100vh;
+}
+
+.shop-product-management .MuiCard-root {
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(76, 190, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.shop-product-management .MuiCard-root:hover {
+  box-shadow: 0 4px 16px rgba(76, 190, 0, 0.15);
+}
+
+.shop-product-management .MuiTableHead-root {
+  background: linear-gradient(135deg, #4cbe00 0%, #2d8e00 100%);
+}
+
+.shop-product-management .MuiTableHead-root .MuiTableCell-root {
+  color: white;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.875rem;
+  letter-spacing: 0.5px;
+}
+
+.shop-product-management .MuiTableBody-root .MuiTableRow-root:hover {
+  background-color: rgba(76, 190, 0, 0.05);
+}
+
+.shop-product-management .MuiChip-root {
+  font-weight: 500;
+}
+
+.shop-product-management .MuiButton-contained {
+  background: linear-gradient(135deg, #4cbe00 0%, #2d8e00 100%);
+  box-shadow: 0 2px 8px rgba(76, 190, 0, 0.3);
+  text-transform: none;
+  font-weight: 600;
+  padding: 8px 24px;
+}
+
+.shop-product-management .MuiButton-contained:hover {
+  background: linear-gradient(135deg, #2d8e00 0%, #1a5a00 100%);
+  box-shadow: 0 4px 12px rgba(76, 190, 0, 0.4);
+}
+
+.shop-product-management .MuiButton-outlined {
+  border-color: #4cbe00;
+  color: #4cbe00;
+  text-transform: none;
+  font-weight: 600;
+}
+
+.shop-product-management .MuiButton-outlined:hover {
+  border-color: #2d8e00;
+  background-color: rgba(76, 190, 0, 0.05);
+}
+
+.shop-product-management .MuiTextField-root .MuiOutlinedInput-root {
+  border-radius: 8px;
+}
+
+.shop-product-management .MuiTextField-root .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline {
+  border-color: #4cbe00;
+}
+
+.shop-product-management .MuiTextField-root .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
+  border-color: #4cbe00;
+}
+
+.shop-product-management .MuiDialog-paper {
+  border-radius: 12px;
+}
+
+.shop-product-management .MuiDialogTitle-root {
+  background: linear-gradient(135deg, #4cbe00 0%, #2d8e00 100%);
+  color: white;
+  font-weight: 600;
+}
+
+.shop-product-management .MuiAvatar-root {
+  border: 2px solid #e8f5e9;
+}
+
+.shop-product-management .MuiIconButton-root {
+  transition: all 0.2s ease;
+}
+
+.shop-product-management .MuiIconButton-root:hover {
+  transform: scale(1.1);
+}
+
+.shop-product-management .MuiTablePagination-root {
+  border-top: 1px solid #e0e0e0;
+}
+
+/* Animation for loading */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.shop-product-management .MuiCircularProgress-root {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .shop-product-management {
+    padding: 16px;
+  }
+
+  .shop-product-management .MuiTableCell-root {
+    padding: 8px;
+    font-size: 0.875rem;
+  }
+
+  .shop-product-management .MuiButton-root {
+    padding: 6px 16px;
+    font-size: 0.875rem;
+  }
+}
+
+/* Custom scrollbar */
+.shop-product-management .MuiTableContainer-root::-webkit-scrollbar {
+  height: 8px;
+}
+
+.shop-product-management .MuiTableContainer-root::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.shop-product-management .MuiTableContainer-root::-webkit-scrollbar-thumb {
+  background: #4cbe00;
+  border-radius: 4px;
+}
+
+.shop-product-management .MuiTableContainer-root::-webkit-scrollbar-thumb:hover {
+  background: #2d8e00;
+}

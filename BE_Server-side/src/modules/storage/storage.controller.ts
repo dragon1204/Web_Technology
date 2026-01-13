@@ -25,13 +25,17 @@ import { RolesGuard } from '../auth/guard/roles.guards';
 import { Roles } from 'src/common/decorator/roles.decorator';
 import { Role } from '@prisma/client';
 import { GetCurrentUser } from '../users/decorator/getCurrentUser.decorator';
+import { UsersService } from '../users/users.service';
 
 @ApiTags('Storage')
 @Controller('storage')
 @ApiBearerAuth('access-token')
 @UseGuards(AtGuard, RolesGuard)
 export class StorageController {
-  constructor(private readonly minioService: MinioService) {}
+  constructor(
+    private readonly minioService: MinioService,
+    private readonly usersService: UsersService,
+  ) {}
 
   @ApiOperation({ summary: 'Upload một file (CUSTOMER, USER, ADMIN)' })
   @Post('upload')
@@ -70,7 +74,55 @@ export class StorageController {
     }
 
     const folder = dto.folder || 'uploads';
-    const result = await this.minioService.uploadFile(file, folder, dto.fileName);
+
+    // Đặt tên file:
+    // - Nếu FE truyền fileName -> dùng đúng
+    // - Ngược lại để MinioService tự sinh theo timestamp + originalName
+    const effectiveFileName = dto.fileName || undefined;
+
+    // Nếu là upload avatar, cần xử lý xoá avatar cũ (tránh tràn bộ nhớ)
+    let previousAvatarPath: string | null = null;
+    if (folder === 'avatars' && user?.id) {
+      try {
+        const existingUser = await this.usersService.findUserById(user.id);
+        previousAvatarPath = (existingUser as any)?.avatar || null;
+      } catch (e) {
+        // Nếu không lấy được user cũ thì bỏ qua, không chặn upload
+        previousAvatarPath = null;
+      }
+    }
+
+    const result = await this.minioService.uploadFile(file, folder, effectiveFileName);
+
+    // Nếu upload avatar, cập nhật trường avatar & xoá file cũ (nếu cần)
+    if (folder === 'avatars' && user?.id && result?.fileName) {
+      try {
+        const newAvatarPath = result.fileName as string;
+
+        // Xoá avatar cũ nếu:
+        // - Có previousAvatarPath
+        // - Khác với file mới
+        // - Là file trong MinIO (không phải URL tuyệt đối)
+        if (
+          previousAvatarPath &&
+          previousAvatarPath !== newAvatarPath &&
+          !/^https?:\/\//i.test(previousAvatarPath)
+        ) {
+          try {
+            await this.minioService.deleteFile(previousAvatarPath);
+          } catch (deleteErr) {
+            console.error('Failed to delete old avatar from MinIO:', deleteErr);
+          }
+        }
+
+        await this.usersService.updateUser(user.id, {
+          avatar: newAvatarPath,
+        } as any);
+      } catch (error) {
+        // Không chặn upload nếu update avatar thất bại, chỉ log lại
+        console.error('Failed to update user avatar after upload:', error);
+      }
+    }
 
     return {
       message: 'File uploaded successfully',
@@ -155,10 +207,10 @@ export class StorageController {
     stream.pipe(res);
   }
 
-  @ApiOperation({ summary: 'Lấy URL của file (presigned URL) (CUSTOMER, USER, ADMIN)' })
+  @ApiOperation({ summary: 'Lấy URL của file (backend proxy URL) (CUSTOMER, USER, ADMIN)' })
   @Get('url/*')
   @Roles(Role.CUSTOMER, Role.USER, Role.ADMIN)
-  @ApiQuery({ name: 'expiry', description: 'Thời gian hết hạn (giây)', required: false, type: Number })
+  @ApiQuery({ name: 'expiry', description: 'Thời gian hết hạn (giây) - không dùng nữa, giữ lại để tương thích', required: false, type: Number })
   async getFileUrl(
     @Req() req: Request,
     @Query('expiry') expiry?: number
@@ -166,12 +218,17 @@ export class StorageController {
     // Extract file path from URL (remove /storage/url/ prefix and query params, then decode)
     const pathMatch = req.url.match(/\/storage\/url\/(.+?)(?:\?|$)/);
     const fileName = pathMatch ? decodeURIComponent(pathMatch[1]) : '';
-    const url = await this.minioService.getFileUrl(fileName, expiry || 7 * 24 * 60 * 60);
+    
+    // Generate backend proxy URL instead of MinIO presigned URL
+    // This ensures authentication and doesn't require MinIO to be accessible from browser
+    const protocol = req.protocol || 'http';
+    const host = req.get('host') || 'localhost:3000';
+    const backendUrl = `${protocol}://${host}/storage/view/${encodeURIComponent(fileName)}`;
 
     return {
       message: 'File URL generated successfully',
       data: {
-        url,
+        url: backendUrl,
         fileName,
         expiry: expiry || 7 * 24 * 60 * 60,
         expiresAt: new Date(Date.now() + (expiry || 7 * 24 * 60 * 60) * 1000),

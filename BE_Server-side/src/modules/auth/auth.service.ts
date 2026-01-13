@@ -10,6 +10,9 @@ import { UsersService } from "../users/users.service";
 import { authenticator } from "otplib";
 import { AuditService } from "../audit/audit.service";
 import { Request } from "express";
+import { MinioService } from "../storage/minio.service";
+import * as https from "https";
+import { URL } from "url";
 
 
 @Injectable()
@@ -18,22 +21,96 @@ export class AuthService {
         private usersService: UsersService,
         private jwtService: JwtService,
         private configService: ConfigService,
-        private auditService: AuditService
+        private auditService: AuditService,
+        private minioService: MinioService,
     ) {}
     
+    /**
+     * Download Google avatar and store it in MinIO as a buffer.
+     * Returns stored file path (e.g. avatars/google-<userId>-timestamp.jpg) or null on failure.
+     */
+    private async downloadAndStoreGoogleAvatar(avatarUrl: string, userId: number): Promise<string | null> {
+        if (!avatarUrl) return null;
+        try {
+            const url = new URL(avatarUrl);
 
-    async register(data: RegisterDto) {
-        const hashedPassword = await bcrypt.hash(data.password, 10);
+            const data: Buffer = await new Promise((resolve, reject) => {
+                https.get(url, (res) => {
+                    const statusCode = res.statusCode ?? 0;
+                    if (statusCode >= 400) {
+                        return reject(new Error(`Failed to download avatar. Status code: ${statusCode}`));
+                    }
+                    const chunks: Uint8Array[] = [];
+                    res.on('data', (chunk) => chunks.push(chunk));
+                    res.on('end', () => resolve(Buffer.concat(chunks)));
+                }).on('error', reject);
+            });
 
-        const  user = await this.usersService.createUser(
-            {
+            // Fake Express.Multer.File object to reuse MinioService logic
+            const file: Express.Multer.File = {
+                fieldname: 'file',
+                originalname: `google-avatar-${userId}.jpg`,
+                encoding: '7bit',
+                mimetype: 'image/jpeg',
+                size: data.length,
+                buffer: data,
+                destination: '',
+                filename: '',
+                path: '',
+                stream: null as any,
+            };
+
+            const result = await this.minioService.uploadFile(file, 'avatars');
+            return result.fileName;
+        } catch (error) {
+            console.error('❌ Failed to download/store Google avatar:', error);
+            return null;
+        }
+    }
+
+    async register(data: RegisterDto, req?: Request) {
+        const ip = req?.ip || req?.connection?.remoteAddress;
+        const userAgent = req?.headers['user-agent'];
+        const requestId = (req as any)?.requestId;
+
+        try {
+            const hashedPassword = await bcrypt.hash(data.password, 10);
+
+            const user = await this.usersService.createUser({
                 ...data,
-                role: Role.USER ,
-            }
-        );
+                role: Role.USER,
+            });
 
-        console.log(user.email, " Register sucessfully!")
-        return user;
+            // Log successful registration
+            await this.auditService.log({
+                action: 'REGISTER',
+                entityType: 'User',
+                entityId: String(user.id),
+                userId: user.id,
+                requestId,
+                ipAddress: ip,
+                userAgent,
+                success: true,
+                changes: { email: user.email, name: user.name, role: user.role },
+            });
+
+            console.log(user.email, " Register sucessfully!");
+            return user;
+        } catch (error) {
+            // Log failed registration
+            await this.auditService.log({
+                action: 'REGISTER',
+                entityType: 'User',
+                entityId: '0',
+                requestId,
+                ipAddress: ip,
+                userAgent,
+                success: false,
+                errorMessage: error.message || 'Registration failed',
+                changes: { email: data.email },
+            });
+            throw error;
+        }
     }
 
 
@@ -249,12 +326,26 @@ export class AuthService {
         return { message: 'Logged out successfully' };
     }
 
-    async googleLogin(googleUser: any) {
+    async googleLogin(googleUser: any, req?: Request) {
         // googleUser = { email, name, providerId, provider, avatar }
+        const ip = req?.ip || req?.connection?.remoteAddress;
+        const userAgent = req?.headers['user-agent'];
+        const requestId = (req as any)?.requestId;
+
         console.log("🔍 Google login attempt for:", googleUser.email);
         console.log("📦 Google user data:", JSON.stringify(googleUser, null, 2));
 
         if (!googleUser.email) {
+            await this.auditService.log({
+                action: 'LOGIN',
+                entityType: 'User',
+                entityId: '0',
+                requestId,
+                ipAddress: ip,
+                userAgent,
+                success: false,
+                errorMessage: 'Email is required from Google OAuth',
+            });
             throw new UnauthorizedException('Email is required from Google OAuth');
         }
 
@@ -263,31 +354,43 @@ export class AuthService {
             console.log("🔍 Found existing user:", user ? "Yes" : "No");
 
             let finalUser;
+            let isNewUser = false;
 
             // Nếu user chưa có → tạo user mới (không có mật khẩu vì login bằng Google)
             if (!user) {
+                // Thử tải avatar từ Google về MinIO (nếu có)
+                let storedAvatarPath: string | null = null;
+                if (googleUser.avatar) {
+                    storedAvatarPath = await this.downloadAndStoreGoogleAvatar(googleUser.avatar, 0);
+                }
+
                 const userData: any = {
                     email: googleUser.email,
                     name: googleUser.name || null,
                     role: Role.USER,
                     provider: googleUser.provider || 'google',
                     providerId: googleUser.providerId || null,
-                    avatar: googleUser.avatar || null,
+                    avatar: storedAvatarPath || googleUser.avatar || null,
                 };
-                
-                // Không truyền password field - Prisma sẽ dùng default ""
                 
                 console.log("📝 Creating new user with data:", JSON.stringify(userData, null, 2));
                 finalUser = await this.usersService.createUser(userData);
+                isNewUser = true;
                 console.log("✅ User created with Google:", finalUser.email, "ID:", finalUser.id);
             } else {
-                // Nếu user đã tồn tại, cập nhật thông tin OAuth nếu chưa có
-                if (!user.provider || !user.providerId) {
-                    console.log("🔄 Updating OAuth info for existing user");
+                // Nếu user đã tồn tại, ưu tiên lưu avatar về MinIO nếu trước đó chưa có
+                if (!user.provider || !user.providerId || !user.avatar) {
+                    console.log("🔄 Updating OAuth info / avatar for existing user");
+
+                    let storedAvatarPath: string | null = user.avatar || null;
+                    if (!storedAvatarPath && googleUser.avatar) {
+                        storedAvatarPath = await this.downloadAndStoreGoogleAvatar(googleUser.avatar, user.id);
+                    }
+
                     finalUser = await this.usersService.updateUser(user.id, {
                         provider: googleUser.provider || 'google',
                         providerId: googleUser.providerId || null,
-                        avatar: googleUser.avatar || user.avatar || null,
+                        avatar: storedAvatarPath || googleUser.avatar || user.avatar || null,
                     });
                     console.log("✅ User OAuth info updated:", finalUser.email);
                 } else {
@@ -309,6 +412,23 @@ export class AuthService {
             await this.saveRefreshToken(finalUser.id, tokens.refresh_token);
             console.log("🎫 Tokens generated successfully for:", finalUser.email);
             
+            // Log successful Google OAuth login
+            await this.auditService.log({
+                action: 'LOGIN',
+                entityType: 'User',
+                entityId: String(finalUser.id),
+                userId: finalUser.id,
+                requestId,
+                ipAddress: ip,
+                userAgent,
+                success: true,
+                changes: {
+                    provider: 'google',
+                    email: finalUser.email,
+                    isNewUser,
+                },
+            });
+            
             // Return both tokens and user info for redirect
             return {
                 tokens,
@@ -322,6 +442,18 @@ export class AuthService {
             };
         } catch (error) {
             console.error("❌ Error in googleLogin:", error);
+            // Log failed Google OAuth login
+            await this.auditService.log({
+                action: 'LOGIN',
+                entityType: 'User',
+                entityId: '0',
+                requestId,
+                ipAddress: ip,
+                userAgent,
+                success: false,
+                errorMessage: error.message || 'Google OAuth login failed',
+                changes: { provider: 'google', email: googleUser.email },
+            });
             throw error;
         }
     }

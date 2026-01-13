@@ -52,15 +52,22 @@ const ProductList = () => {
         data.items.map(async (product) => {
           if (product.vegetable?.image) {
             try {
+              console.log('🖼️ Loading image for:', product.vegetable.name, 'File:', product.vegetable.image);
               const url = await storageService.getImageUrl(product.vegetable.image);
-              return {
-                ...product,
-                vegetable: {
-                  ...product.vegetable,
-                  imageUrl: url,
-                },
-              };
+              console.log('✅ Image URL loaded:', url);
+              if (url) {
+                return {
+                  ...product,
+                  vegetable: {
+                    ...product.vegetable,
+                    imageUrl: url,
+                  },
+                };
+              } else {
+                console.warn('⚠️ No URL returned for image:', product.vegetable.image);
+              }
             } catch (err) {
+              console.error('❌ Error loading image:', err);
               return product;
             }
           }
@@ -248,8 +255,17 @@ const ProductList = () => {
             {products.map((product) => (
               <div key={product.id} className="product-card">
                 <div className="product-image">
-                  {product.vegetable.imageUrl ? (
-                    <img src={product.vegetable.imageUrl} alt={product.vegetable.name} />
+                  {product.vegetable?.imageUrl ? (
+                    <img 
+                      src={product.vegetable.imageUrl} 
+                      alt={product.vegetable.name}
+                      onError={(e) => {
+                        console.error('Image load error:', product.vegetable.imageUrl);
+                        e.target.style.display = 'none';
+                        e.target.nextElementSibling?.style?.display === 'none' && 
+                          (e.target.nextElementSibling.style.display = 'flex');
+                      }}
+                    />
                   ) : (
                     <div className="product-image-placeholder">
                       <i className="fas fa-leaf"></i>

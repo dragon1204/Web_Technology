@@ -9,6 +9,22 @@ const api = axios.create({
   },
 });
 
+// Biến để tránh multiple refresh token calls đồng thời
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+
+  failedQueue = [];
+};
+
 // Request Interceptor - Thêm token vào mọi request
 api.interceptors.request.use(
   (config) => {
@@ -23,7 +39,7 @@ api.interceptors.request.use(
   }
 );
 
-// Response Interceptor - Xử lý lỗi chung và transform response
+// Response Interceptor - Xử lý lỗi chung và auto-refresh token
 api.interceptors.response.use(
   (response) => {
     // Backend có TransformResponseInterceptor nên data nằm trong response.data.data
@@ -32,17 +48,100 @@ api.interceptors.response.use(
     // Nhưng để giữ nguyên để dễ debug, giữ nguyên structure
     return response;
   },
-  (error) => {
+  async (error) => {
+    const originalRequest = error.config;
+
     // Xử lý lỗi 401 (Unauthorized) - Token hết hạn
-    if (error.response?.status === 401) {
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-      localStorage.removeItem("refresh_token");
-      // Redirect về login nếu không phải đang ở trang login
-      if (window.location.pathname !== "/login") {
-        window.location.href = "/login";
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      // Nếu request này là refresh token hoặc login thì không retry
+      if (originalRequest.url?.includes("/auth/refresh") || 
+          originalRequest.url?.includes("/auth/login")) {
+        // Clear tokens và redirect về login
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        localStorage.removeItem("refresh_token");
+        if (window.location.pathname !== "/login") {
+          window.location.href = "/login";
+        }
+        return Promise.reject(error);
+      }
+
+      // Lấy refresh token
+      const refreshToken = localStorage.getItem("refresh_token");
+      
+      if (!refreshToken) {
+        // Không có refresh token, redirect về login
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        if (window.location.pathname !== "/login") {
+          window.location.href = "/login";
+        }
+        return Promise.reject(error);
+      }
+
+      if (isRefreshing) {
+        // Đang refresh token, queue request này
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then((token) => {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            return api(originalRequest);
+          })
+          .catch((err) => {
+            return Promise.reject(err);
+          });
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        // Gọi API refresh token
+        const response = await axios.post(`${API_URL}/auth/refresh`, {
+          refresh_token: refreshToken,
+        });
+
+        const newToken = response.data?.data?.access_token || 
+                        response.data?.access_token;
+        const newRefreshToken = response.data?.data?.refresh_token || 
+                               response.data?.refresh_token;
+
+        if (newToken) {
+          // Lưu token mới
+          localStorage.setItem("token", newToken);
+          if (newRefreshToken) {
+            localStorage.setItem("refresh_token", newRefreshToken);
+          }
+
+          // Update header cho request hiện tại
+          originalRequest.headers.Authorization = `Bearer ${newToken}`;
+          
+          // Process các request đang chờ trong queue
+          processQueue(null, newToken);
+          
+          // Retry request ban đầu
+          return api(originalRequest);
+        } else {
+          throw new Error("No token received from refresh");
+        }
+      } catch (refreshError) {
+        // Refresh token failed, clear tokens và redirect về login
+        processQueue(refreshError, null);
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        localStorage.removeItem("refresh_token");
+        
+        if (window.location.pathname !== "/login") {
+          window.location.href = "/login";
+        }
+        
+        return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
       }
     }
+
     return Promise.reject(error);
   }
 );

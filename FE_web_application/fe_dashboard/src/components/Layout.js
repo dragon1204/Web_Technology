@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
+import { config } from "../config";
 import { useNavigate, useLocation } from "react-router-dom";
 import toast from "react-hot-toast";
 
@@ -317,28 +318,64 @@ const Layout = ({ children }) => {
             >
               <div
                 style={{
-                  width: "32px",
-                  height: "32px",
-                  backgroundColor: "#e8f5e9",
-                  borderRadius: "50%",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  color: "#2d8e00",
-                  fontSize: "14px",
-                  fontWeight: "bold",
                 }}
               >
-                {(
-                  user?.name ||
-                  user?.data?.name ||
-                  user?.email ||
-                  user?.data?.email ||
-                  "U"
-                )
-                  ?.charAt(0)
-                  ?.toUpperCase()}
-              </div>
+                {(() => {
+                  const avatarPath =
+                    user?.avatar ||
+                    user?.data?.avatar ||
+                    user?.avatarUrl ||
+                    user?.data?.avatarUrl;
+                  if (avatarPath) {
+                    const isAbsolute = /^https?:\/\//i.test(avatarPath);
+                    const src = isAbsolute
+                      ? avatarPath
+                      : `${config.API_BASE_URL}/storage/view/${encodeURIComponent(
+                          avatarPath
+                        )}`;
+                    return (
+                      <img
+                        src={src}
+                        alt={user?.name || user?.data?.name || "User"}
+                        style={{
+                          width: "40px",
+                          height: "40px",
+                          borderRadius: "50%",
+                          objectFit: "cover",
+                        }}
+                      />
+                    );
+                  }
+                  return (
+                    <div
+                      style={{
+                        width: "40px",
+                        height: "40px",
+                        backgroundColor: "#e8f5e9",
+                        borderRadius: "50%",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "#2d8e00",
+                        fontSize: "18px",
+                        fontWeight: "bold",
+                      }}
+                    >
+                      {(
+                        user?.name ||
+                        user?.data?.name ||
+                        user?.email ||
+                        user?.data?.email ||
+                        "U"
+                      )
+                        ?.charAt(0)
+                        ?.toUpperCase()}
+                    </div>
+                  );
+                })()}
               <div>
                 <div style={{ fontSize: "14px", fontWeight: "600", color: "#374151" }}>
                   {user?.name ||

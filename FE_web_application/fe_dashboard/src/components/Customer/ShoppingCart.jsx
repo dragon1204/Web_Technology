@@ -198,10 +198,14 @@ const ShoppingCart = () => {
                     {group.items.map(item => (
                       <div key={item.id} className="cart-item">
                         <div className="cart-item-image">
-                          {item.shopProduct.vegetable.imageUrl ? (
+                          {item.shopProduct?.vegetable?.imageUrl ? (
                             <img 
                               src={item.shopProduct.vegetable.imageUrl} 
-                              alt={item.shopProduct.vegetable.name} 
+                              alt={item.shopProduct.vegetable.name}
+                              onError={(e) => {
+                                console.error('Image load error:', item.shopProduct.vegetable.imageUrl);
+                                e.target.style.display = 'none';
+                              }}
                             />
                           ) : (
                             <div className="cart-item-image-placeholder">

@@ -234,4 +234,183 @@ export class ShopService {
       orderBy: { createdAt: 'desc' },
     });
   }
+
+  /**
+   * Lấy danh sách rau có thể thêm vào shop (từ gardens của user)
+   * @param ownerId - ID của user (garden manager)
+   * @param shopId - ID của shop (optional, để loại trừ các rau đã có trong shop)
+   * @returns Danh sách rau từ gardens của user, kèm thông tin garden
+   */
+  async getAvailableVegetables(ownerId: number, shopId?: number) {
+    // Lấy tất cả gardens của user
+    const gardens = await this.prisma.garden.findMany({
+      where: { ownerId },
+      include: {
+        vegetables: {
+          include: {
+            vegetable: true,
+          },
+        },
+      },
+    });
+
+    // Lấy danh sách shopProduct đã có trong shop (nếu shopId được cung cấp)
+    const existingProducts = shopId
+      ? await this.prisma.shopProduct.findMany({
+          where: { shopId },
+          select: {
+            vegetableId: true,
+            gardenId: true,
+          },
+        })
+      : [];
+
+    // Tạo Set để check nhanh
+    const existingSet = new Set(
+      existingProducts.map((p) => `${p.vegetableId}-${p.gardenId}`)
+    );
+
+    // Tổng hợp danh sách rau từ các gardens
+    const vegetablesMap = new Map<
+      number,
+      {
+        vegetable: any;
+        gardens: Array<{ gardenId: number; gardenName: string; quantity: number }>;
+      }
+    >();
+
+    gardens.forEach((garden) => {
+      garden.vegetables.forEach((vg) => {
+        const key = `${vg.vegetableId}-${garden.id}`;
+        if (!existingSet.has(key)) {
+          // Chưa có trong shop, thêm vào danh sách
+          if (!vegetablesMap.has(vg.vegetableId)) {
+            vegetablesMap.set(vg.vegetableId, {
+              vegetable: vg.vegetable,
+              gardens: [],
+            });
+          }
+          vegetablesMap.get(vg.vegetableId)!.gardens.push({
+            gardenId: garden.id,
+            gardenName: garden.name,
+            quantity: vg.quantity,
+          });
+        }
+      });
+    });
+
+    // Chuyển Map thành Array
+    return Array.from(vegetablesMap.values());
+  }
+
+  /**
+   * Lấy danh sách sản phẩm trong shop với filter và pagination
+   * @param shopId - ID của shop
+   * @param ownerId - ID của owner (để verify quyền)
+   * @param filters - Các filter: isAvailable, vegetableId, gardenId, search
+   * @param pagination - Pagination: page, limit
+   * @param user - User object (để check role)
+   */
+  async getShopProducts(
+    shopId: number,
+    ownerId: number,
+    filters?: {
+      isAvailable?: boolean;
+      vegetableId?: number;
+      gardenId?: number;
+      search?: string;
+    },
+    pagination?: {
+      page?: number;
+      limit?: number;
+    },
+    user?: any
+  ) {
+    // Verify shop ownership
+    const shop = await this.prisma.shop.findUnique({
+      where: { id: shopId },
+    });
+
+    if (!shop) {
+      throw new NotFoundException('Không tìm thấy shop');
+    }
+
+    if (shop.ownerId !== ownerId && user?.role !== Role.ADMIN) {
+      throw new ForbiddenException('Bạn không có quyền xem sản phẩm của shop này');
+    }
+
+    // Build where clause
+    const where: any = {
+      shopId,
+    };
+
+    if (filters?.isAvailable !== undefined) {
+      where.isAvailable = filters.isAvailable;
+    }
+
+    if (filters?.vegetableId) {
+      where.vegetableId = filters.vegetableId;
+    }
+
+    if (filters?.gardenId) {
+      where.gardenId = filters.gardenId;
+    }
+
+    if (filters?.search) {
+      where.OR = [
+        {
+          vegetable: {
+            name: {
+              contains: filters.search,
+              mode: 'insensitive',
+            },
+          },
+        },
+        {
+          garden: {
+            name: {
+              contains: filters.search,
+              mode: 'insensitive',
+            },
+          },
+        },
+      ];
+    }
+
+    // Pagination
+    const page = pagination?.page || 1;
+    const limit = pagination?.limit || 20;
+    const skip = (page - 1) * limit;
+
+    // Get total count
+    const total = await this.prisma.shopProduct.count({ where });
+
+    // Get products
+    const products = await this.prisma.shopProduct.findMany({
+      where,
+      include: {
+        vegetable: true,
+        garden: {
+          select: {
+            id: true,
+            name: true,
+            ownerId: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take: limit,
+    });
+
+    return {
+      data: products,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
 }

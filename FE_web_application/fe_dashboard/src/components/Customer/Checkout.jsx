@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import orderService from '../../services/orderService';
 import cartService from '../../services/cartService';
 import storageService from '../../services/storageService';
+import PaymentCheckout from '../Payment/PaymentCheckout';
 import '../../styles/Checkout.css';
 
 const Checkout = () => {
@@ -16,6 +17,7 @@ const Checkout = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [showAddressForm, setShowAddressForm] = useState(false);
+  const [createdOrder, setCreatedOrder] = useState(null); // Store created order for payment
 
   // New address form
   const [newAddress, setNewAddress] = useState({
@@ -125,17 +127,49 @@ const Checkout = () => {
 
     try {
       setSubmitting(true);
-      const order = await orderService.checkout({
+      console.log('Creating order with data:', {
+        shopId: parseInt(shopId),
+        shippingAddressId: selectedAddressId,
+        notes,
+      });
+      
+      const orderResponse = await orderService.checkout({
         shopId: parseInt(shopId),
         shippingAddressId: selectedAddressId,
         notes,
       });
 
-      alert('Đặt hàng thành công!');
-      navigate(`/customer/orders/${order.id}`);
+      console.log('Order response:', orderResponse);
+
+      // Extract order data (handle different response formats)
+      const order = orderResponse?.data || orderResponse;
+      
+      console.log('Extracted order:', order);
+      
+      if (!order || !order.id) {
+        console.error('Invalid order response:', orderResponse);
+        throw new Error('Không nhận được thông tin đơn hàng từ server');
+      }
+
+      // Store order for payment instead of redirecting
+      const orderData = {
+        id: order.id,
+        orderNumber: order.orderNumber || `ORDER-${order.id}`,
+        total: order.total || total,
+      };
+      
+      console.log('Setting created order:', orderData);
+      setCreatedOrder(orderData);
+      
+      // Clear cart after successful order
+      try {
+        await cartService.clearCart();
+      } catch (cartErr) {
+        console.warn('Could not clear cart:', cartErr);
+      }
     } catch (err) {
-      alert(err.response?.data?.message || 'Không thể đặt hàng!');
       console.error('Error during checkout:', err);
+      alert(err.response?.data?.message || err.message || 'Không thể đặt hàng!');
     } finally {
       setSubmitting(false);
     }
@@ -170,6 +204,23 @@ const Checkout = () => {
   const subtotal = calculateShopTotal();
   const estimatedShipping = subtotal >= 200000 ? 0 : subtotal >= 100000 ? 10000 : 20000;
   const total = subtotal + estimatedShipping;
+
+  // If order is created, show payment checkout
+  if (createdOrder) {
+    return (
+      <PaymentCheckout
+        orderId={createdOrder.id}
+        orderNumber={createdOrder.orderNumber}
+        totalAmount={createdOrder.total}
+        onPaymentSuccess={() => {
+          navigate(`/customer/orders/${createdOrder.id}`);
+        }}
+        onCancel={() => {
+          setCreatedOrder(null);
+        }}
+      />
+    );
+  }
 
   return (
     <div className="checkout-container">
@@ -336,10 +387,14 @@ const Checkout = () => {
               {shopItems.map(item => (
                 <div key={item.id} className="checkout-item">
                   <div className="checkout-item-image">
-                    {item.shopProduct.vegetable.imageUrl ? (
+                    {item.shopProduct?.vegetable?.imageUrl ? (
                       <img 
                         src={item.shopProduct.vegetable.imageUrl} 
-                        alt={item.shopProduct.vegetable.name} 
+                        alt={item.shopProduct.vegetable.name}
+                        onError={(e) => {
+                          console.error('Image load error:', item.shopProduct.vegetable.imageUrl);
+                          e.target.style.display = 'none';
+                        }}
                       />
                     ) : (
                       <div className="checkout-item-image-placeholder">

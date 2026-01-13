@@ -237,7 +237,7 @@ model Shop {
   id          Int          @id @default(autoincrement())
   name        String
   description String?
-  ownerId     Int
+  ownerId     Int          @unique
   owner       User         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   isActive    Boolean      @default(true)
   createdAt   DateTime     @default(now())
@@ -325,6 +325,13 @@ model Order {
   shippingFee       Float         // Phí vận chuyển
   total             Float         // Tổng cộng
   notes             String?       // Ghi chú của khách hàng
+  // Payment fields
+  paymentId         String?       // PayOS payment ID
+  paymentStatus     String?       // PENDING, PAID, CANCELLED, EXPIRED
+  paymentMethod     String?       // PAYOS, CASH, etc.
+  paymentLink       String?       // PayOS payment link
+  paymentQrCode     String?       // PayOS QR code data
+  paidAt            DateTime?     // Thời gian thanh toán thành công
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
   items             OrderItem[]
@@ -333,6 +340,8 @@ model Order {
   @@index([shopId])
   @@index([status])
   @@index([orderNumber])
+  @@index([paymentId])
+  @@index([paymentStatus])
   @@index([createdAt])
 }
 

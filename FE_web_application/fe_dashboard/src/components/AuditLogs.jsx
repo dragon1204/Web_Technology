@@ -28,6 +28,10 @@ import {
   Tooltip,
   Stack,
   MenuItem,
+  Container,
+  InputAdornment,
+  Avatar,
+  Divider,
 } from "@mui/material";
 import {
   History as HistoryIcon,
@@ -36,6 +40,14 @@ import {
   Refresh as RefreshIcon,
   Search as SearchIcon,
   Info as InfoIcon,
+  CheckCircle as CheckCircleIcon,
+  Error as ErrorIcon,
+  BarChart as BarChartIcon,
+  Timeline as TimelineIcon,
+  CalendarToday as CalendarIcon,
+  Person as PersonIcon,
+  AdminPanelSettings as AdminIcon,
+  Security as SecurityIcon,
 } from "@mui/icons-material";
 import { auditService } from "../services/auditService";
 import { useAuth } from "../contexts/AuthContext";
@@ -47,7 +59,8 @@ const AuditLogs = () => {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState(isAdmin ? "recent" : "my");
+  // UI tab index (0-based) - luôn là 0..N-1 để Tabs không cảnh báo
+  const [activeTab, setActiveTab] = useState(0);
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 20,
@@ -59,16 +72,33 @@ const AuditLogs = () => {
     action: "",
     entityType: "",
     entityId: "",
+    success: "",
     startDate: "",
     endDate: "",
+    search: "",
   });
 
+  const [statistics, setStatistics] = useState(null);
   const [selectedLog, setSelectedLog] = useState(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
 
   useEffect(() => {
     fetchLogs();
-  }, [activeTab, pagination.page, filters]);
+    if (isAdmin && activeTab === 0) {
+      fetchStatistics();
+    }
+  }, [activeTab, pagination.page, isAdmin]);
+
+  const fetchStatistics = async () => {
+    try {
+      const startDate = filters.startDate ? new Date(filters.startDate) : undefined;
+      const endDate = filters.endDate ? new Date(filters.endDate) : undefined;
+      const stats = await auditService.getStatistics({ startDate, endDate });
+      setStatistics(stats);
+    } catch (err) {
+      console.error("Failed to fetch statistics:", err);
+    }
+  };
 
   const fetchLogs = async () => {
     try {
@@ -79,41 +109,72 @@ const AuditLogs = () => {
       const params = {
         page: pagination.page,
         limit: pagination.limit,
+        action: filters.action || undefined,
+        entityType: filters.entityType || undefined,
+        success: filters.success === "" ? undefined : filters.success === "true",
+        startDate: filters.startDate || undefined,
+        endDate: filters.endDate || undefined,
+        search: filters.search || undefined,
       };
 
-      if (filters.action) params.action = filters.action;
-      if (filters.startDate) params.startDate = filters.startDate;
-      if (filters.endDate) params.endDate = filters.endDate;
+      // Remove undefined values
+      Object.keys(params).forEach((key) => params[key] === undefined && delete params[key]);
 
-      if (activeTab === "entity") {
-        if (filters.entityType) params.entityType = filters.entityType;
-        if (filters.entityId) params.entityId = filters.entityId;
-      }
-
-      switch (activeTab) {
-        case "recent":
+      if (isAdmin) {
+        if (activeTab === 0) {
+          // Recent logs (Admin only)
           response = await auditService.getRecentLogs(params);
-          break;
-        case "my":
+        } else if (activeTab === 1) {
+          // My logs
           response = await auditService.getMyLogs(params);
-          break;
-        case "entity":
-          response = await auditService.getLogsByEntity(params);
-          break;
-        default:
-          response = await auditService.getMyLogs(params);
+        } else if (activeTab === 2) {
+          // Search with filters
+          response = await auditService.searchLogs(params);
+        }
+      } else {
+        // USER/CUSTOMER chỉ có tab \"My Activity\" (index 0)
+        response = await auditService.getMyLogs(params);
       }
 
-      const logsData = response.data || response.logs || response || [];
-      setLogs(Array.isArray(logsData) ? logsData : []);
+      // Chuẩn hoá cấu trúc response từ backend:
+      // - { HttpCode, success, data: { data: [...], total, totalPages } }
+      // - Hoặc { data: [...], total, totalPages }
+      // - Hoặc trực tiếp là [...logs]
+      const core =
+        (response &&
+          response.data &&
+          response.data.data &&
+          typeof response.data.data === "object"
+          ? response.data.data
+          : response && response.data && typeof response.data === "object"
+          ? response.data
+          : response) || response;
+
+      const logsArray =
+        (Array.isArray(core)
+          ? core
+          : Array.isArray(core?.data)
+          ? core.data
+          : Array.isArray(core?.items)
+          ? core.items
+          : []) || [];
+
+      setLogs(Array.isArray(logsArray) ? logsArray : []);
+
+      const total =
+        response?.data?.total ||
+        core?.total ||
+        logsArray.length ||
+        0;
+      const totalPages =
+        response?.data?.totalPages ||
+        core?.totalPages ||
+        (total && pagination.limit ? Math.ceil(total / pagination.limit) : 1);
 
       setPagination({
         ...pagination,
-        total: response.total || response.count || logsData.length || 0,
-        totalPages:
-          response.totalPages ||
-          Math.ceil((response.total || logsData.length) / pagination.limit) ||
-          1,
+        total,
+        totalPages: totalPages || 1,
       });
     } catch (err) {
       setError(err.message);
@@ -142,52 +203,195 @@ const AuditLogs = () => {
 
   const getActionColor = (action) => {
     const colorMap = {
-      CREATE: "success",
-      UPDATE: "warning",
-      DELETE: "error",
-      LOGIN: "info",
-      LOGOUT: "default",
-      READ: "default",
-    };
-    return colorMap[action] || "default";
-  };
-
-  const getActionBgColor = (action) => {
-    const bgColorMap = {
       CREATE: "#4caf50",
       UPDATE: "#ff9800",
       DELETE: "#f44336",
       LOGIN: "#2196f3",
       LOGOUT: "#9e9e9e",
+      REGISTER: "#9c27b0",
       READ: "#607d8b",
     };
-    return bgColorMap[action] || "#9e9e9e";
+    return colorMap[action] || "#9e9e9e";
   };
-
-  const actionOptions = [
-    { value: "", label: "Tất cả hành động", color: "#4cbe00" },
-    { value: "CREATE", label: "Create", color: getActionBgColor("CREATE") },
-    { value: "UPDATE", label: "Update", color: getActionBgColor("UPDATE") },
-    { value: "DELETE", label: "Delete", color: getActionBgColor("DELETE") },
-    { value: "LOGIN", label: "Login", color: getActionBgColor("LOGIN") },
-    { value: "LOGOUT", label: "Logout", color: getActionBgColor("LOGOUT") },
-    { value: "READ", label: "Read", color: getActionBgColor("READ") },
-  ];
 
   const handleReset = () => {
     setFilters({
       action: "",
       entityType: "",
       entityId: "",
+      success: "",
       startDate: "",
       endDate: "",
+      search: "",
     });
     setPagination({ ...pagination, page: 1 });
   };
 
+  const handleApplyFilters = () => {
+    setPagination({ ...pagination, page: 1 });
+    fetchLogs();
+    if (activeTab === 0 && isAdmin) {
+      fetchStatistics();
+    }
+  };
+
+  const renderStatistics = () => {
+    if (!statistics || !isAdmin || activeTab !== 0) return null;
+
+    return (
+      <Grid container spacing={3} sx={{ mb: 3 }}>
+        {/* Total Logs Card */}
+        <Grid item xs={12} sm={6} md={3}>
+          <Card
+            sx={{
+              background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+              color: "white",
+              borderRadius: 2,
+              boxShadow: "0 4px 20px rgba(102, 126, 234, 0.3)",
+            }}
+          >
+            <CardContent>
+              <Stack direction="row" alignItems="center" justifyContent="space-between">
+                <Box>
+                  <Typography variant="body2" sx={{ opacity: 0.9, mb: 1 }}>
+                    Total Logs
+                  </Typography>
+                  <Typography variant="h4" sx={{ fontWeight: 700 }}>
+                    {statistics.total || 0}
+                  </Typography>
+                </Box>
+                <Avatar sx={{ bgcolor: "rgba(255,255,255,0.2)", width: 56, height: 56 }}>
+                  <HistoryIcon sx={{ fontSize: 32 }} />
+                </Avatar>
+              </Stack>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Success Rate Card */}
+        <Grid item xs={12} sm={6} md={3}>
+          <Card
+            sx={{
+              background: "linear-gradient(135deg, #4caf50 0%, #2e7d32 100%)",
+              color: "white",
+              borderRadius: 2,
+              boxShadow: "0 4px 20px rgba(76, 175, 80, 0.3)",
+            }}
+          >
+            <CardContent>
+              <Stack direction="row" alignItems="center" justifyContent="space-between">
+                <Box>
+                  <Typography variant="body2" sx={{ opacity: 0.9, mb: 1 }}>
+                    Success
+                  </Typography>
+                  <Typography variant="h4" sx={{ fontWeight: 700 }}>
+                    {statistics.bySuccess?.success || 0}
+                  </Typography>
+                </Box>
+                <Avatar sx={{ bgcolor: "rgba(255,255,255,0.2)", width: 56, height: 56 }}>
+                  <CheckCircleIcon sx={{ fontSize: 32 }} />
+                </Avatar>
+              </Stack>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Failed Logs Card */}
+        <Grid item xs={12} sm={6} md={3}>
+          <Card
+            sx={{
+              background: "linear-gradient(135deg, #f44336 0%, #c62828 100%)",
+              color: "white",
+              borderRadius: 2,
+              boxShadow: "0 4px 20px rgba(244, 67, 54, 0.3)",
+            }}
+          >
+            <CardContent>
+              <Stack direction="row" alignItems="center" justifyContent="space-between">
+                <Box>
+                  <Typography variant="body2" sx={{ opacity: 0.9, mb: 1 }}>
+                    Failed
+                  </Typography>
+                  <Typography variant="h4" sx={{ fontWeight: 700 }}>
+                    {statistics.bySuccess?.failed || 0}
+                  </Typography>
+                </Box>
+                <Avatar sx={{ bgcolor: "rgba(255,255,255,0.2)", width: 56, height: 56 }}>
+                  <ErrorIcon sx={{ fontSize: 32 }} />
+                </Avatar>
+              </Stack>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Actions Card */}
+        <Grid item xs={12} sm={6} md={3}>
+          <Card
+            sx={{
+              background: "linear-gradient(135deg, #ff9800 0%, #f57c00 100%)",
+              color: "white",
+              borderRadius: 2,
+              boxShadow: "0 4px 20px rgba(255, 152, 0, 0.3)",
+            }}
+          >
+            <CardContent>
+              <Stack direction="row" alignItems="center" justifyContent="space-between">
+                <Box>
+                  <Typography variant="body2" sx={{ opacity: 0.9, mb: 1 }}>
+                    Action Types
+                  </Typography>
+                  <Typography variant="h4" sx={{ fontWeight: 700 }}>
+                    {statistics.byAction?.length || 0}
+                  </Typography>
+                </Box>
+                <Avatar sx={{ bgcolor: "rgba(255,255,255,0.2)", width: 56, height: 56 }}>
+                  <BarChartIcon sx={{ fontSize: 32 }} />
+                </Avatar>
+              </Stack>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Action Breakdown */}
+        {statistics.byAction && statistics.byAction.length > 0 && (
+          <Grid item xs={12}>
+            <Card sx={{ borderRadius: 2, boxShadow: "0 2px 12px rgba(0,0,0,0.08)" }}>
+              <CardContent>
+                <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: "#1a3a3a" }}>
+                  Actions Breakdown
+                </Typography>
+                <Grid container spacing={2}>
+                  {statistics.byAction.map((item) => (
+                    <Grid item xs={6} sm={4} md={2} key={item.action}>
+                      <Paper
+                        sx={{
+                          p: 2,
+                          textAlign: "center",
+                          backgroundColor: `${getActionColor(item.action)}15`,
+                          borderLeft: `4px solid ${getActionColor(item.action)}`,
+                        }}
+                      >
+                        <Typography variant="body2" sx={{ fontWeight: 600, color: "#666", mb: 0.5 }}>
+                          {item.action}
+                        </Typography>
+                        <Typography variant="h6" sx={{ fontWeight: 700, color: getActionColor(item.action) }}>
+                          {item.count}
+                        </Typography>
+                      </Paper>
+                    </Grid>
+                  ))}
+                </Grid>
+              </CardContent>
+            </Card>
+          </Grid>
+        )}
+      </Grid>
+    );
+  };
+
   return (
-    <Box sx={{ p: { xs: 2, md: 3 }, minHeight: "100vh" }}>
-      {/* Header with Gradient */}
+    <Container maxWidth="xl" sx={{ py: 4 }}>
+      {/* Header */}
       <Box
         sx={{
           background: "linear-gradient(135deg, #1a3a3a 0%, #2d5a5a 100%)",
@@ -197,84 +401,84 @@ const AuditLogs = () => {
           boxShadow: "0 8px 32px rgba(0,0,0,0.15)",
           position: "relative",
           overflow: "hidden",
-          "&::before": {
-            content: '""',
-            position: "absolute",
-            top: 0,
-            right: 0,
-            width: "200px",
-            height: "200px",
-            background: "radial-gradient(circle, rgba(76,190,0,0.1) 0%, transparent 70%)",
-            borderRadius: "50%",
-          },
         }}
       >
-        <Stack direction="row" alignItems="center" spacing={2}>
-          <Box
-            sx={{
-              backgroundColor: "rgba(76,190,0,0.15)",
-              borderRadius: 2,
-              p: 1.5,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <HistoryIcon sx={{ fontSize: 36, color: "#4cbe00" }} />
-          </Box>
+        <Box
+          sx={{
+            position: "absolute",
+            top: -50,
+            right: -50,
+            width: 200,
+            height: 200,
+            borderRadius: "50%",
+            background: "radial-gradient(circle, rgba(76,190,0,0.15) 0%, transparent 70%)",
+          }}
+        />
+        <Stack direction="row" alignItems="center" spacing={2} sx={{ position: "relative" }}>
+          <Avatar sx={{ bgcolor: "rgba(76,190,0,0.2)", width: 64, height: 64 }}>
+            {isAdmin ? <SecurityIcon sx={{ fontSize: 36, color: "#4cbe00" }} /> : <PersonIcon sx={{ fontSize: 36, color: "#4cbe00" }} />}
+          </Avatar>
           <Box sx={{ flex: 1 }}>
-            <Typography
-              variant="h4"
-              sx={{
-                fontWeight: 700,
-                color: "#ffffff",
-                mb: 0.5,
-                textShadow: "0 2px 4px rgba(0,0,0,0.2)",
-              }}
-            >
+            <Typography variant="h4" sx={{ fontWeight: 700, color: "#fff", mb: 0.5 }}>
               Audit Logs
             </Typography>
-            <Typography
-              variant="body2"
-              sx={{ color: "rgba(255,255,255,0.7)", fontSize: "14px" }}
-            >
-              Track all system activities and user actions
+            <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.8)" }}>
+              {isAdmin ? "Monitor all system activities and user actions" : "View your activity history"}
             </Typography>
           </Box>
-          <Tooltip title="Refresh">
-            <IconButton
-              onClick={fetchLogs}
-              sx={{
-                backgroundColor: "rgba(255,255,255,0.1)",
-                color: "#fff",
-                "&:hover": {
-                  backgroundColor: "rgba(255,255,255,0.2)",
-                },
-              }}
-            >
-              <RefreshIcon />
-            </IconButton>
-          </Tooltip>
+          <Stack direction="row" spacing={1}>
+            {isAdmin && (
+              <Chip
+                icon={<AdminIcon />}
+                label="Admin View"
+                sx={{
+                  bgcolor: "rgba(255,215,0,0.2)",
+                  color: "#ffd700",
+                  fontWeight: 600,
+                  border: "1px solid rgba(255,215,0,0.3)",
+                }}
+              />
+            )}
+            <Tooltip title="Refresh">
+              <IconButton
+                onClick={() => {
+                  fetchLogs();
+                  if (activeTab === 0 && isAdmin) fetchStatistics();
+                }}
+                sx={{
+                  bgcolor: "rgba(255,255,255,0.1)",
+                  color: "#fff",
+                  "&:hover": { bgcolor: "rgba(255,255,255,0.2)" },
+                }}
+              >
+                <RefreshIcon />
+              </IconButton>
+            </Tooltip>
+          </Stack>
         </Stack>
       </Box>
 
-      {/* Tabs with Modern Design */}
-      <Paper
-        sx={{
-          mb: 3,
-          borderRadius: 2,
-          overflow: "hidden",
-          boxShadow: "0 2px 12px rgba(0,0,0,0.08)",
-        }}
-      >
+      {/* Statistics Dashboard (Admin Only) */}
+      {renderStatistics()}
+
+      {/* Tabs */}
+      <Paper sx={{ mb: 3, borderRadius: 2, overflow: "hidden", boxShadow: "0 2px 12px rgba(0,0,0,0.08)" }}>
         <Tabs
           value={activeTab}
           onChange={(e, newValue) => {
             setActiveTab(newValue);
             setPagination({ ...pagination, page: 1 });
+            setFilters({
+              action: "",
+              entityType: "",
+              entityId: "",
+              success: "",
+              startDate: "",
+              endDate: "",
+              search: "",
+            });
           }}
           sx={{
-            backgroundColor: "#ffffff",
             "& .MuiTabs-indicator": {
               height: 3,
               backgroundColor: "#4cbe00",
@@ -283,11 +487,8 @@ const AuditLogs = () => {
               textTransform: "none",
               fontWeight: 600,
               fontSize: "15px",
-              minHeight: 64,
-              color: "#666",
-              transition: "all 0.3s",
+              minHeight: 60,
               "&:hover": {
-                color: "#4cbe00",
                 backgroundColor: "rgba(76,190,0,0.05)",
               },
               "&.Mui-selected": {
@@ -296,35 +497,52 @@ const AuditLogs = () => {
             },
           }}
         >
-          {isAdmin && <Tab label="Recent Activity" value="recent" icon={<InfoIcon />} iconPosition="start" />}
-          <Tab label="My Activity" value="my" icon={<HistoryIcon />} iconPosition="start" />
-          {isAdmin && <Tab label="By Entity" value="entity" icon={<SearchIcon />} iconPosition="start" />}
+          {isAdmin && <Tab label="Recent Activity" icon={<TimelineIcon />} iconPosition="start" />}
+          <Tab label="My Activity" icon={<HistoryIcon />} iconPosition="start" />
+          {isAdmin && <Tab label="Advanced Search" icon={<SearchIcon />} iconPosition="start" />}
         </Tabs>
       </Paper>
 
-      {/* Filters with Better Layout */}
-      <Card
-        sx={{
-          mb: 3,
-          borderRadius: 2,
-          boxShadow: "0 2px 12px rgba(0,0,0,0.08)",
-        }}
-      >
+      {/* Filters */}
+      <Card sx={{ mb: 3, borderRadius: 2, boxShadow: "0 2px 12px rgba(0,0,0,0.08)" }}>
         <CardContent sx={{ p: 3 }}>
-          <Typography
-            variant="h6"
-            sx={{
-              mb: 2,
-              fontWeight: 600,
-              color: "#1a3a3a",
-              display: "flex",
-              alignItems: "center",
-              gap: 1,
-            }}
-          >
-            <FilterIcon /> Filters
-          </Typography>
+          <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 2 }}>
+            <FilterIcon sx={{ color: "#4cbe00" }} />
+            <Typography variant="h6" sx={{ fontWeight: 600, color: "#1a3a3a" }}>
+              Filters
+            </Typography>
+          </Stack>
           <Grid container spacing={2}>
+            {/* Search Box (for Advanced Search tab) */}
+            {activeTab === 2 && isAdmin && (
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  placeholder="Search in action, entity type, entity ID, IP address, error message..."
+                  value={filters.search}
+                  onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                  size="small"
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon sx={{ color: "#666" }} />
+                      </InputAdornment>
+                    ),
+                  }}
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      "&:hover fieldset": {
+                        borderColor: "#4cbe00",
+                      },
+                      "&.Mui-focused fieldset": {
+                        borderColor: "#4cbe00",
+                      },
+                    },
+                  }}
+                />
+              </Grid>
+            )}
+
             <Grid item xs={12} sm={6} md={3}>
               <TextField
                 select
@@ -332,233 +550,113 @@ const AuditLogs = () => {
                 value={filters.action}
                 onChange={(e) => setFilters({ ...filters, action: e.target.value })}
                 size="small"
-                variant="outlined"
                 fullWidth
-                SelectProps={{
-                  MenuProps: {
-                    anchorOrigin: {
-                      vertical: "bottom",
-                      horizontal: "left",
-                    },
-                    transformOrigin: {
-                      vertical: "top",
-                      horizontal: "left",
-                    },
-                    PaperProps: {
-                      sx: {
-                        minWidth: "100px !important",
-                        maxWidth: "250px",
-                        maxHeight: "300px",
-                        mt: 0.5,
-                        "& .MuiMenuItem-root": {
-                          color: "#212121",
-                          fontWeight: 400,
-                          padding: "8px 16px",
-                          fontSize: "14px",
-                          minHeight: "36px",
-                          whiteSpace: "nowrap",
-                          "&:hover": {
-                            backgroundColor: "#f5f5f5",
-                            color: "#212121",
-                          },
-                          "&.Mui-selected": {
-                            backgroundColor: "#e8f5e9",
-                            color: "#212121",
-                            fontWeight: 600,
-                            "&:hover": {
-                              backgroundColor: "#c8e6c9",
-                            },
-                          },
-                        },
-                      },
-                    },
-                  },
-                }}
-                sx={{
-                  minWidth: "100px",
-                  "& .MuiInputBase-input": {
-                    color: "#212121",
-                  },
-                  "& .MuiInputLabel-root": {
-                    color: "#666666",
-                  },
-                  "& .MuiOutlinedInput-root": {
-                    "& fieldset": {
-                      borderColor: "#ddd",
-                    },
-                    "&:hover fieldset": {
-                      borderColor: "#999",
-                    },
-                    "&.Mui-focused fieldset": {
-                      borderColor: "#999",
-                    },
-                  },
-                }}
               >
-                <MenuItem value="" sx={{ color: "#212121" }}>All Actions</MenuItem>
-                <MenuItem value="CREATE" sx={{ color: "#212121" }}>Create</MenuItem>
-                <MenuItem value="UPDATE" sx={{ color: "#212121" }}>Update</MenuItem>
-                <MenuItem value="DELETE" sx={{ color: "#212121" }}>Delete</MenuItem>
-                <MenuItem value="LOGIN" sx={{ color: "#212121" }}>Login</MenuItem>
-                <MenuItem value="LOGOUT" sx={{ color: "#212121" }}>Logout</MenuItem>
-                <MenuItem value="READ" sx={{ color: "#212121" }}>Read</MenuItem>
+                <MenuItem value="">All Actions</MenuItem>
+                <MenuItem value="LOGIN">Login</MenuItem>
+                <MenuItem value="LOGOUT">Logout</MenuItem>
+                <MenuItem value="REGISTER">Register</MenuItem>
+                <MenuItem value="CREATE">Create</MenuItem>
+                <MenuItem value="UPDATE">Update</MenuItem>
+                <MenuItem value="DELETE">Delete</MenuItem>
               </TextField>
             </Grid>
 
-            {activeTab === "entity" && (
+            <Grid item xs={12} sm={6} md={3}>
+              <TextField
+                select
+                label="Status"
+                value={filters.success}
+                onChange={(e) => setFilters({ ...filters, success: e.target.value })}
+                size="small"
+                fullWidth
+              >
+                <MenuItem value="">All Status</MenuItem>
+                <MenuItem value="true">Success</MenuItem>
+                <MenuItem value="false">Failed</MenuItem>
+              </TextField>
+            </Grid>
+
+            <Grid item xs={12} sm={6} md={3}>
+              <TextField
+                type="date"
+                label="Start Date"
+                value={filters.startDate}
+                onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
+                size="small"
+                fullWidth
+                InputLabelProps={{ shrink: true }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <CalendarIcon sx={{ fontSize: 20, color: "#666" }} />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+            </Grid>
+
+            <Grid item xs={12} sm={6} md={3}>
+              <TextField
+                type="date"
+                label="End Date"
+                value={filters.endDate}
+                onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
+                size="small"
+                fullWidth
+                InputLabelProps={{ shrink: true }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <CalendarIcon sx={{ fontSize: 20, color: "#666" }} />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+            </Grid>
+
+            {activeTab === 2 && isAdmin && (
               <>
-                <Grid item xs={12} sm={6} md={2.4}>
+                <Grid item xs={12} sm={6} md={3}>
                   <TextField
                     label="Entity Type"
-                    placeholder="Garden, Vegetable, User"
+                    placeholder="User, Garden, Shop..."
                     value={filters.entityType}
-                    onChange={(e) =>
-                      setFilters({ ...filters, entityType: e.target.value })
-                    }
+                    onChange={(e) => setFilters({ ...filters, entityType: e.target.value })}
                     size="small"
-                    variant="outlined"
                     fullWidth
-                    sx={{
-                      "& .MuiInputBase-input": {
-                        color: "#212121",
-                      },
-                      "& .MuiInputLabel-root": {
-                        color: "#666666",
-                      },
-                      "& .MuiOutlinedInput-root": {
-                        "& fieldset": {
-                          borderColor: "#ddd",
-                        },
-                        "&:hover fieldset": {
-                          borderColor: "#999",
-                        },
-                        "&.Mui-focused fieldset": {
-                          borderColor: "#4cbe00",
-                        },
-                      },
-                    }}
                   />
                 </Grid>
-                <Grid item xs={12} sm={6} md={2.4}>
+                <Grid item xs={12} sm={6} md={3}>
                   <TextField
                     label="Entity ID"
                     placeholder="Enter ID"
                     value={filters.entityId}
-                    onChange={(e) =>
-                      setFilters({ ...filters, entityId: e.target.value })
-                    }
+                    onChange={(e) => setFilters({ ...filters, entityId: e.target.value })}
                     size="small"
-                    variant="outlined"
                     fullWidth
-                    sx={{
-                      "& .MuiInputBase-input": {
-                        color: "#212121",
-                      },
-                      "& .MuiInputLabel-root": {
-                        color: "#666666",
-                      },
-                      "& .MuiOutlinedInput-root": {
-                        "& fieldset": {
-                          borderColor: "#ddd",
-                        },
-                        "&:hover fieldset": {
-                          borderColor: "#999",
-                        },
-                        "&.Mui-focused fieldset": {
-                          borderColor: "#4cbe00",
-                        },
-                      },
-                    }}
                   />
                 </Grid>
               </>
             )}
 
-            <Grid item xs={12} sm={6} md={activeTab === "entity" ? 2.4 : 3}>
-              <TextField
-                type="date"
-                label="From Date"
-                value={filters.startDate}
-                onChange={(e) =>
-                  setFilters({ ...filters, startDate: e.target.value })
-                }
-                size="small"
-                variant="outlined"
-                InputLabelProps={{ shrink: true }}
-                fullWidth
-                sx={{
-                  "& .MuiInputBase-input": {
-                    color: "#212121",
-                  },
-                  "& .MuiInputLabel-root": {
-                    color: "#666666",
-                  },
-                  "& .MuiOutlinedInput-root": {
-                    "& fieldset": {
-                      borderColor: "#ddd",
-                    },
-                    "&:hover fieldset": {
-                      borderColor: "#999",
-                    },
-                    "&.Mui-focused fieldset": {
-                      borderColor: "#4cbe00",
-                    },
-                  },
-                }}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6} md={activeTab === "entity" ? 2.4 : 3}>
-              <TextField
-                type="date"
-                label="To Date"
-                value={filters.endDate}
-                onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
-                size="small"
-                variant="outlined"
-                InputLabelProps={{ shrink: true }}
-                fullWidth
-                sx={{
-                  "& .MuiInputBase-input": {
-                    color: "#212121",
-                  },
-                  "& .MuiInputLabel-root": {
-                    color: "#666666",
-                  },
-                  "& .MuiOutlinedInput-root": {
-                    "& fieldset": {
-                      borderColor: "#ddd",
-                    },
-                    "&:hover fieldset": {
-                      borderColor: "#999",
-                    },
-                    "&.Mui-focused fieldset": {
-                      borderColor: "#4cbe00",
-                    },
-                  },
-                }}
-              />
-            </Grid>
-
-            <Grid item xs={12} sm={6} md={activeTab === "entity" ? 2.4 : 3}>
-              <Stack direction="row" spacing={1}>
+            <Grid item xs={12} sm={activeTab === 2 && isAdmin ? 6 : 12}>
+              <Stack direction="row" spacing={2}>
                 <Button
                   variant="contained"
                   startIcon={<FilterIcon />}
-                  onClick={() => {
-                    setPagination({ ...pagination, page: 1 });
-                    fetchLogs();
-                  }}
+                  onClick={handleApplyFilters}
                   fullWidth
                   sx={{
-                    backgroundColor: "#4cbe00",
+                    bgcolor: "#4cbe00",
                     fontWeight: 600,
                     textTransform: "none",
                     "&:hover": {
-                      backgroundColor: "#3da000",
+                      bgcolor: "#3da000",
                     },
                   }}
                 >
-                  Apply
+                  Apply Filters
                 </Button>
                 <Button
                   variant="outlined"
@@ -572,11 +670,11 @@ const AuditLogs = () => {
                     textTransform: "none",
                     "&:hover": {
                       borderColor: "#999",
-                      backgroundColor: "#f5f5f5",
+                      bgcolor: "#f5f5f5",
                     },
                   }}
                 >
-                  Clear
+                  Clear All
                 </Button>
               </Stack>
             </Grid>
@@ -586,70 +684,52 @@ const AuditLogs = () => {
 
       {/* Error Alert */}
       {error && (
-        <Alert
-          severity="error"
-          onClose={() => setError(null)}
-          sx={{
-            mb: 2,
-            borderRadius: 2,
-            "& .MuiAlert-icon": {
-              fontSize: 24,
-            },
-          }}
-        >
+        <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2, borderRadius: 2 }}>
           {error}
         </Alert>
       )}
 
-      {/* Table with Enhanced Design */}
+      {/* Table */}
       <TableContainer
         component={Paper}
         sx={{
           boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
           borderRadius: 2,
           overflow: "hidden",
-          backgroundColor: "#ffffff",
         }}
       >
         {loading ? (
-          <Box
-            sx={{
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "center",
-              alignItems: "center",
-              p: 8,
-              gap: 2,
-            }}
-          >
+          <Box sx={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", p: 8, gap: 2 }}>
             <CircularProgress size={48} sx={{ color: "#4cbe00" }} />
             <Typography color="textSecondary">Loading audit logs...</Typography>
           </Box>
         ) : (
           <Table stickyHeader>
-            <TableHead
-              sx={{
-                backgroundColor: "#102216",
-                "& .MuiTableCell-root": {
-                  backgroundColor: "#102216",
-                  color: "#ffffff",
-                  fontWeight: 700,
-                  fontSize: "13px",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.5px",
-                  border: "none",
-                  padding: "18px 16px",
-                  whiteSpace: "nowrap",
-                },
-              }}
-            >
+            <TableHead>
               <TableRow>
-                <TableCell sx={{ width: "180px" }}>Timestamp</TableCell>
-                <TableCell sx={{ width: "150px" }}>User</TableCell>
-                <TableCell sx={{ width: "120px" }}>Action</TableCell>
-                <TableCell sx={{ width: "200px" }}>Entity</TableCell>
-                <TableCell sx={{ width: "150px" }}>IP Address</TableCell>
-                <TableCell align="center" sx={{ width: "100px" }}>Details</TableCell>
+                <TableCell sx={{ bgcolor: "#102216", color: "#fff", fontWeight: 700, fontSize: "13px", textTransform: "uppercase" }}>
+                  Timestamp
+                </TableCell>
+                {isAdmin && activeTab !== 1 && (
+                  <TableCell sx={{ bgcolor: "#102216", color: "#fff", fontWeight: 700, fontSize: "13px", textTransform: "uppercase" }}>
+                    User
+                  </TableCell>
+                )}
+                <TableCell sx={{ bgcolor: "#102216", color: "#fff", fontWeight: 700, fontSize: "13px", textTransform: "uppercase" }}>
+                  Action
+                </TableCell>
+                <TableCell sx={{ bgcolor: "#102216", color: "#fff", fontWeight: 700, fontSize: "13px", textTransform: "uppercase" }}>
+                  Entity
+                </TableCell>
+                <TableCell sx={{ bgcolor: "#102216", color: "#fff", fontWeight: 700, fontSize: "13px", textTransform: "uppercase" }}>
+                  IP Address
+                </TableCell>
+                <TableCell align="center" sx={{ bgcolor: "#102216", color: "#fff", fontWeight: 700, fontSize: "13px", textTransform: "uppercase" }}>
+                  Status
+                </TableCell>
+                <TableCell align="center" sx={{ bgcolor: "#102216", color: "#fff", fontWeight: 700, fontSize: "13px", textTransform: "uppercase" }}>
+                  Details
+                </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -658,89 +738,96 @@ const AuditLogs = () => {
                   <TableRow
                     key={log.id || index}
                     sx={{
-                      backgroundColor: index % 2 === 0 ? "#f7f9f7" : "#ffffff",
+                      bgcolor: index % 2 === 0 ? "#f7f9f7" : "#fff",
                       transition: "all 0.2s",
                       "&:hover": {
-                        backgroundColor: "#eef7ef",
+                        bgcolor: "#eef7ef",
                         transform: "translateY(-1px)",
                         boxShadow: "0 2px 8px rgba(76,190,0,0.1)",
                       },
-                      "& td": {
-                        padding: "14px 16px",
-                        borderBottom: "1px solid #e8e8e8",
-                      },
                     }}
                   >
-                    <TableCell
-                      sx={{
-                        color: "#102216",
-                        fontSize: "13px",
-                        fontFamily: "monospace",
-                      }}
-                    >
+                    <TableCell sx={{ fontSize: "13px", fontFamily: "monospace", color: "#102216" }}>
                       {formatDate(log.timestamp || log.createdAt)}
                     </TableCell>
-                    <TableCell sx={{ color: "#102216", fontWeight: 600 }}>
-                      {log.username ||
-                        log.user?.name ||
-                        log.user?.email ||
-                        log.userId ||
-                        "-"}
-                    </TableCell>
+                    {isAdmin && activeTab !== 1 && (
+                      <TableCell>
+                        <Stack direction="row" spacing={1} alignItems="center">
+                          <Avatar sx={{ width: 32, height: 32, bgcolor: "#4cbe00", fontSize: "14px" }}>
+                            {(log.user?.name || log.user?.email || "U").charAt(0).toUpperCase()}
+                          </Avatar>
+                          <Box>
+                            <Typography variant="body2" sx={{ fontWeight: 600, color: "#102216", fontSize: "13px" }}>
+                              {log.user?.name || log.user?.email || `User #${log.userId}`}
+                            </Typography>
+                            {log.user?.role && (
+                              <Typography variant="caption" sx={{ color: "#666" }}>
+                                {log.user.role}
+                              </Typography>
+                            )}
+                          </Box>
+                        </Stack>
+                      </TableCell>
+                    )}
                     <TableCell>
                       <Chip
                         label={log.action}
                         size="small"
                         sx={{
-                          backgroundColor: getActionBgColor(log.action),
+                          bgcolor: getActionColor(log.action),
                           color: "#fff",
                           fontWeight: 600,
                           fontSize: "11px",
                           letterSpacing: "0.5px",
-                          height: "24px",
                         }}
                       />
                     </TableCell>
                     <TableCell>
-                      {(log.entityType || log.entity) ? (
+                      {log.entityType ? (
                         <Box>
-                          <Typography
-                            variant="body2"
-                            sx={{
-                              color: "#102216",
-                              fontWeight: 600,
-                              fontSize: "13px",
-                            }}
-                          >
-                            {log.entityType || log.entity}
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: "#102216", fontSize: "13px" }}>
+                            {log.entityType}
                           </Typography>
                           {log.entityId && (
-                            <Typography
-                              variant="caption"
-                              sx={{
-                                color: "#4d4d4d",
-                                fontSize: "11px",
-                              }}
-                            >
+                            <Typography variant="caption" sx={{ color: "#666" }}>
                               ID: {log.entityId}
                             </Typography>
                           )}
                         </Box>
                       ) : (
-                        <Typography sx={{ color: "#777" }}>-</Typography>
+                        <Typography sx={{ color: "#999" }}>-</Typography>
                       )}
                     </TableCell>
-                    <TableCell
-                      sx={{
-                        color: "#4d4d4d",
-                        fontSize: "13px",
-                        fontFamily: "monospace",
-                      }}
-                    >
-                      {log.ipAddress || log.ip || "-"}
+                    <TableCell sx={{ fontSize: "13px", fontFamily: "monospace", color: "#666" }}>
+                      {log.ipAddress || "-"}
                     </TableCell>
                     <TableCell align="center">
-                      {log.details || log.metadata || log.changes ? (
+                      {log.success !== undefined ? (
+                        log.success ? (
+                          <Chip
+                            icon={<CheckCircleIcon />}
+                            label="Success"
+                            size="small"
+                            color="success"
+                            sx={{ fontWeight: 600 }}
+                          />
+                        ) : (
+                          <Tooltip title={log.errorMessage || "Failed"}>
+                            <Chip
+                              icon={<ErrorIcon />}
+                              label="Failed"
+                              size="small"
+                              color="error"
+                              sx={{ fontWeight: 600 }}
+                            />
+                          </Tooltip>
+                        )
+                      ) : (
+                        <Typography sx={{ color: "#999" }}>-</Typography>
+                      )}
+                    </TableCell>
+                    <TableCell align="center">
+                      {log.changes || log.details || log.metadata ? (
                         <Button
                           size="small"
                           variant="outlined"
@@ -755,37 +842,30 @@ const AuditLogs = () => {
                             fontWeight: 600,
                             "&:hover": {
                               borderColor: "#3da000",
-                              backgroundColor: "rgba(76,190,0,0.05)",
+                              bgcolor: "rgba(76,190,0,0.05)",
                             },
                           }}
                         >
                           View
                         </Button>
                       ) : (
-                        <Typography sx={{ color: "#777" }}>-</Typography>
+                        <Typography sx={{ color: "#999" }}>-</Typography>
                       )}
                     </TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={6} align="center" sx={{ py: 8 }}>
-                    <Box
-                      sx={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        gap: 2,
-                      }}
-                    >
+                  <TableCell colSpan={isAdmin && activeTab !== 1 ? 7 : 6} align="center" sx={{ py: 8 }}>
+                    <Stack alignItems="center" spacing={2}>
                       <HistoryIcon sx={{ fontSize: 64, color: "#ccc" }} />
-                      <Typography variant="h6" sx={{ color: "#4d4d4d" }}>
+                      <Typography variant="h6" sx={{ color: "#666" }}>
                         No Audit Logs Found
                       </Typography>
-                      <Typography variant="body2" sx={{ color: "#666" }}>
+                      <Typography variant="body2" sx={{ color: "#999" }}>
                         Try adjusting your filters or date range
                       </Typography>
-                    </Box>
+                    </Stack>
                   </TableCell>
                 </TableRow>
               )}
@@ -794,48 +874,20 @@ const AuditLogs = () => {
         )}
       </TableContainer>
 
-      {/* Enhanced Pagination */}
+      {/* Pagination */}
       {logs.length > 0 && (
-        <Card
-          sx={{
-            mt: 3,
-            borderRadius: 2,
-            boxShadow: "0 2px 12px rgba(0,0,0,0.08)",
-          }}
-        >
+        <Card sx={{ mt: 3, borderRadius: 2, boxShadow: "0 2px 12px rgba(0,0,0,0.08)" }}>
           <CardContent>
-            <Stack
-              direction={{ xs: "column", sm: "row" }}
-              spacing={2}
-              justifyContent="space-between"
-              alignItems="center"
-            >
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 2,
-                }}
-              >
-                <Typography
-                  variant="body2"
-                  sx={{
-                    color: "#666",
-                    fontWeight: 500,
-                  }}
-                >
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={2} justifyContent="space-between" alignItems="center">
+              <Stack direction="row" spacing={2} alignItems="center">
+                <Typography variant="body2" sx={{ color: "#666", fontWeight: 500 }}>
                   Total: <strong style={{ color: "#4cbe00" }}>{pagination.total}</strong> logs
                 </Typography>
-                <Typography
-                  variant="body2"
-                  sx={{
-                    color: "#999",
-                    fontSize: "13px",
-                  }}
-                >
+                <Divider orientation="vertical" flexItem />
+                <Typography variant="body2" sx={{ color: "#999" }}>
                   Page {pagination.page} of {pagination.totalPages}
                 </Typography>
-              </Box>
+              </Stack>
               <Pagination
                 count={pagination.totalPages}
                 page={pagination.page}
@@ -848,9 +900,9 @@ const AuditLogs = () => {
                   "& .MuiPaginationItem-root": {
                     fontWeight: 600,
                     "&.Mui-selected": {
-                      backgroundColor: "#4cbe00",
+                      bgcolor: "#4cbe00",
                       "&:hover": {
-                        backgroundColor: "#3da000",
+                        bgcolor: "#3da000",
                       },
                     },
                   },
@@ -861,7 +913,7 @@ const AuditLogs = () => {
         </Card>
       )}
 
-      {/* Enhanced Details Dialog */}
+      {/* Details Dialog */}
       <Dialog
         open={detailsOpen}
         onClose={() => setDetailsOpen(false)}
@@ -895,7 +947,7 @@ const AuditLogs = () => {
             sx={{
               color: "white",
               "&:hover": {
-                backgroundColor: "rgba(255,255,255,0.1)",
+                bgcolor: "rgba(255,255,255,0.1)",
               },
             }}
           >
@@ -905,13 +957,7 @@ const AuditLogs = () => {
         <DialogContent sx={{ pt: 3, pb: 2 }}>
           {selectedLog && (
             <Stack spacing={2.5}>
-              <Box
-                sx={{
-                  display: "grid",
-                  gridTemplateColumns: "120px 1fr",
-                  gap: 2,
-                }}
-              >
+              <Box sx={{ display: "grid", gridTemplateColumns: "140px 1fr", gap: 2 }}>
                 <Typography variant="body2" sx={{ fontWeight: 700, color: "#666" }}>
                   Action:
                 </Typography>
@@ -919,7 +965,7 @@ const AuditLogs = () => {
                   label={selectedLog.action}
                   size="small"
                   sx={{
-                    backgroundColor: getActionBgColor(selectedLog.action),
+                    bgcolor: getActionColor(selectedLog.action),
                     color: "#fff",
                     fontWeight: 600,
                     width: "fit-content",
@@ -933,16 +979,28 @@ const AuditLogs = () => {
                   {formatDate(selectedLog.timestamp || selectedLog.createdAt)}
                 </Typography>
 
-                <Typography variant="body2" sx={{ fontWeight: 700, color: "#666" }}>
-                  User:
-                </Typography>
-                <Typography variant="body2" sx={{ color: "#333" }}>
-                  {selectedLog.username ||
-                    selectedLog.user?.name ||
-                    selectedLog.user?.email ||
-                    selectedLog.userId ||
-                    "Unknown"}
-                </Typography>
+                {isAdmin && (
+                  <>
+                    <Typography variant="body2" sx={{ fontWeight: 700, color: "#666" }}>
+                      User:
+                    </Typography>
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <Avatar sx={{ width: 28, height: 28, bgcolor: "#4cbe00", fontSize: "12px" }}>
+                        {(selectedLog.user?.name || selectedLog.user?.email || "U").charAt(0).toUpperCase()}
+                      </Avatar>
+                      <Box>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                          {selectedLog.user?.name || selectedLog.user?.email || `User #${selectedLog.userId}`}
+                        </Typography>
+                        {selectedLog.user?.role && (
+                          <Typography variant="caption" sx={{ color: "#666" }}>
+                            {selectedLog.user.role}
+                          </Typography>
+                        )}
+                      </Box>
+                    </Stack>
+                  </>
+                )}
 
                 {selectedLog.entityType && (
                   <>
@@ -967,6 +1025,17 @@ const AuditLogs = () => {
                   </>
                 )}
 
+                {selectedLog.userAgent && (
+                  <>
+                    <Typography variant="body2" sx={{ fontWeight: 700, color: "#666" }}>
+                      User Agent:
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontSize: "12px", color: "#666", wordBreak: "break-word" }}>
+                      {selectedLog.userAgent}
+                    </Typography>
+                  </>
+                )}
+
                 {selectedLog.requestId && (
                   <>
                     <Typography variant="body2" sx={{ fontWeight: 700, color: "#666" }}>
@@ -977,25 +1046,48 @@ const AuditLogs = () => {
                     </Typography>
                   </>
                 )}
+
+                <Typography variant="body2" sx={{ fontWeight: 700, color: "#666" }}>
+                  Status:
+                </Typography>
+                {selectedLog.success !== undefined ? (
+                  selectedLog.success ? (
+                    <Chip
+                      icon={<CheckCircleIcon />}
+                      label="Success"
+                      size="small"
+                      color="success"
+                      sx={{ width: "fit-content", fontWeight: 600 }}
+                    />
+                  ) : (
+                    <Stack spacing={1}>
+                      <Chip
+                        icon={<ErrorIcon />}
+                        label="Failed"
+                        size="small"
+                        color="error"
+                        sx={{ width: "fit-content", fontWeight: 600 }}
+                      />
+                      {selectedLog.errorMessage && (
+                        <Alert severity="error" sx={{ mt: 1 }}>
+                          {selectedLog.errorMessage}
+                        </Alert>
+                      )}
+                    </Stack>
+                  )
+                ) : (
+                  <Typography sx={{ color: "#999" }}>-</Typography>
+                )}
               </Box>
 
-              {(selectedLog.details ||
-                selectedLog.metadata ||
-                selectedLog.changes) && (
+              {(selectedLog.changes || selectedLog.details || selectedLog.metadata) && (
                 <Box>
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      fontWeight: 700,
-                      color: "#666",
-                      mb: 1,
-                    }}
-                  >
+                  <Typography variant="body2" sx={{ fontWeight: 700, color: "#666", mb: 1 }}>
                     Changes/Details:
                   </Typography>
                   <Paper
                     sx={{
-                      backgroundColor: "#1e1e1e",
+                      bgcolor: "#1e1e1e",
                       p: 2,
                       borderRadius: 1,
                       overflow: "auto",
@@ -1015,9 +1107,7 @@ const AuditLogs = () => {
                       }}
                     >
                       {JSON.stringify(
-                        selectedLog.details ||
-                          selectedLog.metadata ||
-                          selectedLog.changes,
+                        selectedLog.changes || selectedLog.details || selectedLog.metadata,
                         null,
                         2
                       )}
@@ -1033,12 +1123,12 @@ const AuditLogs = () => {
             onClick={() => setDetailsOpen(false)}
             variant="contained"
             sx={{
-              backgroundColor: "#4cbe00",
+              bgcolor: "#4cbe00",
               textTransform: "none",
               fontWeight: 600,
               px: 3,
               "&:hover": {
-                backgroundColor: "#3da000",
+                bgcolor: "#3da000",
               },
             }}
           >
@@ -1046,7 +1136,7 @@ const AuditLogs = () => {
           </Button>
         </DialogActions>
       </Dialog>
-    </Box>
+    </Container>
   );
 };
 

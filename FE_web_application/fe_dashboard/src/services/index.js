@@ -5,3 +5,4 @@ export { gardenService } from "./gardenService";
 export { vegetableService } from "./vegetableService";
 export { saleService } from "./saleService";
 export { auditService } from "./auditService";
+export { default as shopService } from "./shopService";

@@ -76,7 +76,7 @@ function Layout({ children }) {
     { text: "Dashboard", icon: <DashboardIcon />, path: "/dashboard" },
     { text: "Users", icon: <PeopleIcon />, path: "/users" },
     { text: "Gardens", icon: <YardIcon />, path: "/gardens" },
-    { text: "Vegetables", icon: <GrassIcon />, path: "/vegetables" },
+    { text: "Shop Products", icon: <StoreIcon />, path: "/shop-products" },
     { text: "Revenue", icon: <MoneyIcon />, path: "/revenue" },
     { text: "Notifications", icon: <DashboardIcon />, path: "/notifications" },
     { text: "Alerts", icon: <DashboardIcon />, path: "/alerts" },

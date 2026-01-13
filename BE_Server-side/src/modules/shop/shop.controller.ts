@@ -1,9 +1,9 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Put, UseGuards, ParseIntPipe } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Put, UseGuards, ParseIntPipe, Query } from '@nestjs/common';
 import { ShopService } from './shop.service';
 import { CreateShopDto } from './dto/create-shop.dto';
 import { UpdateShopDto } from './dto/update-shop.dto';
 import { AddProductDto } from './dto/add-product.dto';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiTags, ApiQuery } from '@nestjs/swagger';
 import { AtGuard } from '../auth/guard/auth.guards';
 import { RolesGuard } from '../auth/guard/roles.guards';
 import { Roles } from 'src/common/decorator/roles.decorator';
@@ -88,5 +88,59 @@ export class ShopController {
     @GetCurrentUser() user: any
   ) {
     return this.shopService.deleteProduct(shopId, productId, user.id, user);
+  }
+
+  @ApiOperation({ summary: 'Lấy danh sách rau có thể thêm vào shop (USER - owner)' })
+  @Get(':id/available-vegetables')
+  @Roles(Role.USER, Role.ADMIN)
+  async getAvailableVegetables(
+    @Param('id', ParseIntPipe) shopId: number,
+    @GetCurrentUser() user: any
+  ) {
+    return this.shopService.getAvailableVegetables(user.id, shopId);
+  }
+
+  @ApiOperation({ summary: 'Lấy danh sách sản phẩm trong shop với filter và pagination (USER - owner)' })
+  @Get(':id/products')
+  @Roles(Role.USER, Role.ADMIN)
+  @ApiQuery({ name: 'isAvailable', required: false, type: Boolean, description: 'Lọc theo trạng thái có sẵn' })
+  @ApiQuery({ name: 'vegetableId', required: false, type: Number, description: 'Lọc theo ID rau' })
+  @ApiQuery({ name: 'gardenId', required: false, type: Number, description: 'Lọc theo ID vườn' })
+  @ApiQuery({ name: 'search', required: false, type: String, description: 'Tìm kiếm theo tên rau hoặc tên vườn' })
+  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Số trang (mặc định: 1)' })
+  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Số lượng mỗi trang (mặc định: 20)' })
+  async getShopProducts(
+    @Param('id', ParseIntPipe) shopId: number,
+    @GetCurrentUser() user: any,
+    @Query('isAvailable') isAvailable?: string,
+    @Query('vegetableId') vegetableId?: string,
+    @Query('gardenId') gardenId?: string,
+    @Query('search') search?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string
+  ) {
+    const filters: any = {};
+    if (isAvailable !== undefined) {
+      filters.isAvailable = isAvailable === 'true';
+    }
+    if (vegetableId) {
+      filters.vegetableId = parseInt(vegetableId, 10);
+    }
+    if (gardenId) {
+      filters.gardenId = parseInt(gardenId, 10);
+    }
+    if (search) {
+      filters.search = search;
+    }
+
+    const pagination: any = {};
+    if (page) {
+      pagination.page = parseInt(page, 10);
+    }
+    if (limit) {
+      pagination.limit = parseInt(limit, 10);
+    }
+
+    return this.shopService.getShopProducts(shopId, user.id, filters, pagination, user);
   }
 }

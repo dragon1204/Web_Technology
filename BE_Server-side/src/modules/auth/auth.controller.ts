@@ -34,9 +34,9 @@ export class AuthController {
     @ApiOperation({summary:"Used to Register"})
     @Post("register")
     @HttpCode(HttpStatus.CREATED)
-    async register(@Body() data: RegisterDto) {
+    async register(@Body() data: RegisterDto, @Req() req) {
         console.log("Role", data);
-        return this.authService.register(data);
+        return this.authService.register(data, req);
     }
 
     @ApiOperation({summary:"Used to Login"})
@@ -122,7 +122,7 @@ export class AuthController {
         
         try {
             // Lưu thông tin user vào database và trả về tokens + user info
-            const result = await this.authService.googleLogin(req.user);
+            const result = await this.authService.googleLogin(req.user, req);
             
             // Lấy frontend URL từ environment variable hoặc dùng default
             const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3001';

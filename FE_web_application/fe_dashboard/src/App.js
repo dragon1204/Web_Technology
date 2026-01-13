@@ -26,6 +26,8 @@ import AccountSettings from "./components/AccountSettings";
 
 import AuditLogs from "./components/AuditLogs.jsx";
 import Controls from "./components/Controls";
+import ShopProductManagement from "./components/Shop/ShopProductManagement";
+import { PaymentCheckout, PaymentSuccess, PaymentCancel } from "./components/Payment";
 import { 
   ShopList, 
   ProductList, 
@@ -310,6 +312,14 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/shop-products"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN", "USER"]}>
+                <ShopProductManagement />
+              </ProtectedRoute>
+            }
+          />
           {/* Customer Routes */}
           <Route
             path="/customer/shops"
@@ -364,6 +374,39 @@ function App() {
             element={
               <ProtectedRoute>
                 <OrderDetail />
+              </ProtectedRoute>
+            }
+          />
+          {/* Payment Routes */}
+          <Route
+            path="/payment"
+            element={
+              <ProtectedRoute>
+                <PaymentCheckout />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/checkout"
+            element={
+              <ProtectedRoute>
+                <PaymentCheckout />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/payment/success"
+            element={
+              <ProtectedRoute>
+                <PaymentSuccess />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/payment/cancel"
+            element={
+              <ProtectedRoute>
+                <PaymentCancel />
               </ProtectedRoute>
             }
           />

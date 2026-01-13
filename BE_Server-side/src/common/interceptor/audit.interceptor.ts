@@ -18,7 +18,10 @@ export class AuditInterceptor implements NestInterceptor {
     const userAgent = request.headers['user-agent'];
 
     // Extract entity info from URL patterns
-    const entityMatch = url.match(/\/(users|gardens|vegetables|sales|sensors)(?:\/(\d+))?/);
+    // Mở rộng thêm các modules: shops, products, carts, orders, alerts, notifications, storage
+    const entityMatch = url.match(
+      /\/(users|gardens|vegetables|sales|sensors|shops|products|carts|orders|alerts|notifications|storage)(?:\/(\d+))?/,
+    );
     const entityType = entityMatch ? this.capitalize(entityMatch[1]) : undefined;
     const entityId = entityMatch?.[2] || params?.id || body?.id;
 

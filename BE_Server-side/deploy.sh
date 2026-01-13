@@ -82,7 +82,7 @@ else
   if [ -f "dist/main.js" ]; then
     pm2 start dist/main.js --name be-server
   else
-    pm2 start dist/src/main.js --name be-server
+pm2 start dist/src/main.js --name be-server
   fi
 fi
 

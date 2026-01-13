@@ -14,8 +14,20 @@ const storageService = {
       },
       params: { folder },
     });
-    // Backend có thể trả về { HttpCode, success, data: { fileName: ... } } hoặc trực tiếp là { fileName: ... }
-    const data = response.data?.data || response.data;
+    
+    // Extract data từ response (xử lý nhiều format)
+    const extractData = (response) => {
+      if (response && response.data && response.data.data !== undefined) {
+        return response.data.data;
+      }
+      if (response && response.data !== undefined) {
+        return response.data;
+      }
+      return response;
+    };
+    
+    const data = extractData(response);
+    console.log('📤 Upload response data:', data);
     return data;
   },
 
@@ -38,11 +50,67 @@ const storageService = {
 
   // Get presigned URL for displaying images
   getFileUrl: async (fileName, expiry = 604800) => {
-    const response = await api.get(`/storage/url/${encodeURIComponent(fileName)}`, {
-      params: { expiry },
-    });
-    // Backend có thể trả về { HttpCode, success, data: { url: ... } } hoặc trực tiếp là { url: ... }
-    return response.data?.data || response.data;
+    try {
+      console.log('📡 Requesting file URL for:', fileName);
+      const response = await api.get(`/storage/url/${encodeURIComponent(fileName)}`, {
+        params: { expiry },
+      });
+      console.log('📦 Raw response.data:', response.data);
+      
+      // Backend trả về structure: 
+      // { HttpCode: 200, success: true, data: { url: '...', fileName: '...', ... }, message: '...', timestamp: '...' }
+      let url = null;
+      
+      if (response && response.data) {
+        const responseData = response.data;
+        console.log('🔍 Checking responseData structure:', {
+          hasData: !!responseData.data,
+          hasDataData: !!(responseData.data && responseData.data.data),
+          hasDataDataData: !!(responseData.data && responseData.data.data && responseData.data.data.url),
+          hasUrl: !!responseData.url,
+          isString: typeof responseData === 'string'
+        });
+        
+        // Case 1: { HttpCode: 200, data: { message: '...', data: { url: '...', ... } }, ... } - có 3 level data
+        if (responseData.data && responseData.data.data && responseData.data.data.url) {
+          url = responseData.data.data.url;
+          console.log('✅ Found URL in response.data.data.data.url');
+        }
+        // Case 2: { data: { url: '...', fileName: '...' }, ... } - có 2 level data
+        else if (responseData.data && typeof responseData.data === 'object' && responseData.data.url) {
+          url = responseData.data.url;
+          console.log('✅ Found URL in response.data.data.url');
+        }
+        // Case 3: { url: '...' } - direct url
+        else if (responseData.url && typeof responseData.url === 'string') {
+          url = responseData.url;
+          console.log('✅ Found URL in response.data.url');
+        }
+        // Case 4: response.data is directly the URL string
+        else if (typeof responseData === 'string') {
+          url = responseData;
+          console.log('✅ Found URL as direct string');
+        }
+        // Case 5: Check if data.data exists and is string
+        else if (responseData.data && typeof responseData.data === 'string') {
+          url = responseData.data;
+          console.log('✅ Found URL in response.data.data (string)');
+        }
+      }
+      
+      console.log('🔗 Final extracted URL:', url);
+      
+      if (!url || typeof url !== 'string') {
+        console.error('❌ Could not extract valid URL from response');
+        console.error('Response structure:', JSON.stringify(response.data, null, 2));
+        throw new Error('Invalid response format from server');
+      }
+      
+      return url;
+    } catch (error) {
+      console.error('❌ Error in getFileUrl:', error);
+      throw error;
+    }
   },
 
   // Download file
@@ -92,8 +160,9 @@ const storageService = {
   },
 
   // Helper: Upload avatar
-  uploadAvatar: async (file, userId) => {
-    return storageService.uploadFile(file, 'avatars', `user-${userId}.jpg`);
+  // Không còn đặt tên file cố định theo userId; để backend/MinIO tự sinh tên
+  uploadAvatar: async (file) => {
+    return storageService.uploadFile(file, 'avatars');
   },
 
   // Helper: Upload vegetable image
@@ -111,9 +180,13 @@ const storageService = {
   getImageUrl: async (fileName) => {
     if (!fileName) return null;
     try {
-      const result = await storageService.getFileUrl(fileName);
-      // result có thể là { url: ... } hoặc trực tiếp là string URL
-      return result?.url || result || null;
+      const url = await storageService.getFileUrl(fileName);
+      // getFileUrl should return URL string directly now
+      if (url && typeof url === 'string') {
+        return url;
+      }
+      console.warn('⚠️ getFileUrl returned non-string:', url);
+      return null;
     } catch (error) {
       console.error('Error getting image URL:', error);
       return null;

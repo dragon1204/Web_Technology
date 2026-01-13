@@ -40,14 +40,21 @@ export class AnalyticsController {
 
   @Get('revenue/period')
   @ApiOperation({ summary: 'Doanh thu theo khoảng thời gian' })
-  getRevenueByPeriod(@Query() query: RevenueReportDto) {
-    return this.analyticsService.getRevenueByPeriod(
-      query.period || 'month',
-      query.startDate ? new Date(query.startDate) : undefined,
-      query.endDate ? new Date(query.endDate) : undefined,
-      query.gardenId ? +query.gardenId : undefined,
-      query.vegetableId ? +query.vegetableId : undefined,
-    );
+  async getRevenueByPeriod(@Query() query: RevenueReportDto) {
+    try {
+      const result = await this.analyticsService.getRevenueByPeriod(
+        query.period || 'month',
+        query.startDate ? new Date(query.startDate) : undefined,
+        query.endDate ? new Date(query.endDate) : undefined,
+        query.gardenId ? +query.gardenId : undefined,
+        query.vegetableId ? +query.vegetableId : undefined,
+      );
+      return result;
+    } catch (error) {
+      console.error('Error in getRevenueByPeriod controller:', error);
+      // Trả về empty array thay vì throw error
+      return [];
+    }
   }
 
   @Get('revenue/compare-gardens')

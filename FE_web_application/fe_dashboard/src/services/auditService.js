@@ -128,4 +128,52 @@ export const auditService = {
 
     return response.json();
   },
+
+  // Search audit logs with filters and pagination 🔒
+  async searchLogs(params = {}) {
+    const queryParams = new URLSearchParams();
+
+    if (params.action) queryParams.append("action", params.action);
+    if (params.entityType) queryParams.append("entityType", params.entityType);
+    if (params.success !== undefined) queryParams.append("success", params.success);
+    if (params.startDate) queryParams.append("startDate", params.startDate);
+    if (params.endDate) queryParams.append("endDate", params.endDate);
+    if (params.search) queryParams.append("search", params.search);
+    if (params.page) queryParams.append("page", params.page);
+    if (params.limit) queryParams.append("limit", params.limit);
+
+    console.log("AuditService: Searching logs with params:", params);
+
+    const response = await fetch(`${API_BASE}/audit/search?${queryParams}`, {
+      headers: getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Failed to search audit logs");
+    }
+
+    return response.json();
+  },
+
+  // Get audit statistics 🔒
+  async getStatistics(params = {}) {
+    const queryParams = new URLSearchParams();
+
+    if (params.startDate) queryParams.append("startDate", params.startDate.toISOString());
+    if (params.endDate) queryParams.append("endDate", params.endDate.toISOString());
+
+    console.log("AuditService: Fetching statistics with params:", params);
+
+    const response = await fetch(`${API_BASE}/audit/statistics?${queryParams}`, {
+      headers: getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Failed to fetch audit statistics");
+    }
+
+    return response.json();
+  },
 };

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
 import toast from "react-hot-toast";
+import { config } from "../../config";
 
 const AdminLayout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -19,6 +20,7 @@ const AdminLayout = ({ children }) => {
     }
   };
 
+  // Menu items dành cho ADMIN - chỉ hiển thị các mục quản lý hệ thống
   const menuItems = [
     {
       path: "/dashboard",
@@ -36,9 +38,9 @@ const AdminLayout = ({ children }) => {
       icon: "🌱",
     },
     {
-      path: "/vegetables",
-      name: "Quản lý cây trồng",
-      icon: "🌿",
+      path: "/shop-products",
+      name: "Quản lý sản phẩm Shop",
+      icon: "🏪",
     },
     {
       path: "/revenue",
@@ -223,30 +225,59 @@ const AdminLayout = ({ children }) => {
                 color: "#ffffff",
               }}
             >
-              <div
-                style={{
-                  width: "32px",
-                  height: "32px",
-                  backgroundColor: "#4cbe00",
-                  borderRadius: "50%",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "white",
-                  fontSize: "14px",
-                  fontWeight: "bold",
-                }}
-              >
-                {(
-                  user?.name ||
-                  user?.data?.name ||
-                  user?.email ||
-                  user?.data?.email ||
-                  "A"
-                )
-                  ?.charAt(0)
-                  ?.toUpperCase()}
-              </div>
+              {(() => {
+                const avatarPath =
+                  user?.avatar ||
+                  user?.data?.avatar ||
+                  user?.avatarUrl ||
+                  user?.data?.avatarUrl;
+                if (avatarPath) {
+                  const isAbsolute = /^https?:\/\//i.test(avatarPath);
+                  const src = isAbsolute
+                    ? avatarPath
+                    : `${config.API_BASE_URL}/storage/view/${encodeURIComponent(
+                        avatarPath
+                      )}`;
+                  return (
+                    <img
+                      src={src}
+                      alt={user?.name || user?.data?.name || "Admin"}
+                      style={{
+                        width: "40px",
+                        height: "40px",
+                        borderRadius: "50%",
+                        objectFit: "cover",
+                      }}
+                    />
+                  );
+                }
+                return (
+                  <div
+                    style={{
+                      width: "40px",
+                      height: "40px",
+                      backgroundColor: "#4cbe00",
+                      borderRadius: "50%",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "white",
+                      fontSize: "18px",
+                      fontWeight: "bold",
+                    }}
+                  >
+                    {(
+                      user?.name ||
+                      user?.data?.name ||
+                      user?.email ||
+                      user?.data?.email ||
+                      "A"
+                    )
+                      ?.charAt(0)
+                      ?.toUpperCase()}
+                  </div>
+                );
+              })()}
               <div>
                 <div style={{ fontSize: "14px", fontWeight: "500" }}>
                   {user?.name ||

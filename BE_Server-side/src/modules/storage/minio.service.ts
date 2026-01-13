@@ -83,7 +83,27 @@ export class MinioService implements OnModuleInit {
 
     const timestamp = Date.now();
     const originalName = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
-    const fileName = customFileName || `${folder}/${timestamp}-${originalName}`;
+
+    // Đảm bảo đường dẫn trong bucket luôn bao gồm folder khi được truyền vào
+    // Các case:
+    // - Có folder + customFileName  -> `${folder}/${customFileName}`
+    // - Chỉ có customFileName       -> customFileName
+    // - Không có customFileName     -> `${folder}/${timestamp}-${originalName}` (hoặc `${timestamp}-...` nếu không có folder)
+    let fileName: string;
+    if (customFileName && folder) {
+      // Tránh double-prefix nếu customFileName đã chứa folder
+      if (customFileName.startsWith(`${folder}/`)) {
+        fileName = customFileName;
+      } else {
+        fileName = `${folder}/${customFileName}`;
+      }
+    } else if (customFileName) {
+      fileName = customFileName;
+    } else if (folder) {
+      fileName = `${folder}/${timestamp}-${originalName}`;
+    } else {
+      fileName = `${timestamp}-${originalName}`;
+    }
     
     const metaData = {
       'Content-Type': file.mimetype,

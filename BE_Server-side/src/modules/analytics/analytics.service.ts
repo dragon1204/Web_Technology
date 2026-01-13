@@ -20,29 +20,50 @@ export class AnalyticsService {
     gardenId?: number,
     vegetableId?: number,
   ) {
-    const where: any = {};
-    if (gardenId) where.gardenId = gardenId;
-    if (vegetableId) where.vegetableId = vegetableId;
-    if (startDate || endDate) {
-      where.time = {};
-      if (startDate) where.time.gte = startDate;
-      if (endDate) where.time.lte = endDate;
+    try {
+      const where: any = {};
+      if (gardenId) where.gardenId = gardenId;
+      if (vegetableId) where.vegetableId = vegetableId;
+      if (startDate || endDate) {
+        where.time = {};
+        if (startDate) where.time.gte = startDate;
+        if (endDate) where.time.lte = endDate;
+      }
+
+      const whereClause = this.buildWhereClause(where);
+
+      // Validate period để tránh SQL injection
+      const validPeriods = ['day', 'week', 'month', 'year'];
+      if (!validPeriods.includes(period)) {
+        throw new BadRequestException(`Invalid period: ${period}. Must be one of: ${validPeriods.join(', ')}`);
+      }
+
+      const result = await this.prisma.$queryRawUnsafe(`
+        SELECT 
+          DATE_TRUNC('${period}', "time") AS period,
+          SUM(total) AS totalRevenue,
+          SUM(quantity) AS totalQuantity,
+          COUNT(*) AS saleCount,
+          AVG(total) AS avgRevenue
+        FROM "Sale"
+        ${whereClause}
+        GROUP BY period
+        ORDER BY period ASC
+      `);
+
+      // Format result để frontend dễ xử lý
+      return Array.isArray(result) ? result.map((row: any) => ({
+        period: row.period,
+        totalRevenue: Number(row.totalRevenue || 0),
+        totalQuantity: Number(row.totalQuantity || 0),
+        saleCount: Number(row.saleCount || 0),
+        avgRevenue: Number(row.avgRevenue || 0),
+      })) : [];
+    } catch (error) {
+      console.error('Error in getRevenueByPeriod:', error);
+      // Trả về empty array thay vì throw error để frontend không crash
+      return [];
     }
-
-    const whereClause = this.buildWhereClause(where);
-
-    return this.prisma.$queryRawUnsafe(`
-      SELECT 
-        DATE_TRUNC('${period}', "time") AS period,
-        SUM(total) AS totalRevenue,
-        SUM(quantity) AS totalQuantity,
-        COUNT(*) AS saleCount,
-        AVG(total) AS avgRevenue
-      FROM "Sale"
-      ${whereClause}
-      GROUP BY period
-      ORDER BY period ASC
-    `);
   }
 
   /**
